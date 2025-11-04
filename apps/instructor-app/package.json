@@ -1,14 +1,15 @@
 {
-  "name": "my-v0-project",
-  "version": "0.1.0",
+  "name": "@xpertia/instructor-app",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "build": "next build",
-    "dev": "next dev",
+    "dev": "next dev --port 3001",
     "lint": "eslint .",
     "start": "next start"
   },
   "dependencies": {
+    "axios": "^1.6.5",
     "@dnd-kit/core": "latest",
     "@dnd-kit/sortable": "latest",
     "@dnd-kit/utilities": "latest",

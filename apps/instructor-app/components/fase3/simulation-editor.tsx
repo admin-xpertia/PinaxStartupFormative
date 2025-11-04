@@ -87,6 +87,32 @@ interface ChatMessage {
   tags_aplicados?: string[]
 }
 
+type RespuestaFieldValue = RespuestaIA[keyof RespuestaIA]
+type CriterioFieldValue = CriterioSimulacion[keyof CriterioSimulacion]
+
+interface ConfigurationPanelProps {
+  contenido: SimulacionContenido
+  updatePersonaje: (field: keyof PersonajeSimulado, value: string) => void
+  addRespuesta: () => void
+  updateRespuesta: (id: string, field: keyof RespuestaIA, value: RespuestaFieldValue) => void
+  deleteRespuesta: (id: string) => void
+  addCriterio: () => void
+  updateCriterio: (id: string, field: keyof CriterioSimulacion, value: CriterioFieldValue) => void
+  deleteCriterio: (id: string) => void
+}
+
+interface RespuestaCardProps {
+  respuesta: RespuestaIA
+  updateRespuesta: (id: string, field: keyof RespuestaIA, value: RespuestaFieldValue) => void
+  deleteRespuesta: (id: string) => void
+}
+
+interface CriterioCardProps {
+  criterio: CriterioSimulacion
+  updateCriterio: (id: string, field: keyof CriterioSimulacion, value: CriterioFieldValue) => void
+  deleteCriterio: (id: string) => void
+}
+
 export function SimulationEditor({
   programaId,
   componenteId,
@@ -166,7 +192,7 @@ export function SimulationEditor({
     setHasChanges(true)
   }
 
-  const updateRespuesta = (id: string, field: keyof RespuestaIA, value: any) => {
+  const updateRespuesta = (id: string, field: keyof RespuestaIA, value: RespuestaFieldValue) => {
     setContenido((prev) => ({
       ...prev,
       banco_respuestas: prev.banco_respuestas.map((r) => (r.id === id ? { ...r, [field]: value } : r)),
@@ -197,7 +223,7 @@ export function SimulationEditor({
     setHasChanges(true)
   }
 
-  const updateCriterio = (id: string, field: keyof CriterioSimulacion, value: any) => {
+  const updateCriterio = (id: string, field: keyof CriterioSimulacion, value: CriterioFieldValue) => {
     setContenido((prev) => ({
       ...prev,
       criterios_evaluacion: prev.criterios_evaluacion.map((c) => (c.id === id ? { ...c, [field]: value } : c)),
@@ -353,7 +379,7 @@ function ConfigurationPanel({
   addCriterio,
   updateCriterio,
   deleteCriterio,
-}: any) {
+}: ConfigurationPanelProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
 
@@ -365,7 +391,9 @@ function ConfigurationPanel({
     return matchesSearch && matchesTag
   })
 
-  const allTags = Array.from(new Set(contenido.banco_respuestas.flatMap((r: RespuestaIA) => r.tags)))
+  const allTags: string[] = Array.from(
+    new Set(contenido.banco_respuestas.flatMap((r: RespuestaIA) => r.tags)),
+  )
 
   return (
     <Tabs defaultValue="personaje" className="h-full">
@@ -565,7 +593,7 @@ function ConfigurationPanel({
   )
 }
 
-function RespuestaCard({ respuesta, updateRespuesta, deleteRespuesta }: any) {
+function RespuestaCard({ respuesta, updateRespuesta, deleteRespuesta }: RespuestaCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
   return (
@@ -631,7 +659,7 @@ function RespuestaCard({ respuesta, updateRespuesta, deleteRespuesta }: any) {
   )
 }
 
-function CriterioCard({ criterio, updateCriterio, deleteCriterio }: any) {
+function CriterioCard({ criterio, updateCriterio, deleteCriterio }: CriterioCardProps) {
   const [newIndicadorPos, setNewIndicadorPos] = useState("")
   const [newIndicadorNeg, setNewIndicadorNeg] = useState("")
 

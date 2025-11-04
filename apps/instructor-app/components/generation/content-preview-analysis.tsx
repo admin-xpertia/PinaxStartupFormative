@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import type { ContenidoGenerado } from "@/types/content"
+import type { ContenidoGenerado, LeccionContent } from "@/types/content"
 import ReactMarkdown from "react-markdown"
 
 interface ContentPreviewAnalysisProps {
@@ -34,10 +34,15 @@ interface ContentPreviewAnalysisProps {
   onDiscard: () => void
 }
 
+const isLeccionContenido = (
+  contenido: ContenidoGenerado,
+): contenido is ContenidoGenerado & { contenido: LeccionContent } => contenido.tipo === "leccion"
+
 export function ContentPreviewAnalysis({ contenido, onAccept, onRegenerate, onDiscard }: ContentPreviewAnalysisProps) {
   const [viewMode, setViewMode] = useState<"preview" | "markdown" | "json">("preview")
 
   const { analisis_calidad } = contenido
+  const leccionContenido = isLeccionContenido(contenido) ? contenido.contenido : null
   const scoreColor =
     analisis_calidad.score_general >= 80
       ? "text-success"
@@ -114,11 +119,13 @@ export function ContentPreviewAnalysis({ contenido, onAccept, onRegenerate, onDi
               </div>
 
               <div className="prose prose-sm max-w-none">
-                {viewMode === "preview" && contenido.tipo === "leccion" && (
-                  <ReactMarkdown>{contenido.contenido.markdown}</ReactMarkdown>
+                {viewMode === "preview" && leccionContenido && (
+                  <ReactMarkdown>{leccionContenido.markdown}</ReactMarkdown>
                 )}
-                {viewMode === "markdown" && contenido.tipo === "leccion" && (
-                  <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-xs">{contenido.contenido.markdown}</pre>
+                {viewMode === "markdown" && leccionContenido && (
+                  <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-xs">
+                    {leccionContenido.markdown}
+                  </pre>
                 )}
                 {viewMode === "json" && (
                   <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-xs">
@@ -209,7 +216,7 @@ export function ContentPreviewAnalysis({ contenido, onAccept, onRegenerate, onDi
                           <span className="text-sm font-semibold w-12 text-right">{metrica.score}/100</span>
                         </div>
                         <div className="text-xs text-muted-foreground space-y-1">
-                          {metrica.detalles.map((detalle, i) => (
+                          {metrica.detalles.map((detalle: string, i: number) => (
                             <div key={i}>• {detalle}</div>
                           ))}
                         </div>

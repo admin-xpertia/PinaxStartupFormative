@@ -38,6 +38,7 @@ import {
   Save,
   X,
 } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -85,7 +86,18 @@ interface NivelConfiguratorProps {
   onClose?: () => void
 }
 
-const tipoComponenteConfig = {
+const tipoComponenteConfig: Record<
+  TipoComponente,
+  {
+    label: string
+    icon: LucideIcon
+    color: string
+    bgColor: string
+    borderColor: string
+    textColor: string
+    descripcion: string
+  }
+> = {
   leccion: {
     label: "Lección Interactiva",
     icon: BookOpen,

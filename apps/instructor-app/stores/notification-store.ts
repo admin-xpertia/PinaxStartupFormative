@@ -23,7 +23,7 @@ interface NotificationState {
   markAllAsRead: () => void
   clearNotifications: () => void
   removeNotification: (id: string) => void
-  showToast: (message: string, type?: "success" | "error" | "info" | "warning") => void
+  showToast: (type: "success" | "error" | "info" | "warning", message: string) => void
 }
 
 export const useNotificationStore = create<NotificationState>((set) => ({
@@ -98,7 +98,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
       }
     }),
 
-  showToast: (message: string, type: "success" | "error" | "info" | "warning" = "info") => {
+  showToast: (type, message) => {
     const variantMap = {
       success: "default",
       error: "destructive",

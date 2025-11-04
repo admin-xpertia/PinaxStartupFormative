@@ -96,3 +96,5 @@ export interface CriterioCompletacion {
   tipo: "simple" | "custom"
   condiciones?: string[]
 }
+
+export type TipoComponente = ComponenteAprendizaje["tipo"]

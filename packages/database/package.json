@@ -1,0 +1,37 @@
+{
+  "name": "@xpertia/database",
+  "version": "1.0.0",
+  "description": "Esquema y configuración de SurrealDB para Xpertia Plataforma",
+  "main": "config.ts",
+  "type": "module",
+  "scripts": {
+    "init": "./init-schema.sh",
+    "init:dev": "SURREAL_URL=http://localhost:8000 ./init-schema.sh",
+    "init:test": "NAMESPACE=xpertia_test DATABASE=plataforma_test ./init-schema.sh",
+    "reset:dev": "surreal sql --endpoint http://localhost:8000 --username root --password root --namespace xpertia --database plataforma 'REMOVE DATABASE plataforma;' && npm run init:dev",
+    "query": "surreal sql --endpoint http://localhost:8000 --username root --password root --namespace xpertia --database plataforma",
+    "import": "surreal import --endpoint http://localhost:8000 --username root --password root --namespace xpertia --database plataforma",
+    "export": "surreal export --endpoint http://localhost:8000 --username root --password root --namespace xpertia --database plataforma"
+  },
+  "keywords": [
+    "surrealdb",
+    "database",
+    "schema",
+    "xpertia"
+  ],
+  "author": "Xpertia Team",
+  "license": "MIT",
+  "dependencies": {
+    "surrealdb.js": "^0.11.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  },
+  "files": [
+    "schema/**/*.surql",
+    "config.ts",
+    "init-schema.sh",
+    "queries-ejemplos.surql",
+    "README.md"
+  ]
+}

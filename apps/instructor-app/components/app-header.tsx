@@ -12,9 +12,26 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { ChevronDown, Search, Settings, HelpCircle, LogOut, User } from "lucide-react"
 import { NotificationCenter } from "@/components/shared/notification-center"
+import { useAuth } from "@/hooks/useAuth"
 import Link from "next/link"
 
 export function AppHeader() {
+  const { user, logout } = useAuth();
+
+  // Obtener iniciales del nombre
+  const getInitials = (nombre: string) => {
+    return nombre
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  // Manejar cierre de sesión
+  const handleLogout = async () => {
+    await logout();
+  };
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
       <div className="flex h-16 items-center justify-between px-6">
@@ -62,11 +79,15 @@ export function AppHeader() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-sm">MG</AvatarFallback>
+                  <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                    {user ? getInitials(user.nombre) : 'U'}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="hidden md:flex flex-col items-start">
-                  <span className="text-sm font-medium">María González</span>
-                  <span className="text-xs text-muted-foreground">Instructor</span>
+                  <span className="text-sm font-medium">{user?.nombre || 'Usuario'}</span>
+                  <span className="text-xs text-muted-foreground capitalize">
+                    {user?.rol || 'Instructor'}
+                  </span>
                 </div>
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </Button>
@@ -87,7 +108,10 @@ export function AppHeader() {
                 Ayuda
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive">
+              <DropdownMenuItem
+                className="text-destructive"
+                onClick={handleLogout}
+              >
                 <LogOut className="mr-2 h-4 w-4" />
                 Cerrar Sesión
               </DropdownMenuItem>
