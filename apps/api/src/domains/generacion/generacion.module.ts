@@ -1,5 +1,4 @@
 import { Module } from "@nestjs/common";
-import { HttpModule } from "@nestjs/axios";
 import { ConfigService } from "@nestjs/config";
 import OpenAI from "openai";
 import { GeneracionController } from "./generacion.controller";
@@ -8,7 +7,7 @@ import { ProgramasModule } from "../programas/programas.module";
 import { SurrealDbModule } from "src/core/database";
 
 @Module({
-  imports: [HttpModule, ProgramasModule, SurrealDbModule],
+  imports: [ProgramasModule, SurrealDbModule],
   controllers: [GeneracionController],
   providers: [
     GeneracionService,

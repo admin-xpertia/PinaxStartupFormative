@@ -11,7 +11,7 @@ import { instanceToPlain } from "class-transformer";
 import { SurrealDbService } from "src/core/database";
 import { ProgramasService } from "../programas/programas.service";
 import { GenerationConfigDto, TipoComponente } from "./dto";
-import type { FaseDocumentation } from "@xpertia/types/fase";
+import type { FaseDocumentation } from "./types/fase.types";
 
 export const OPENAI_CLIENT = Symbol("OPENAI_CLIENT");
 
@@ -436,7 +436,7 @@ Estás generando un componente de aprendizaje dentro de la siguiente estructura:
 Has recibido la siguiente documentación de la fase directamente del instructor. DEBES basar tu generación estrictamente en este conocimiento.
 
 ## Contexto General de la Fase:
-${doc.contexto_general || doc.contexto || "No proporcionado"}
+${doc.contexto || "No proporcionado"}
 
 ## Conceptos Clave (Definiciones y Ejemplos):
 ${this._formatJsonForPrompt(doc.conceptos_clave, "nombre", "definicion", "ejemplo")}
