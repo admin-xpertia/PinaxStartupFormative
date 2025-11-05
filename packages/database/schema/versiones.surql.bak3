@@ -43,8 +43,8 @@ DEFINE FIELD IF NOT EXISTS created_at ON version_contenido TYPE datetime
     READONLY;
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS versionContCompIdx ON version_contenido FIELDS componente;
-DEFINE INDEX IF NOT EXISTS versionContNumIdx ON version_contenido FIELDS componente, numero_version UNIQUE;
+DEFINE INDEX versionContCompIdx ON version_contenido FIELDS componente;
+DEFINE INDEX versionContNumIdx ON version_contenido FIELDS componente, numero_version UNIQUE;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: snapshot_programa
@@ -79,8 +79,8 @@ DEFINE FIELD IF NOT EXISTS created_at ON snapshot_programa TYPE datetime
     READONLY;
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS snapshotProgIdx ON snapshot_programa FIELDS programa;
-DEFINE INDEX IF NOT EXISTS snapshotVersionIdx ON snapshot_programa FIELDS programa, version UNIQUE;
+DEFINE INDEX snapshotProgIdx ON snapshot_programa FIELDS programa;
+DEFINE INDEX snapshotVersionIdx ON snapshot_programa FIELDS programa, version UNIQUE;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: cambio_contenido
@@ -110,9 +110,9 @@ DEFINE FIELD IF NOT EXISTS timestamp ON cambio_contenido TYPE datetime
     READONLY;
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS cambioVersionIdx ON cambio_contenido FIELDS version_contenido;
-DEFINE INDEX IF NOT EXISTS cambioUsuarioIdx ON cambio_contenido FIELDS usuario;
-DEFINE INDEX IF NOT EXISTS cambioTimestampIdx ON cambio_contenido FIELDS timestamp;
+DEFINE INDEX cambioVersionIdx ON cambio_contenido FIELDS version_contenido;
+DEFINE INDEX cambioUsuarioIdx ON cambio_contenido FIELDS usuario;
+DEFINE INDEX cambioTimestampIdx ON cambio_contenido FIELDS timestamp;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: comparacion_version
@@ -140,7 +140,7 @@ DEFINE FIELD IF NOT EXISTS created_at ON comparacion_version TYPE datetime
     READONLY;
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS comparacionVersionesIdx ON comparacion_version FIELDS version_anterior, version_nueva;
+DEFINE INDEX comparacionVersionesIdx ON comparacion_version FIELDS version_anterior, version_nueva;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: rollback_historia
@@ -168,8 +168,8 @@ DEFINE FIELD IF NOT EXISTS timestamp ON rollback_historia TYPE datetime
     READONLY;
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS rollbackCompIdx ON rollback_historia FIELDS componente;
-DEFINE INDEX IF NOT EXISTS rollbackUsuarioIdx ON rollback_historia FIELDS realizado_por;
+DEFINE INDEX rollbackCompIdx ON rollback_historia FIELDS componente;
+DEFINE INDEX rollbackUsuarioIdx ON rollback_historia FIELDS realizado_por;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: aprobacion_version
@@ -210,9 +210,9 @@ DEFINE FIELD IF NOT EXISTS updated_at ON aprobacion_version TYPE datetime
     VALUE time::now();
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS aprobacionVersionIdx ON aprobacion_version FIELDS version_contenido;
-DEFINE INDEX IF NOT EXISTS aprobacionEstadoIdx ON aprobacion_version FIELDS estado;
-DEFINE INDEX IF NOT EXISTS aprobacionSolicitanteIdx ON aprobacion_version FIELDS solicitante;
+DEFINE INDEX aprobacionVersionIdx ON aprobacion_version FIELDS version_contenido;
+DEFINE INDEX aprobacionEstadoIdx ON aprobacion_version FIELDS estado;
+DEFINE INDEX aprobacionSolicitanteIdx ON aprobacion_version FIELDS solicitante;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: conflicto_version
@@ -253,5 +253,5 @@ DEFINE FIELD IF NOT EXISTS detectado_at ON conflicto_version TYPE datetime
 DEFINE FIELD IF NOT EXISTS resuelto_at ON conflicto_version TYPE datetime;
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS conflictoCompIdx ON conflicto_version FIELDS componente;
-DEFINE INDEX IF NOT EXISTS conflictoEstadoIdx ON conflicto_version FIELDS estado;
+DEFINE INDEX conflictoCompIdx ON conflicto_version FIELDS componente;
+DEFINE INDEX conflictoEstadoIdx ON conflicto_version FIELDS estado;

@@ -127,16 +127,16 @@ export class AuthService {
    */
   private decodeJWT(token: string): any {
     try {
-      const parts = token.split('.');
+      const parts = token.split(".");
       if (parts.length !== 3) {
-        throw new Error('Token JWT inválido');
+        throw new Error("Token JWT inválido");
       }
 
-      const payload = Buffer.from(parts[1], 'base64').toString('utf8');
+      const payload = Buffer.from(parts[1], "base64").toString("utf8");
       return JSON.parse(payload);
     } catch (error) {
-      this.logger.error('Error al decodificar JWT', error);
-      throw new UnauthorizedException('Token inválido');
+      this.logger.error("Error al decodificar JWT", error);
+      throw new UnauthorizedException("Token inválido");
     }
   }
 

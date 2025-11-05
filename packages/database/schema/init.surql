@@ -57,68 +57,74 @@ USE DB plataforma;
 -- DATOS SEMILLA (SEED DATA)
 -- ============================================================================
 
--- Crear usuario admin por defecto
-LET $admin_user = CREATE user:admin SET
-    email = 'admin@xpertia.com',
-    nombre = 'Administrador',
-    password_hash = crypto::argon2::generate('changeme123!'),
-    rol = 'admin',
-    activo = true,
-    preferencias = {},
-    created_at = time::now(),
-    updated_at = time::now();
+-- Crear usuario admin por defecto (usar UPDATE para idempotencia)
+LET $admin_user = UPDATE user:admin CONTENT {
+    email: 'admin@xpertia.com',
+    nombre: 'Administrador',
+    password_hash: crypto::argon2::generate('changeme123!'),
+    rol: 'admin',
+    activo: true,
+    preferencias: {},
+    created_at: time::now(),
+    updated_at: time::now()
+};
 
--- Crear usuario instructor de prueba
-LET $instructor_user = CREATE user:instructor_demo SET
-    email = 'instructor@xpertia.com',
-    nombre = 'Instructor Demo',
-    password_hash = crypto::argon2::generate('instructor123!'),
-    rol = 'instructor',
-    activo = true,
-    preferencias = {},
-    created_at = time::now(),
-    updated_at = time::now();
+-- Crear usuario instructor de prueba (usar UPDATE para idempotencia)
+LET $instructor_user = UPDATE user:instructor_demo CONTENT {
+    email: 'instructor@xpertia.com',
+    nombre: 'Instructor Demo',
+    password_hash: crypto::argon2::generate('instructor123!'),
+    rol: 'instructor',
+    activo: true,
+    preferencias: {},
+    created_at: time::now(),
+    updated_at: time::now()
+};
 
--- Crear algunos badges básicos
-CREATE badge:completacion_fase SET
-    nombre = 'Completador de Fase',
-    descripcion = 'Completa exitosamente una fase del programa',
-    icon_url = '/badges/completacion_fase.svg',
-    tipo = 'completacion',
-    criterios = { tipo: 'fase_completada' },
-    puntos = 100,
-    rareza = 'comun',
-    created_at = time::now();
+-- Crear algunos badges básicos (usar UPDATE para idempotencia)
+UPDATE badge:completacion_fase CONTENT {
+    nombre: 'Completador de Fase',
+    descripcion: 'Completa exitosamente una fase del programa',
+    icon_url: '/badges/completacion_fase.svg',
+    tipo: 'completacion',
+    criterios: { tipo: 'fase_completada' },
+    puntos: 100,
+    rareza: 'comun',
+    created_at: time::now()
+};
 
-CREATE badge:primera_simulacion SET
-    nombre = 'Primera Simulación',
-    descripcion = 'Completa tu primera simulación',
-    icon_url = '/badges/primera_simulacion.svg',
-    tipo = 'completacion',
-    criterios = { tipo: 'primera_simulacion' },
-    puntos = 50,
-    rareza = 'comun',
-    created_at = time::now();
+UPDATE badge:primera_simulacion CONTENT {
+    nombre: 'Primera Simulación',
+    descripcion: 'Completa tu primera simulación',
+    icon_url: '/badges/primera_simulacion.svg',
+    tipo: 'completacion',
+    criterios: { tipo: 'primera_simulacion' },
+    puntos: 50,
+    rareza: 'comun',
+    created_at: time::now()
+};
 
-CREATE badge:excelencia_proof_point SET
-    nombre = 'Excelencia en Proof Point',
-    descripcion = 'Obtén una calificación superior al 90% en un Proof Point',
-    icon_url = '/badges/excelencia.svg',
-    tipo = 'excelencia',
-    criterios = { tipo: 'score_alto', minimo: 90 },
-    puntos = 200,
-    rareza = 'raro',
-    created_at = time::now();
+UPDATE badge:excelencia_proof_point CONTENT {
+    nombre: 'Excelencia en Proof Point',
+    descripcion: 'Obtén una calificación superior al 90% en un Proof Point',
+    icon_url: '/badges/excelencia.svg',
+    tipo: 'excelencia',
+    criterios: { tipo: 'score_alto', minimo: 90 },
+    puntos: 200,
+    rareza: 'raro',
+    created_at: time::now()
+};
 
-CREATE badge:velocista SET
-    nombre = 'Velocista',
-    descripcion = 'Completa un componente en menos del 50% del tiempo estimado',
-    icon_url = '/badges/velocista.svg',
-    tipo = 'velocidad',
-    criterios = { tipo: 'tiempo_rapido', porcentaje: 50 },
-    puntos = 150,
-    rareza = 'raro',
-    created_at = time::now();
+UPDATE badge:velocista CONTENT {
+    nombre: 'Velocista',
+    descripcion: 'Completa un componente en menos del 50% del tiempo estimado',
+    icon_url: '/badges/velocista.svg',
+    tipo: 'velocidad',
+    criterios: { tipo: 'tiempo_rapido', porcentaje: 50 },
+    puntos: 150,
+    rareza: 'raro',
+    created_at: time::now()
+};
 
 -- ============================================================================
 -- MENSAJE DE FINALIZACIÓN

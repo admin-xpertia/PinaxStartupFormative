@@ -186,9 +186,9 @@ export interface ComponenteContenido {
   componente: RecordId<'componente'>;
   tipo: 'leccion' | 'cuaderno' | 'simulacion' | 'herramienta';
   contenido: JSONObject;
-  estado: 'draft' | 'revision' | 'publicado';
+  estado: 'draft' | 'publicado';
   created_at: DateTime;
-  updated_at: DateTime;
+  validacion_calidad?: RecordId<'validacion_calidad'>;
 }
 
 export interface RubricaEvaluacion {
@@ -229,17 +229,10 @@ export interface ContenidoGenerado {
 
 export interface ValidacionCalidad {
   id: RecordId<'validacion_calidad'>;
-  contenido_generado: RecordId<'contenido_generado'>;
-  score_lecturabilidad: number;
-  score_cobertura_conceptos: number;
-  score_accesibilidad: number;
   score_general: number;
-  issues_encontrados: any[];
-  aprobado: boolean;
-  revisado_por?: RecordId<'user'>;
-  comentarios?: string;
-  created_at: DateTime;
-  updated_at: DateTime;
+  metricas: JSONObject;
+  sugerencias: JSONObject[];
+  comparacion_objetivos: JSONObject[];
 }
 
 // ============================================================================

@@ -1,25 +1,25 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty } from "@nestjs/swagger";
 
 /**
  * DTO para componentes dentro de un nivel
  */
 export class ComponenteDto {
-  @ApiProperty({ description: 'ID único del componente' })
+  @ApiProperty({ description: "ID único del componente" })
   id: string;
 
-  @ApiProperty({ description: 'Nombre del componente' })
+  @ApiProperty({ description: "Nombre del componente" })
   nombre: string;
 
-  @ApiProperty({ description: 'Tipo de componente (leccion, ejercicio, etc.)' })
+  @ApiProperty({ description: "Tipo de componente (leccion, ejercicio, etc.)" })
   tipo: string;
 
-  @ApiProperty({ description: 'Orden del componente en el nivel' })
+  @ApiProperty({ description: "Orden del componente en el nivel" })
   orden: number;
 
-  @ApiProperty({ description: 'ID del nivel al que pertenece' })
+  @ApiProperty({ description: "ID del nivel al que pertenece" })
   nivel: string;
 
-  @ApiProperty({ description: 'Fecha de creación' })
+  @ApiProperty({ description: "Fecha de creación" })
   created_at: string;
 }
 
@@ -27,26 +27,26 @@ export class ComponenteDto {
  * DTO para niveles dentro de un proof point
  */
 export class NivelDto {
-  @ApiProperty({ description: 'ID único del nivel' })
+  @ApiProperty({ description: "ID único del nivel" })
   id: string;
 
-  @ApiProperty({ description: 'Número del nivel' })
+  @ApiProperty({ description: "Número del nivel" })
   numero: number;
 
-  @ApiProperty({ description: 'Nombre del nivel' })
+  @ApiProperty({ description: "Nombre del nivel" })
   nombre: string;
 
-  @ApiProperty({ description: 'Objetivo específico del nivel' })
+  @ApiProperty({ description: "Objetivo específico del nivel" })
   objetivo_especifico: string;
 
-  @ApiProperty({ description: 'ID del proof point al que pertenece' })
+  @ApiProperty({ description: "ID del proof point al que pertenece" })
   proof_point: string;
 
-  @ApiProperty({ description: 'Fecha de creación' })
+  @ApiProperty({ description: "Fecha de creación" })
   created_at: string;
 
   @ApiProperty({
-    description: 'Componentes del nivel',
+    description: "Componentes del nivel",
     type: [ComponenteDto],
     required: false,
   })
@@ -57,41 +57,41 @@ export class NivelDto {
  * DTO para proof points dentro de una fase
  */
 export class ProofPointDto {
-  @ApiProperty({ description: 'ID único del proof point' })
+  @ApiProperty({ description: "ID único del proof point" })
   id: string;
 
-  @ApiProperty({ description: 'Nombre del proof point' })
+  @ApiProperty({ description: "Nombre del proof point" })
   nombre: string;
 
-  @ApiProperty({ description: 'Slug único del proof point' })
+  @ApiProperty({ description: "Slug único del proof point" })
   slug: string;
 
-  @ApiProperty({ description: 'Descripción del proof point' })
+  @ApiProperty({ description: "Descripción del proof point" })
   descripcion: string;
 
-  @ApiProperty({ description: 'Pregunta central del proof point' })
+  @ApiProperty({ description: "Pregunta central del proof point" })
   pregunta_central: string;
 
-  @ApiProperty({ description: 'Tipo de entregable esperado' })
+  @ApiProperty({ description: "Tipo de entregable esperado" })
   tipo_entregable: string;
 
-  @ApiProperty({ description: 'Número de niveles' })
+  @ApiProperty({ description: "Número de niveles" })
   numero_niveles: number;
 
-  @ApiProperty({ description: 'Prerequisitos', type: [String] })
+  @ApiProperty({ description: "Prerequisitos", type: [String] })
   prerequisitos: string[];
 
-  @ApiProperty({ description: 'Duración estimada en horas' })
+  @ApiProperty({ description: "Duración estimada en horas" })
   duracion_estimada_horas: number;
 
-  @ApiProperty({ description: 'ID de la fase a la que pertenece' })
+  @ApiProperty({ description: "ID de la fase a la que pertenece" })
   fase: string;
 
-  @ApiProperty({ description: 'Fecha de creación' })
+  @ApiProperty({ description: "Fecha de creación" })
   created_at: string;
 
   @ApiProperty({
-    description: 'Niveles del proof point',
+    description: "Niveles del proof point",
     type: [NivelDto],
     required: false,
   })
@@ -102,32 +102,32 @@ export class ProofPointDto {
  * DTO para fases dentro de un programa
  */
 export class FaseDto {
-  @ApiProperty({ description: 'ID único de la fase' })
+  @ApiProperty({ description: "ID único de la fase" })
   id: string;
 
-  @ApiProperty({ description: 'Nombre de la fase' })
+  @ApiProperty({ description: "Nombre de la fase" })
   nombre: string;
 
-  @ApiProperty({ description: 'Descripción de la fase' })
+  @ApiProperty({ description: "Descripción de la fase" })
   descripcion: string;
 
-  @ApiProperty({ description: 'Objetivos de aprendizaje' })
+  @ApiProperty({ description: "Objetivos de aprendizaje" })
   objetivos_aprendizaje: string;
 
-  @ApiProperty({ description: 'Duración en semanas' })
+  @ApiProperty({ description: "Duración en semanas" })
   duracion_semanas: number;
 
-  @ApiProperty({ description: 'Número de proof points' })
+  @ApiProperty({ description: "Número de proof points" })
   numero_proof_points: number;
 
-  @ApiProperty({ description: 'ID del programa al que pertenece' })
+  @ApiProperty({ description: "ID del programa al que pertenece" })
   programa: string;
 
-  @ApiProperty({ description: 'Fecha de creación' })
+  @ApiProperty({ description: "Fecha de creación" })
   created_at: string;
 
   @ApiProperty({
-    description: 'Proof points de la fase',
+    description: "Proof points de la fase",
     type: [ProofPointDto],
     required: false,
   })
@@ -139,32 +139,32 @@ export class FaseDto {
  * Incluye toda la jerarquía: Programa -> Fases -> ProofPoints -> Niveles -> Componentes
  */
 export class ArquitecturaResponseDto {
-  @ApiProperty({ description: 'ID único del programa' })
+  @ApiProperty({ description: "ID único del programa" })
   id: string;
 
-  @ApiProperty({ description: 'Nombre del programa' })
+  @ApiProperty({ description: "Nombre del programa" })
   nombre: string;
 
-  @ApiProperty({ description: 'Descripción del programa' })
+  @ApiProperty({ description: "Descripción del programa" })
   descripcion: string;
 
-  @ApiProperty({ description: 'Categoría del programa' })
+  @ApiProperty({ description: "Categoría del programa" })
   categoria: string;
 
-  @ApiProperty({ description: 'Duración total en semanas' })
+  @ApiProperty({ description: "Duración total en semanas" })
   duracion_semanas: number;
 
-  @ApiProperty({ description: 'Número de fases' })
+  @ApiProperty({ description: "Número de fases" })
   numero_fases: number;
 
-  @ApiProperty({ description: 'ID del creador' })
+  @ApiProperty({ description: "ID del creador" })
   creador: string;
 
-  @ApiProperty({ description: 'Fecha de creación' })
+  @ApiProperty({ description: "Fecha de creación" })
   created_at: string;
 
   @ApiProperty({
-    description: 'Fases del programa con su jerarquía completa',
+    description: "Fases del programa con su jerarquía completa",
     type: [FaseDto],
     required: false,
   })

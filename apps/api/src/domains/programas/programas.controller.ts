@@ -1,9 +1,21 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+  UseGuards,
+} from "@nestjs/common";
 import { AuthGuard } from "src/core/guards/auth.guard";
 import { ProgramOwnershipGuard } from "./guards/program-ownership.guard";
 import { User } from "src/core/decorators";
 import { ProgramasService } from "./programas.service";
-import { CreateProgramDto, ArquitecturaResponseDto } from "./dto";
+import {
+  CreateProgramDto,
+  ArquitecturaResponseDto,
+  UpdateFaseDocDto,
+} from "./dto";
 import { ProgramaCreado } from "./types";
 
 /**
@@ -69,5 +81,32 @@ export class ProgramasController {
     @Param("id") id: string,
   ): Promise<ArquitecturaResponseDto> {
     return this.programasService.getProgramaConArquitectura(id);
+  }
+
+  /**
+   * Obtiene la documentación asociada a una fase específica.
+   *
+   * Protegido por ProgramOwnershipGuard para asegurar que solo el creador
+   * del programa padre pueda acceder a la documentación.
+   */
+  @Get("fases/:faseId/documentacion")
+  @UseGuards(ProgramOwnershipGuard)
+  async getFaseDocumentacion(@Param("faseId") faseId: string) {
+    return this.programasService.getDocumentacion(faseId);
+  }
+
+  /**
+   * Actualiza (o crea, si no existe) la documentación de una fase.
+   *
+   * Protegido por ProgramOwnershipGuard para asegurar que solo el creador
+   * del programa padre pueda editar la documentación.
+   */
+  @Put("fases/:faseId/documentacion")
+  @UseGuards(ProgramOwnershipGuard)
+  async updateFaseDocumentacion(
+    @Param("faseId") faseId: string,
+    @Body() data: UpdateFaseDocDto,
+  ) {
+    return this.programasService.updateDocumentacion(faseId, data);
   }
 }

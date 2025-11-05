@@ -12,6 +12,7 @@ import {
   ArquitecturaResponseDto,
   OrdenItemDto,
   UpdatePrerequisitosDto,
+  UpdateFaseDocDto,
 } from "./dto";
 import { ProgramaCreado } from "./types";
 
@@ -228,7 +229,9 @@ export class ProgramasService {
           if (a.orden !== undefined && b.orden !== undefined) {
             return a.orden - b.orden;
           }
-          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          return (
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          );
         });
 
         // Para cada fase, procesar sus proof points
@@ -243,7 +246,10 @@ export class ProgramasService {
               if (a.orden !== undefined && b.orden !== undefined) {
                 return a.orden - b.orden;
               }
-              return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+              return (
+                new Date(a.created_at).getTime() -
+                new Date(b.created_at).getTime()
+              );
             });
 
             // Para cada proof point, procesar sus niveles
@@ -254,7 +260,9 @@ export class ProgramasService {
                 delete proofPoint.nivel;
 
                 // Ordenar niveles por número
-                proofPoint.niveles.sort((a: any, b: any) => a.numero - b.numero);
+                proofPoint.niveles.sort(
+                  (a: any, b: any) => a.numero - b.numero,
+                );
 
                 // Para cada nivel, procesar sus componentes
                 for (const nivel of proofPoint.niveles) {
@@ -264,7 +272,9 @@ export class ProgramasService {
                     delete nivel.componente;
 
                     // Ordenar componentes por orden
-                    nivel.componentes.sort((a: any, b: any) => a.orden - b.orden);
+                    nivel.componentes.sort(
+                      (a: any, b: any) => a.orden - b.orden,
+                    );
                   }
                 }
               }
@@ -290,6 +300,140 @@ export class ProgramasService {
 
       throw new InternalServerErrorException(
         "Error al obtener la arquitectura del programa",
+      );
+    }
+  }
+
+  /**
+   * Obtiene la documentación guardada para una fase específica.
+   * Si no existe un registro se retorna null para que el frontend inicialice un borrador vacío.
+   */
+  async getDocumentacion(faseId: string) {
+    const { plain, record } = this.normalizeFaseId(faseId);
+
+    try {
+      this.logger.log(`Obteniendo documentación de la fase ${record}`);
+
+      const query = `
+        SELECT *,
+               id::string(fase) AS fase_ref,
+               fase.nombre AS fase_nombre
+        FROM fase_documentation
+        WHERE fase = type::thing("fase", $faseId);
+      `;
+
+      const result = await this.surrealDb.query<any[]>(query, {
+        faseId: plain,
+      });
+
+      const docRecord = result?.[0];
+
+      if (!docRecord) {
+        this.logger.debug(
+          `La fase ${record} no tiene documentación registrada todavía`,
+        );
+        return null;
+      }
+
+      return this.mapDocumentacionRecord(docRecord, plain);
+    } catch (error) {
+      this.logger.error(
+        `Error al obtener la documentación de la fase ${record}:`,
+        error,
+      );
+      throw new InternalServerErrorException(
+        "Error al obtener la documentación de la fase",
+      );
+    }
+  }
+
+  /**
+   * Actualiza (o crea si no existe) la documentación de una fase.
+   */
+  async updateDocumentacion(faseId: string, data: UpdateFaseDocDto) {
+    const { plain, record } = this.normalizeFaseId(faseId);
+
+    if (data.fase_id && !this.isSameFaseId(data.fase_id, record)) {
+      throw new BadRequestException(
+        "El ID de la fase en el cuerpo no coincide con el parámetro de la ruta",
+      );
+    }
+
+    const vars = {
+      faseId: plain,
+      contexto: data.contexto,
+      conceptos: data.conceptos_clave ?? [],
+      casos: data.casos_estudio ?? [],
+      errores: data.errores_comunes ?? [],
+      recursos: data.recursos_referencia ?? [],
+      criterios: this.transformCriteriosForStorage(
+        data.criterios_evaluacion ?? [],
+      ),
+    };
+
+    try {
+      this.logger.log(`Guardando documentación de la fase ${record}`);
+
+      const updateQuery = `
+        UPDATE fase_documentation
+        SET contexto_general = $contexto,
+            conceptos_clave = $conceptos,
+            casos_ejemplo = $casos,
+            errores_comunes = $errores,
+            recursos_referencia = $recursos,
+            criterios_evaluacion = $criterios,
+            updated_at = time::now()
+        WHERE fase = type::thing("fase", $faseId)
+        RETURN *;
+      `;
+
+      const updateResult = await this.surrealDb.query<any[]>(updateQuery, vars);
+      let docRecord = updateResult?.[0];
+
+      if (!docRecord) {
+        this.logger.debug(
+          `No existía documentación previa para la fase ${record}, creando nueva entrada`,
+        );
+
+        const createQuery = `
+          CREATE fase_documentation CONTENT {
+            fase: type::thing("fase", $faseId),
+            contexto_general: $contexto,
+            conceptos_clave: $conceptos,
+            casos_ejemplo: $casos,
+            errores_comunes: $errores,
+            recursos_referencia: $recursos,
+            criterios_evaluacion: $criterios,
+            updated_at: time::now()
+          }
+          RETURN *;
+        `;
+
+        const createResult = await this.surrealDb.query<any[]>(
+          createQuery,
+          vars,
+        );
+        docRecord = createResult?.[0];
+      }
+
+      if (!docRecord) {
+        throw new InternalServerErrorException(
+          "No se pudo guardar la documentación de la fase",
+        );
+      }
+
+      return await this.getDocumentacion(record);
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
+      this.logger.error(
+        `Error al actualizar la documentación de la fase ${record}:`,
+        error,
+      );
+      throw new InternalServerErrorException(
+        "Error al guardar la documentación de la fase",
       );
     }
   }
@@ -434,10 +578,7 @@ export class ProgramasService {
         updated: items.length,
       };
     } catch (error) {
-      this.logger.error(
-        "Error al actualizar orden de arquitectura:",
-        error,
-      );
+      this.logger.error("Error al actualizar orden de arquitectura:", error);
 
       if (
         error instanceof BadRequestException ||
@@ -484,9 +625,10 @@ export class ProgramasService {
 
       // Construir el array de record links para SurrealDB
       // SurrealDB validará automáticamente que los records existan
-      const prerequisitosArray = prerequisitosDto.prerequisitos.length > 0
-        ? `[${prerequisitosDto.prerequisitos.map((id) => `${id}`).join(", ")}]`
-        : "[]";
+      const prerequisitosArray =
+        prerequisitosDto.prerequisitos.length > 0
+          ? `[${prerequisitosDto.prerequisitos.map((id) => `${id}`).join(", ")}]`
+          : "[]";
 
       const query = `
         UPDATE type::thing("proof_point", "${proofPointId}")
@@ -497,7 +639,12 @@ export class ProgramasService {
 
       const result = await this.surrealDb.query(query);
 
-      if (!result || result.length === 0 || !result[0] || result[0].length === 0) {
+      if (
+        !result ||
+        result.length === 0 ||
+        !result[0] ||
+        result[0].length === 0
+      ) {
         throw new NotFoundException(
           `Proof point con ID ${proofPointId} no encontrado`,
         );
@@ -540,5 +687,134 @@ export class ProgramasService {
    */
   private sanitizeId(id: string): string {
     return id.replace(/[^a-zA-Z0-9_]/g, "_");
+  }
+
+  /**
+   * Normaliza el ID de la fase aceptando valores con o sin prefijo SurrealDB.
+   */
+  private normalizeFaseId(faseId: string): { plain: string; record: string } {
+    if (!faseId || typeof faseId !== "string") {
+      throw new BadRequestException("ID de fase inválido");
+    }
+
+    const trimmed = faseId.trim();
+    if (!trimmed) {
+      throw new BadRequestException("ID de fase inválido");
+    }
+
+    const parts = trimmed.split(":");
+    const plain = parts.length > 1 ? parts[parts.length - 1] : trimmed;
+
+    return { plain, record: `fase:${plain}` };
+  }
+
+  private isSameFaseId(faseIdFromBody: string, faseRecordId: string): boolean {
+    const normalized = this.normalizeFaseId(faseIdFromBody);
+    return normalized.record === faseRecordId;
+  }
+
+  private transformCriteriosForStorage(criterios: any[]) {
+    return {
+      items: Array.isArray(criterios) ? criterios : [],
+    };
+  }
+
+  private mapDocumentacionRecord(record: any, fallbackPlainId: string) {
+    const faseRef =
+      typeof record?.fase_ref === "string"
+        ? record.fase_ref
+        : typeof record?.fase === "string"
+          ? record.fase
+          : record?.fase?.id;
+
+    const fasePlain = faseRef
+      ? (faseRef.split(":").pop() ?? fallbackPlainId)
+      : fallbackPlainId;
+
+    const faseNombre =
+      typeof record?.fase_nombre === "string"
+        ? record.fase_nombre
+        : typeof record?.fase === "object" && record?.fase !== null
+          ? record.fase.nombre
+          : null;
+
+    const conceptos = Array.isArray(record?.conceptos_clave)
+      ? record.conceptos_clave
+      : [];
+    const casos = Array.isArray(record?.casos_ejemplo)
+      ? record.casos_ejemplo
+      : [];
+    const errores = Array.isArray(record?.errores_comunes)
+      ? record.errores_comunes
+      : [];
+    const recursos = Array.isArray(record?.recursos_referencia)
+      ? record.recursos_referencia
+      : [];
+
+    let criterios: any[] = [];
+    if (Array.isArray(record?.criterios_evaluacion)) {
+      criterios = record.criterios_evaluacion;
+    } else if (
+      record?.criterios_evaluacion &&
+      typeof record.criterios_evaluacion === "object" &&
+      Array.isArray(record.criterios_evaluacion.items)
+    ) {
+      criterios = record.criterios_evaluacion.items;
+    }
+
+    const contexto = record?.contexto_general ?? "";
+    const completitud = this.calculateDocumentacionCompleteness({
+      contexto,
+      conceptos_clave: conceptos,
+      casos_estudio: casos,
+      errores_comunes: errores,
+      recursos_referencia: recursos,
+      criterios_evaluacion: criterios,
+    });
+
+    return {
+      fase_id: fasePlain,
+      contexto,
+      conceptos_clave: conceptos,
+      casos_estudio: casos,
+      errores_comunes: errores,
+      recursos_referencia: recursos,
+      criterios_evaluacion: criterios,
+      completitud,
+      fase_nombre: faseNombre ?? undefined,
+    };
+  }
+
+  private calculateDocumentacionCompleteness(doc: {
+    contexto: string;
+    conceptos_clave: any[];
+    casos_estudio: any[];
+    errores_comunes: any[];
+    recursos_referencia: any[];
+    criterios_evaluacion: any[];
+  }): number {
+    const totalChecks = 6;
+    let score = 0;
+
+    if (doc.contexto && doc.contexto.length >= 200) {
+      score += 1;
+    }
+    if (doc.conceptos_clave && doc.conceptos_clave.length >= 3) {
+      score += 1;
+    }
+    if (doc.casos_estudio && doc.casos_estudio.length >= 2) {
+      score += 1;
+    }
+    if (doc.errores_comunes && doc.errores_comunes.length >= 2) {
+      score += 1;
+    }
+    if (doc.criterios_evaluacion && doc.criterios_evaluacion.length >= 3) {
+      score += 1;
+    }
+    if (doc.recursos_referencia && doc.recursos_referencia.length >= 1) {
+      score += 1;
+    }
+
+    return Math.round((score / totalChecks) * 100);
   }
 }

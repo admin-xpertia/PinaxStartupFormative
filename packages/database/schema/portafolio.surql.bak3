@@ -41,7 +41,7 @@ DEFINE FIELD IF NOT EXISTS updated_at ON portafolio TYPE datetime
     VALUE time::now();
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS portafolioEstudianteIdx ON portafolio FIELDS estudiante UNIQUE;
+DEFINE INDEX portafolioEstudianteIdx ON portafolio FIELDS estudiante UNIQUE;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: reporte_integral
@@ -90,10 +90,10 @@ DEFINE FIELD IF NOT EXISTS updated_at ON reporte_integral TYPE datetime
     VALUE time::now();
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS reportePortafolioIdx ON reporte_integral FIELDS portafolio;
-DEFINE INDEX IF NOT EXISTS reporteEstudianteIdx ON reporte_integral FIELDS estudiante;
-DEFINE INDEX IF NOT EXISTS reporteProofPointIdx ON reporte_integral FIELDS proof_point;
-DEFINE INDEX IF NOT EXISTS reporteEstadoIdx ON reporte_integral FIELDS estado;
+DEFINE INDEX reportePortafolioIdx ON reporte_integral FIELDS portafolio;
+DEFINE INDEX reporteEstudianteIdx ON reporte_integral FIELDS estudiante;
+DEFINE INDEX reporteProofPointIdx ON reporte_integral FIELDS proof_point;
+DEFINE INDEX reporteEstadoIdx ON reporte_integral FIELDS estado;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: artefacto
@@ -147,9 +147,9 @@ DEFINE FIELD IF NOT EXISTS updated_at ON artefacto TYPE datetime
     VALUE time::now();
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS artefactoPortafolioIdx ON artefacto FIELDS portafolio;
-DEFINE INDEX IF NOT EXISTS artefactoTipoIdx ON artefacto FIELDS tipo;
-DEFINE INDEX IF NOT EXISTS artefactoDestacadoIdx ON artefacto FIELDS destacado;
+DEFINE INDEX artefactoPortafolioIdx ON artefacto FIELDS portafolio;
+DEFINE INDEX artefactoTipoIdx ON artefacto FIELDS tipo;
+DEFINE INDEX artefactoDestacadoIdx ON artefacto FIELDS destacado;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: shared_portfolio_link
@@ -201,9 +201,9 @@ DEFINE FIELD IF NOT EXISTS updated_at ON shared_portfolio_link TYPE datetime
     VALUE time::now();
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS sharedPortfolioIdx ON shared_portfolio_link FIELDS portafolio;
-DEFINE INDEX IF NOT EXISTS sharedTokenIdx ON shared_portfolio_link FIELDS token UNIQUE;
-DEFINE INDEX IF NOT EXISTS sharedActivoIdx ON shared_portfolio_link FIELDS activo;
+DEFINE INDEX sharedPortfolioIdx ON shared_portfolio_link FIELDS portafolio;
+DEFINE INDEX sharedTokenIdx ON shared_portfolio_link FIELDS token UNIQUE;
+DEFINE INDEX sharedActivoIdx ON shared_portfolio_link FIELDS activo;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: vista_portafolio
@@ -227,8 +227,8 @@ DEFINE FIELD IF NOT EXISTS viewed_at ON vista_portafolio TYPE datetime
     READONLY;
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS vistaSharedLinkIdx ON vista_portafolio FIELDS shared_link;
-DEFINE INDEX IF NOT EXISTS vistaDateIdx ON vista_portafolio FIELDS viewed_at;
+DEFINE INDEX vistaSharedLinkIdx ON vista_portafolio FIELDS shared_link;
+DEFINE INDEX vistaDateIdx ON vista_portafolio FIELDS viewed_at;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: badge
@@ -263,8 +263,8 @@ DEFINE FIELD IF NOT EXISTS created_at ON badge TYPE datetime
     READONLY;
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS badgeTipoIdx ON badge FIELDS tipo;
-DEFINE INDEX IF NOT EXISTS badgeRarezaIdx ON badge FIELDS rareza;
+DEFINE INDEX badgeTipoIdx ON badge FIELDS tipo;
+DEFINE INDEX badgeRarezaIdx ON badge FIELDS rareza;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: estudiante_badge
@@ -290,5 +290,5 @@ DEFINE FIELD IF NOT EXISTS visible_en_portafolio ON estudiante_badge TYPE bool
     DEFAULT true;
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS estudianteBadgeEstIdx ON estudiante_badge FIELDS estudiante;
-DEFINE INDEX IF NOT EXISTS estudianteBadgeBadgeIdx ON estudiante_badge FIELDS badge;
+DEFINE INDEX estudianteBadgeEstIdx ON estudiante_badge FIELDS estudiante;
+DEFINE INDEX estudianteBadgeBadgeIdx ON estudiante_badge FIELDS badge;

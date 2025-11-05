@@ -1,0 +1,314 @@
+-- ============================================================================
+-- ESQUEMA DE ANALYTICS Y TELEMETRÍA
+-- ============================================================================
+-- Define las tablas para métricas, eventos y detección de puntos de fricción
+-- Fecha: 2025-11-04
+-- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- TABLA: evento_telemetria
+-- Descripción: Eventos de telemetría del sistema
+-- ----------------------------------------------------------------------------
+DEFINE TABLE evento_telemetria SCHEMAFULL;
+
+DEFINE FIELD estudiante ON evento_telemetria TYPE record<estudiante>
+    ASSERT $value != NONE;
+
+DEFINE FIELD componente ON evento_telemetria TYPE record<componente>;
+
+DEFINE FIELD tipo_evento ON evento_telemetria TYPE string
+    ASSERT $value IN [
+        'iniciado', 'pausado', 'completado', 'abandonado',
+        'click', 'scroll', 'submit', 'error',
+        'session_start', 'session_end',
+        'feedback_solicitado', 'ayuda_solicitada'
+    ];
+
+-- Metadata del evento (puede variar según tipo)
+DEFINE FIELD metadata ON evento_telemetria TYPE object
+    DEFAULT {};
+
+DEFINE FIELD duracion_ms ON evento_telemetria TYPE int;
+
+DEFINE FIELD timestamp ON evento_telemetria TYPE datetime
+    DEFAULT time::now()
+    READONLY;
+
+-- Contexto de sesión
+DEFINE FIELD session_id ON evento_telemetria TYPE string;
+
+DEFINE FIELD user_agent ON evento_telemetria TYPE string;
+
+DEFINE FIELD dispositivo ON evento_telemetria TYPE string;
+
+-- Índices
+DEFINE INDEX eventoEstudianteIdx ON evento_telemetria FIELDS estudiante;
+DEFINE INDEX eventoComponenteIdx ON evento_telemetria FIELDS componente;
+DEFINE INDEX eventoTipoIdx ON evento_telemetria FIELDS tipo_evento;
+DEFINE INDEX eventoTimestampIdx ON evento_telemetria FIELDS timestamp;
+
+-- ----------------------------------------------------------------------------
+-- TABLA: metricas_componente
+-- Descripción: Métricas agregadas por componente y cohorte
+-- ----------------------------------------------------------------------------
+DEFINE TABLE metricas_componente SCHEMAFULL;
+
+DEFINE FIELD componente ON metricas_componente TYPE record<componente>
+    ASSERT $value != NONE;
+
+DEFINE FIELD cohorte ON metricas_componente TYPE record<cohorte>;
+
+-- Métricas de completación
+DEFINE FIELD tasa_completacion ON metricas_componente TYPE float
+    DEFAULT 0.0
+    ASSERT $value >= 0 AND $value <= 100;
+
+DEFINE FIELD tiempo_promedio_minutos ON metricas_componente TYPE int
+    DEFAULT 0;
+
+DEFINE FIELD tiempo_mediana_minutos ON metricas_componente TYPE int
+    DEFAULT 0;
+
+-- Métricas de desempeño
+DEFINE FIELD score_promedio ON metricas_componente TYPE float
+    DEFAULT 0.0
+    ASSERT $value >= 0 AND $value <= 100;
+
+DEFINE FIELD score_mediana ON metricas_componente TYPE float
+    DEFAULT 0.0
+    ASSERT $value >= 0 AND $value <= 100;
+
+-- Distribución de scores
+DEFINE FIELD distribucion_scores ON metricas_componente TYPE object
+    DEFAULT {
+        '0-20': 0,
+        '21-40': 0,
+        '41-60': 0,
+        '61-80': 0,
+        '81-100': 0
+    };
+
+-- Métricas de engagement
+DEFINE FIELD intentos_promedio ON metricas_componente TYPE float
+    DEFAULT 0.0;
+
+DEFINE FIELD tasa_abandono ON metricas_componente TYPE float
+    DEFAULT 0.0
+    ASSERT $value >= 0 AND $value <= 100;
+
+DEFINE FIELD estudiantes_count ON metricas_componente TYPE int
+    DEFAULT 0;
+
+DEFINE FIELD calculado_at ON metricas_componente TYPE datetime
+    DEFAULT time::now();
+
+-- Timestamps
+DEFINE FIELD created_at ON metricas_componente TYPE datetime
+    DEFAULT time::now()
+    READONLY;
+
+DEFINE FIELD updated_at ON metricas_componente TYPE datetime
+    DEFAULT time::now()
+    VALUE time::now();
+
+-- Índices
+DEFINE INDEX metricasCompIdx ON metricas_componente FIELDS componente;
+DEFINE INDEX metricasCohorteIdx ON metricas_componente FIELDS cohorte;
+
+-- ----------------------------------------------------------------------------
+-- TABLA: metricas_proof_point
+-- Descripción: Métricas agregadas por Proof Point
+-- ----------------------------------------------------------------------------
+DEFINE TABLE metricas_proof_point SCHEMAFULL;
+
+DEFINE FIELD proof_point ON metricas_proof_point TYPE record<proof_point>
+    ASSERT $value != NONE;
+
+DEFINE FIELD cohorte ON metricas_proof_point TYPE record<cohorte>;
+
+DEFINE FIELD tasa_completacion ON metricas_proof_point TYPE float
+    DEFAULT 0.0
+    ASSERT $value >= 0 AND $value <= 100;
+
+DEFINE FIELD tiempo_promedio_horas ON metricas_proof_point TYPE int
+    DEFAULT 0;
+
+DEFINE FIELD score_promedio ON metricas_proof_point TYPE float
+    DEFAULT 0.0
+    ASSERT $value >= 0 AND $value <= 100;
+
+DEFINE FIELD estudiantes_count ON metricas_proof_point TYPE int
+    DEFAULT 0;
+
+DEFINE FIELD calculado_at ON metricas_proof_point TYPE datetime
+    DEFAULT time::now();
+
+-- Timestamps
+DEFINE FIELD created_at ON metricas_proof_point TYPE datetime
+    DEFAULT time::now()
+    READONLY;
+
+DEFINE FIELD updated_at ON metricas_proof_point TYPE datetime
+    DEFAULT time::now()
+    VALUE time::now();
+
+-- Índices
+DEFINE INDEX metricasPPIdx ON metricas_proof_point FIELDS proof_point;
+DEFINE INDEX metricasPPCohorteIdx ON metricas_proof_point FIELDS cohorte;
+
+-- ----------------------------------------------------------------------------
+-- TABLA: punto_de_friccion
+-- Descripción: Detección de puntos de fricción en el aprendizaje
+-- ----------------------------------------------------------------------------
+DEFINE TABLE punto_de_friccion SCHEMAFULL;
+
+DEFINE FIELD componente ON punto_de_friccion TYPE record<componente>
+    ASSERT $value != NONE;
+
+DEFINE FIELD cohorte ON punto_de_friccion TYPE record<cohorte>;
+
+DEFINE FIELD tipo_problema ON punto_de_friccion TYPE string
+    ASSERT $value IN [
+        'abandono_alto', 'tiempo_excesivo', 'scores_bajos',
+        'intentos_multiples', 'ayuda_frecuente', 'error_recurrente'
+    ];
+
+DEFINE FIELD estudiantes_afectados ON punto_de_friccion TYPE int
+    ASSERT $value >= 0;
+
+DEFINE FIELD porcentaje_afectados ON punto_de_friccion TYPE float
+    DEFAULT 0.0
+    ASSERT $value >= 0 AND $value <= 100;
+
+DEFINE FIELD severidad ON punto_de_friccion TYPE string
+    ASSERT $value IN ['baja', 'media', 'alta', 'critica']
+    DEFAULT 'media';
+
+DEFINE FIELD descripcion ON punto_de_friccion TYPE string;
+
+-- Datos de soporte para el diagnóstico
+DEFINE FIELD datos_soporte ON punto_de_friccion TYPE object
+    DEFAULT {};
+
+DEFINE FIELD estado ON punto_de_friccion TYPE string
+    ASSERT $value IN ['detectado', 'en_revision', 'en_solucion', 'resuelto', 'descartado']
+    DEFAULT 'detectado';
+
+DEFINE FIELD asignado_a ON punto_de_friccion TYPE record<user>;
+
+DEFINE FIELD notas_resolucion ON punto_de_friccion TYPE string;
+
+DEFINE FIELD detectado_at ON punto_de_friccion TYPE datetime
+    DEFAULT time::now()
+    READONLY;
+
+DEFINE FIELD resuelto_at ON punto_de_friccion TYPE datetime;
+
+-- Timestamps
+DEFINE FIELD created_at ON punto_de_friccion TYPE datetime
+    DEFAULT time::now()
+    READONLY;
+
+DEFINE FIELD updated_at ON punto_de_friccion TYPE datetime
+    DEFAULT time::now()
+    VALUE time::now();
+
+-- Índices
+DEFINE INDEX friccionCompIdx ON punto_de_friccion FIELDS componente;
+DEFINE INDEX friccionCohorteIdx ON punto_de_friccion FIELDS cohorte;
+DEFINE INDEX friccionSeveridadIdx ON punto_de_friccion FIELDS severidad;
+DEFINE INDEX friccionEstadoIdx ON punto_de_friccion FIELDS estado;
+
+-- ----------------------------------------------------------------------------
+-- TABLA: metricas_cohorte
+-- Descripción: Métricas generales de cohortes
+-- ----------------------------------------------------------------------------
+DEFINE TABLE metricas_cohorte SCHEMAFULL;
+
+DEFINE FIELD cohorte ON metricas_cohorte TYPE record<cohorte>
+    ASSERT $value != NONE;
+
+DEFINE FIELD estudiantes_activos ON metricas_cohorte TYPE int
+    DEFAULT 0;
+
+DEFINE FIELD estudiantes_total ON metricas_cohorte TYPE int
+    DEFAULT 0;
+
+DEFINE FIELD tasa_retencion ON metricas_cohorte TYPE float
+    DEFAULT 0.0
+    ASSERT $value >= 0 AND $value <= 100;
+
+DEFINE FIELD progreso_promedio ON metricas_cohorte TYPE float
+    DEFAULT 0.0
+    ASSERT $value >= 0 AND $value <= 100;
+
+DEFINE FIELD tiempo_promedio_semanal_minutos ON metricas_cohorte TYPE int
+    DEFAULT 0;
+
+DEFINE FIELD engagement_score ON metricas_cohorte TYPE float
+    DEFAULT 0.0
+    ASSERT $value >= 0 AND $value <= 100;
+
+DEFINE FIELD calculado_at ON metricas_cohorte TYPE datetime
+    DEFAULT time::now();
+
+-- Timestamps
+DEFINE FIELD created_at ON metricas_cohorte TYPE datetime
+    DEFAULT time::now()
+    READONLY;
+
+DEFINE FIELD updated_at ON metricas_cohorte TYPE datetime
+    DEFAULT time::now()
+    VALUE time::now();
+
+-- Índices
+DEFINE INDEX metricasCohorteIdx ON metricas_cohorte FIELDS cohorte;
+
+-- ----------------------------------------------------------------------------
+-- TABLA: alerta_sistema
+-- Descripción: Alertas del sistema para instructores y admins
+-- ----------------------------------------------------------------------------
+DEFINE TABLE alerta_sistema SCHEMAFULL;
+
+DEFINE FIELD tipo ON alerta_sistema TYPE string
+    ASSERT $value IN [
+        'estudiante_en_riesgo', 'punto_friccion_critico',
+        'bajo_engagement', 'deadline_proximo', 'anomalia_detectada'
+    ];
+
+DEFINE FIELD severidad ON alerta_sistema TYPE string
+    ASSERT $value IN ['info', 'advertencia', 'critico']
+    DEFAULT 'info';
+
+DEFINE FIELD titulo ON alerta_sistema TYPE string
+    ASSERT $value != NONE;
+
+DEFINE FIELD descripcion ON alerta_sistema TYPE string;
+
+-- Referencias opcionales
+DEFINE FIELD estudiante ON alerta_sistema TYPE record<estudiante>;
+
+DEFINE FIELD componente ON alerta_sistema TYPE record<componente>;
+
+DEFINE FIELD cohorte ON alerta_sistema TYPE record<cohorte>;
+
+DEFINE FIELD punto_friccion ON alerta_sistema TYPE record<punto_de_friccion>;
+
+-- Destinatarios
+DEFINE FIELD destinatarios ON alerta_sistema TYPE array<record<user>>
+    DEFAULT [];
+
+DEFINE FIELD leida ON alerta_sistema TYPE bool
+    DEFAULT false;
+
+DEFINE FIELD accion_tomada ON alerta_sistema TYPE string;
+
+DEFINE FIELD created_at ON alerta_sistema TYPE datetime
+    DEFAULT time::now()
+    READONLY;
+
+-- Índices
+DEFINE INDEX alertaTipoIdx ON alerta_sistema FIELDS tipo;
+DEFINE INDEX alertaSeveridadIdx ON alerta_sistema FIELDS severidad;
+DEFINE INDEX alertaLeidaIdx ON alerta_sistema FIELDS leida;
+DEFINE INDEX alertaCohorteIdx ON alerta_sistema FIELDS cohorte;

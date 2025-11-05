@@ -32,27 +32,33 @@ export class ProgramOwnershipGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
     const params = request.params;
+    const body = request.body; // NUEVO: También verificar en el body
 
     // Validar que el usuario esté autenticado (debería estar garantizado por AuthGuard)
     if (!user || !user.id) {
-      this.logger.warn("Usuario no autenticado intentando acceder a recurso protegido");
+      this.logger.warn(
+        "Usuario no autenticado intentando acceder a recurso protegido",
+      );
       throw new ForbiddenException("Usuario no autenticado");
     }
 
     const userId = user.id;
     this.logger.debug(`Verificando propiedad para usuario: ${userId}`);
     this.logger.debug(`Parámetros de ruta: ${JSON.stringify(params)}`);
+    this.logger.debug(`Body presente: ${body ? "Sí" : "No"}`);
 
     let query: string;
     let resourceId: string;
     let resourceType: string;
 
     // Determinar el tipo de recurso y construir la consulta apropiada
-    // Basado en los parámetros de la ruta
+    // Basado en los parámetros de la ruta o el body
     if (params.id && request.route.path.includes("/programas/:id")) {
       // Caso: GET /programas/:id/arquitectura
       resourceType = "programa";
-      resourceId = params.id.includes(":") ? params.id : `programa:${params.id}`;
+      resourceId = params.id.includes(":")
+        ? params.id
+        : `programa:${params.id}`;
       query = `
         SELECT id FROM type::thing("programa", "${params.id}")
         WHERE creador = type::thing("usuario", "${userId}");
@@ -70,7 +76,9 @@ export class ProgramOwnershipGuard implements CanActivate {
     } else if (params.id && request.route.path.includes("/proofpoints/:id")) {
       // Caso: PUT /proofpoints/:id/prerequisitos
       resourceType = "proof_point";
-      resourceId = params.id.includes(":") ? params.id : `proof_point:${params.id}`;
+      resourceId = params.id.includes(":")
+        ? params.id
+        : `proof_point:${params.id}`;
       query = `
         SELECT id FROM type::thing("proof_point", "${params.id}")
         WHERE fase.programa.creador = type::thing("usuario", "${userId}");
@@ -86,7 +94,7 @@ export class ProgramOwnershipGuard implements CanActivate {
         WHERE proof_point.fase.programa.creador = type::thing("usuario", "${userId}");
       `;
     } else if (params.componenteId) {
-      // Caso: Operaciones sobre componentes
+      // Caso: Operaciones sobre componentes (desde params)
       resourceType = "componente";
       resourceId = params.componenteId.includes(":")
         ? params.componenteId
@@ -95,10 +103,32 @@ export class ProgramOwnershipGuard implements CanActivate {
         SELECT id FROM type::thing("componente", "${params.componenteId}")
         WHERE nivel.proof_point.fase.programa.creador = type::thing("usuario", "${userId}");
       `;
+    } else if (body?.componenteId) {
+      // Caso: Operaciones sobre componentes (desde body)
+      // Ejemplo: POST /generacion/componente con { componenteId: "..." }
+      const componenteId = body.componenteId.includes(":")
+        ? body.componenteId.split(":")[1]
+        : body.componenteId;
+
+      resourceType = "componente";
+      resourceId = body.componenteId.includes(":")
+        ? body.componenteId
+        : `componente:${componenteId}`;
+
+      this.logger.debug(
+        `Verificando propiedad de componente desde body: ${componenteId}`,
+      );
+
+      query = `
+        SELECT id FROM type::thing("componente", "${componenteId}")
+        WHERE nivel.proof_point.fase.programa.creador = type::thing("usuario", "${userId}");
+      `;
     } else {
       // No hay parámetro de ID para verificar (ej. POST /programas)
       // En este caso, el AuthGuard es suficiente
-      this.logger.debug("No se requiere verificación de propiedad para esta ruta");
+      this.logger.debug(
+        "No se requiere verificación de propiedad para esta ruta",
+      );
       return true;
     }
 
@@ -133,9 +163,7 @@ export class ProgramOwnershipGuard implements CanActivate {
         `Error al verificar propiedad del recurso ${resourceId}:`,
         error,
       );
-      throw new ForbiddenException(
-        "Error al verificar permisos del recurso",
-      );
+      throw new ForbiddenException("Error al verificar permisos del recurso");
     }
   }
 }

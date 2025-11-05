@@ -1,0 +1,294 @@
+-- ============================================================================
+-- ESQUEMA DE PORTAFOLIO Y REPORTES
+-- ============================================================================
+-- Define las tablas para portafolios, reportes integrales y artefactos
+-- Fecha: 2025-11-04
+-- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- TABLA: portafolio
+-- Descripción: Portafolio de cada estudiante
+-- ----------------------------------------------------------------------------
+DEFINE TABLE portafolio SCHEMAFULL;
+
+DEFINE FIELD estudiante ON portafolio TYPE record<estudiante>
+    ASSERT $value != NONE;
+
+-- Configuración de privacidad (qué elementos son públicos/privados)
+DEFINE FIELD configuracion_privacidad ON portafolio TYPE object
+    DEFAULT {
+        publico: false,
+        mostrar_scores: true,
+        mostrar_feedback: true
+    };
+
+DEFINE FIELD titulo ON portafolio TYPE string;
+
+DEFINE FIELD descripcion ON portafolio TYPE string;
+
+DEFINE FIELD banner_url ON portafolio TYPE string;
+
+DEFINE FIELD tema ON portafolio TYPE string
+    DEFAULT 'default';
+
+-- Timestamps
+DEFINE FIELD created_at ON portafolio TYPE datetime
+    DEFAULT time::now()
+    READONLY;
+
+DEFINE FIELD updated_at ON portafolio TYPE datetime
+    DEFAULT time::now()
+    VALUE time::now();
+
+-- Índices
+DEFINE INDEX portafolioEstudianteIdx ON portafolio FIELDS estudiante UNIQUE;
+
+-- ----------------------------------------------------------------------------
+-- TABLA: reporte_integral
+-- Descripción: Reportes integrales por Proof Point
+-- ----------------------------------------------------------------------------
+DEFINE TABLE reporte_integral SCHEMAFULL;
+
+DEFINE FIELD portafolio ON reporte_integral TYPE record<portafolio>
+    ASSERT $value != NONE;
+
+DEFINE FIELD estudiante ON reporte_integral TYPE record<estudiante>
+    ASSERT $value != NONE;
+
+DEFINE FIELD proof_point ON reporte_integral TYPE record<proof_point>
+    ASSERT $value != NONE;
+
+-- Contenido del reporte en markdown
+DEFINE FIELD contenido_markdown ON reporte_integral TYPE string;
+
+-- URL del PDF generado
+DEFINE FIELD pdf_url ON reporte_integral TYPE string;
+
+DEFINE FIELD score_calidad ON reporte_integral TYPE float
+    DEFAULT 0.0
+    ASSERT $value >= 0 AND $value <= 100;
+
+DEFINE FIELD estado ON reporte_integral TYPE string
+    ASSERT $value IN ['draft', 'finalizado', 'compartido']
+    DEFAULT 'draft';
+
+DEFINE FIELD finalizado_at ON reporte_integral TYPE datetime;
+
+DEFINE FIELD compartido_at ON reporte_integral TYPE datetime;
+
+-- Metadata del reporte
+DEFINE FIELD metadata ON reporte_integral TYPE object
+    DEFAULT {};
+
+-- Timestamps
+DEFINE FIELD created_at ON reporte_integral TYPE datetime
+    DEFAULT time::now()
+    READONLY;
+
+DEFINE FIELD updated_at ON reporte_integral TYPE datetime
+    DEFAULT time::now()
+    VALUE time::now();
+
+-- Índices
+DEFINE INDEX reportePortafolioIdx ON reporte_integral FIELDS portafolio;
+DEFINE INDEX reporteEstudianteIdx ON reporte_integral FIELDS estudiante;
+DEFINE INDEX reporteProofPointIdx ON reporte_integral FIELDS proof_point;
+DEFINE INDEX reporteEstadoIdx ON reporte_integral FIELDS estado;
+
+-- ----------------------------------------------------------------------------
+-- TABLA: artefacto
+-- Descripción: Artefactos creados por estudiantes
+-- ----------------------------------------------------------------------------
+DEFINE TABLE artefacto SCHEMAFULL;
+
+DEFINE FIELD portafolio ON artefacto TYPE record<portafolio>
+    ASSERT $value != NONE;
+
+DEFINE FIELD tipo ON artefacto TYPE string
+    ASSERT $value IN ['storyboard', 'canvas', 'grafica', 'documento', 'video', 'presentacion', 'codigo', 'otro'];
+
+DEFINE FIELD nombre ON artefacto TYPE string
+    ASSERT $value != NONE;
+
+DEFINE FIELD descripcion ON artefacto TYPE string;
+
+-- URL del archivo (puede ser cloud storage, etc.)
+DEFINE FIELD file_url ON artefacto TYPE string;
+
+DEFINE FIELD file_size_bytes ON artefacto TYPE int;
+
+DEFINE FIELD mime_type ON artefacto TYPE string;
+
+-- Thumbnail para previsualización
+DEFINE FIELD thumbnail_url ON artefacto TYPE string;
+
+-- Relación con proof point o componente (opcional)
+DEFINE FIELD proof_point ON artefacto TYPE record<proof_point>;
+
+DEFINE FIELD componente ON artefacto TYPE record<componente>;
+
+-- Metadata adicional
+DEFINE FIELD metadata ON artefacto TYPE object
+    DEFAULT {};
+
+DEFINE FIELD tags ON artefacto TYPE array
+    DEFAULT [];
+
+DEFINE FIELD destacado ON artefacto TYPE bool
+    DEFAULT false;
+
+-- Timestamps
+DEFINE FIELD created_at ON artefacto TYPE datetime
+    DEFAULT time::now()
+    READONLY;
+
+DEFINE FIELD updated_at ON artefacto TYPE datetime
+    DEFAULT time::now()
+    VALUE time::now();
+
+-- Índices
+DEFINE INDEX artefactoPortafolioIdx ON artefacto FIELDS portafolio;
+DEFINE INDEX artefactoTipoIdx ON artefacto FIELDS tipo;
+DEFINE INDEX artefactoDestacadoIdx ON artefacto FIELDS destacado;
+
+-- ----------------------------------------------------------------------------
+-- TABLA: shared_portfolio_link
+-- Descripción: Enlaces para compartir portafolios públicamente
+-- ----------------------------------------------------------------------------
+DEFINE TABLE shared_portfolio_link SCHEMAFULL;
+
+DEFINE FIELD portafolio ON shared_portfolio_link TYPE record<portafolio>
+    ASSERT $value != NONE;
+
+-- Token único para el enlace compartido
+DEFINE FIELD token ON shared_portfolio_link TYPE string
+    ASSERT $value != NONE;
+
+DEFINE FIELD nombre_link ON shared_portfolio_link TYPE string
+    DEFAULT 'Mi Portafolio';
+
+DEFINE FIELD password_protegido ON shared_portfolio_link TYPE bool
+    DEFAULT false;
+
+DEFINE FIELD password_hash ON shared_portfolio_link TYPE string;
+
+DEFINE FIELD fecha_expiracion ON shared_portfolio_link TYPE datetime;
+
+DEFINE FIELD vistas_count ON shared_portfolio_link TYPE int
+    DEFAULT 0;
+
+DEFINE FIELD max_vistas ON shared_portfolio_link TYPE int;
+
+DEFINE FIELD activo ON shared_portfolio_link TYPE bool
+    DEFAULT true;
+
+-- Elementos incluidos en el portafolio compartido
+DEFINE FIELD elementos_incluidos ON shared_portfolio_link TYPE object
+    DEFAULT {
+        reportes: true,
+        artefactos: true,
+        scores: false,
+        feedback: false
+    };
+
+-- Timestamps
+DEFINE FIELD created_at ON shared_portfolio_link TYPE datetime
+    DEFAULT time::now()
+    READONLY;
+
+DEFINE FIELD updated_at ON shared_portfolio_link TYPE datetime
+    DEFAULT time::now()
+    VALUE time::now();
+
+-- Índices
+DEFINE INDEX sharedPortfolioIdx ON shared_portfolio_link FIELDS portafolio;
+DEFINE INDEX sharedTokenIdx ON shared_portfolio_link FIELDS token UNIQUE;
+DEFINE INDEX sharedActivoIdx ON shared_portfolio_link FIELDS activo;
+
+-- ----------------------------------------------------------------------------
+-- TABLA: vista_portafolio
+-- Descripción: Log de vistas de portafolios compartidos
+-- ----------------------------------------------------------------------------
+DEFINE TABLE vista_portafolio SCHEMAFULL;
+
+DEFINE FIELD shared_link ON vista_portafolio TYPE record<shared_portfolio_link>
+    ASSERT $value != NONE;
+
+DEFINE FIELD ip_address ON vista_portafolio TYPE string;
+
+DEFINE FIELD user_agent ON vista_portafolio TYPE string;
+
+DEFINE FIELD referrer ON vista_portafolio TYPE string;
+
+DEFINE FIELD duracion_segundos ON vista_portafolio TYPE int;
+
+DEFINE FIELD viewed_at ON vista_portafolio TYPE datetime
+    DEFAULT time::now()
+    READONLY;
+
+-- Índices
+DEFINE INDEX vistaSharedLinkIdx ON vista_portafolio FIELDS shared_link;
+DEFINE INDEX vistaDateIdx ON vista_portafolio FIELDS viewed_at;
+
+-- ----------------------------------------------------------------------------
+-- TABLA: badge
+-- Descripción: Insignias y logros de estudiantes
+-- ----------------------------------------------------------------------------
+DEFINE TABLE badge SCHEMAFULL;
+
+DEFINE FIELD nombre ON badge TYPE string
+    ASSERT $value != NONE;
+
+DEFINE FIELD descripcion ON badge TYPE string;
+
+DEFINE FIELD icon_url ON badge TYPE string;
+
+DEFINE FIELD tipo ON badge TYPE string
+    ASSERT $value IN ['completacion', 'excelencia', 'velocidad', 'colaboracion', 'creatividad', 'especial'];
+
+-- Criterios para obtener el badge
+DEFINE FIELD criterios ON badge TYPE object
+    DEFAULT {};
+
+DEFINE FIELD puntos ON badge TYPE int
+    DEFAULT 0;
+
+DEFINE FIELD rareza ON badge TYPE string
+    ASSERT $value IN ['comun', 'raro', 'epico', 'legendario']
+    DEFAULT 'comun';
+
+-- Timestamps
+DEFINE FIELD created_at ON badge TYPE datetime
+    DEFAULT time::now()
+    READONLY;
+
+-- Índices
+DEFINE INDEX badgeTipoIdx ON badge FIELDS tipo;
+DEFINE INDEX badgeRarezaIdx ON badge FIELDS rareza;
+
+-- ----------------------------------------------------------------------------
+-- TABLA: estudiante_badge
+-- Descripción: Relación entre estudiantes y badges obtenidos
+-- ----------------------------------------------------------------------------
+DEFINE TABLE estudiante_badge SCHEMAFULL;
+
+DEFINE FIELD estudiante ON estudiante_badge TYPE record<estudiante>
+    ASSERT $value != NONE;
+
+DEFINE FIELD badge ON estudiante_badge TYPE record<badge>
+    ASSERT $value != NONE;
+
+DEFINE FIELD proof_point ON estudiante_badge TYPE record<proof_point>;
+
+DEFINE FIELD componente ON estudiante_badge TYPE record<componente>;
+
+DEFINE FIELD obtenido_at ON estudiante_badge TYPE datetime
+    DEFAULT time::now()
+    READONLY;
+
+DEFINE FIELD visible_en_portafolio ON estudiante_badge TYPE bool
+    DEFAULT true;
+
+-- Índices
+DEFINE INDEX estudianteBadgeEstIdx ON estudiante_badge FIELDS estudiante;
+DEFINE INDEX estudianteBadgeBadgeIdx ON estudiante_badge FIELDS badge;

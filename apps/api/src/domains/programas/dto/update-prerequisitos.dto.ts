@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsString } from 'class-validator';
+import { ApiProperty } from "@nestjs/swagger";
+import { IsArray, IsString } from "class-validator";
 
 /**
  * DTO para actualizar los prerequisitos de un proof point
@@ -10,7 +10,7 @@ export class UpdatePrerequisitosDto {
     description:
       'Array de IDs de proof points que son prerequisitos (formato: "proofpoint:id")',
     type: [String],
-    example: ['proofpoint:abc123', 'proofpoint:def456'],
+    example: ["proofpoint:abc123", "proofpoint:def456"],
   })
   @IsArray()
   @IsString({ each: true })

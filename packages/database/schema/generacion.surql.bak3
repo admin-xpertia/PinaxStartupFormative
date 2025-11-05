@@ -30,8 +30,8 @@ DEFINE FIELD IF NOT EXISTS created_at ON componente_contenido TYPE datetime
 DEFINE FIELD IF NOT EXISTS validacion_calidad ON componente_contenido TYPE record<validacion_calidad>;
 
 -- Índices básicos
-DEFINE INDEX IF NOT EXISTS compContenidoComponenteIdx ON componente_contenido FIELDS componente;
-DEFINE INDEX IF NOT EXISTS compContenidoEstadoIdx ON componente_contenido FIELDS estado;
+DEFINE INDEX compContenidoComponenteIdx ON componente_contenido FIELDS componente;
+DEFINE INDEX compContenidoEstadoIdx ON componente_contenido FIELDS estado;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: generacion_request
@@ -66,9 +66,9 @@ DEFINE FIELD IF NOT EXISTS created_at ON generacion_request TYPE datetime
 DEFINE FIELD IF NOT EXISTS completed_at ON generacion_request TYPE datetime;
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS genReqComponenteIdx ON generacion_request FIELDS componente;
-DEFINE INDEX IF NOT EXISTS genReqSolicitanteIdx ON generacion_request FIELDS solicitado_por;
-DEFINE INDEX IF NOT EXISTS genReqEstadoIdx ON generacion_request FIELDS estado;
+DEFINE INDEX genReqComponenteIdx ON generacion_request FIELDS componente;
+DEFINE INDEX genReqSolicitanteIdx ON generacion_request FIELDS solicitado_por;
+DEFINE INDEX genReqEstadoIdx ON generacion_request FIELDS estado;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: contenido_generado
@@ -97,7 +97,7 @@ DEFINE FIELD IF NOT EXISTS generated_at ON contenido_generado TYPE datetime
     READONLY;
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS contGenReqIdx ON contenido_generado FIELDS generacion_request;
+DEFINE INDEX contGenReqIdx ON contenido_generado FIELDS generacion_request;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: validacion_calidad
@@ -140,6 +140,6 @@ DEFINE FIELD IF NOT EXISTS created_at ON generacion_feedback TYPE datetime
     READONLY;
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS genFeedbackContIdx ON generacion_feedback FIELDS contenido_generado;
-DEFINE INDEX IF NOT EXISTS genFeedbackUsuarioIdx ON generacion_feedback FIELDS usuario;
-DEFINE INDEX IF NOT EXISTS genFeedbackRatingIdx ON generacion_feedback FIELDS rating;
+DEFINE INDEX genFeedbackContIdx ON generacion_feedback FIELDS contenido_generado;
+DEFINE INDEX genFeedbackUsuarioIdx ON generacion_feedback FIELDS usuario;
+DEFINE INDEX genFeedbackRatingIdx ON generacion_feedback FIELDS rating;

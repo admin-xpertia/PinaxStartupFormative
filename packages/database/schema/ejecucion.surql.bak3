@@ -39,7 +39,7 @@ DEFINE FIELD IF NOT EXISTS updated_at ON estudiante TYPE datetime
     VALUE time::now();
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS estudianteUserIdx ON estudiante FIELDS user UNIQUE;
+DEFINE INDEX estudianteUserIdx ON estudiante FIELDS user UNIQUE;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: inscripcion_cohorte
@@ -78,9 +78,9 @@ DEFINE FIELD IF NOT EXISTS updated_at ON inscripcion_cohorte TYPE datetime
     VALUE time::now();
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS inscripcionEstudianteIdx ON inscripcion_cohorte FIELDS estudiante;
-DEFINE INDEX IF NOT EXISTS inscripcionCohorteIdx ON inscripcion_cohorte FIELDS cohorte;
-DEFINE INDEX IF NOT EXISTS inscripcionEstadoIdx ON inscripcion_cohorte FIELDS estado;
+DEFINE INDEX inscripcionEstudianteIdx ON inscripcion_cohorte FIELDS estudiante;
+DEFINE INDEX inscripcionCohorteIdx ON inscripcion_cohorte FIELDS cohorte;
+DEFINE INDEX inscripcionEstadoIdx ON inscripcion_cohorte FIELDS estado;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: progreso_proof_point
@@ -119,9 +119,9 @@ DEFINE FIELD IF NOT EXISTS updated_at ON progreso_proof_point TYPE datetime
     VALUE time::now();
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS progPPEstudianteIdx ON progreso_proof_point FIELDS estudiante;
-DEFINE INDEX IF NOT EXISTS progPPProofPointIdx ON progreso_proof_point FIELDS proof_point;
-DEFINE INDEX IF NOT EXISTS progPPEstadoIdx ON progreso_proof_point FIELDS estado;
+DEFINE INDEX progPPEstudianteIdx ON progreso_proof_point FIELDS estudiante;
+DEFINE INDEX progPPProofPointIdx ON progreso_proof_point FIELDS proof_point;
+DEFINE INDEX progPPEstadoIdx ON progreso_proof_point FIELDS estado;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: progreso_nivel
@@ -157,9 +157,9 @@ DEFINE FIELD IF NOT EXISTS updated_at ON progreso_nivel TYPE datetime
     VALUE time::now();
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS progNivelProgPPIdx ON progreso_nivel FIELDS progreso_proof_point;
-DEFINE INDEX IF NOT EXISTS progNivelNivelIdx ON progreso_nivel FIELDS nivel;
-DEFINE INDEX IF NOT EXISTS progNivelEstadoIdx ON progreso_nivel FIELDS estado;
+DEFINE INDEX progNivelProgPPIdx ON progreso_nivel FIELDS progreso_proof_point;
+DEFINE INDEX progNivelNivelIdx ON progreso_nivel FIELDS nivel;
+DEFINE INDEX progNivelEstadoIdx ON progreso_nivel FIELDS estado;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: progreso_componente
@@ -206,10 +206,10 @@ DEFINE FIELD IF NOT EXISTS updated_at ON progreso_componente TYPE datetime
     VALUE time::now();
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS progCompNivelIdx ON progreso_componente FIELDS progreso_nivel;
-DEFINE INDEX IF NOT EXISTS progCompEstudianteIdx ON progreso_componente FIELDS estudiante;
-DEFINE INDEX IF NOT EXISTS progCompComponenteIdx ON progreso_componente FIELDS componente;
-DEFINE INDEX IF NOT EXISTS progCompEstadoIdx ON progreso_componente FIELDS estado;
+DEFINE INDEX progCompNivelIdx ON progreso_componente FIELDS progreso_nivel;
+DEFINE INDEX progCompEstudianteIdx ON progreso_componente FIELDS estudiante;
+DEFINE INDEX progCompComponenteIdx ON progreso_componente FIELDS componente;
+DEFINE INDEX progCompEstadoIdx ON progreso_componente FIELDS estado;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: datos_estudiante
@@ -235,8 +235,8 @@ DEFINE FIELD IF NOT EXISTS guardado_at ON datos_estudiante TYPE datetime
     READONLY;
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS datosEstProgCompIdx ON datos_estudiante FIELDS progreso_componente;
-DEFINE INDEX IF NOT EXISTS datosEstTipoIdx ON datos_estudiante FIELDS tipo;
+DEFINE INDEX datosEstProgCompIdx ON datos_estudiante FIELDS progreso_componente;
+DEFINE INDEX datosEstTipoIdx ON datos_estudiante FIELDS tipo;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: evaluacion_resultado
@@ -266,8 +266,8 @@ DEFINE FIELD IF NOT EXISTS evaluado_at ON evaluacion_resultado TYPE datetime
     READONLY;
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS evalResultProgCompIdx ON evaluacion_resultado FIELDS progreso_componente;
-DEFINE INDEX IF NOT EXISTS evalResultEvaluadorIdx ON evaluacion_resultado FIELDS evaluador;
+DEFINE INDEX evalResultProgCompIdx ON evaluacion_resultado FIELDS progreso_componente;
+DEFINE INDEX evalResultEvaluadorIdx ON evaluacion_resultado FIELDS evaluador;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: feedback_generado
@@ -303,4 +303,4 @@ DEFINE FIELD IF NOT EXISTS created_at ON feedback_generado TYPE datetime
     READONLY;
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS feedbackEvalIdx ON feedback_generado FIELDS evaluacion_resultado UNIQUE;
+DEFINE INDEX feedbackEvalIdx ON feedback_generado FIELDS evaluacion_resultado UNIQUE;

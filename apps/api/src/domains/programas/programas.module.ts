@@ -3,6 +3,7 @@ import { ProgramasController } from "./programas.controller";
 import { ArquitecturaController } from "./arquitectura.controller";
 import { ProofPointsController } from "./proofpoints.controller";
 import { ProgramasService } from "./programas.service";
+import { ProgramOwnershipGuard } from "./guards/program-ownership.guard";
 import { SurrealDbModule } from "src/core/database";
 import { AuthModule } from "src/core/auth";
 
@@ -13,6 +14,7 @@ import { AuthModule } from "src/core/auth";
     ArquitecturaController,
     ProofPointsController,
   ],
-  providers: [ProgramasService],
+  providers: [ProgramasService, ProgramOwnershipGuard],
+  exports: [ProgramasService, ProgramOwnershipGuard],
 })
 export class ProgramasModule {}

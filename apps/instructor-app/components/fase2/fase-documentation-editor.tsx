@@ -182,6 +182,27 @@ export function FaseDocumentationEditor({
 
   const [completeness, setCompleteness] = useState(calculateCompleteness())
 
+  useEffect(() => {
+    if (documentacionExistente) {
+      form.reset({
+        ...documentacionExistente,
+        fase_id: documentacionExistente.fase_id || faseId,
+      })
+    } else {
+      form.reset({
+        fase_id: faseId,
+        contexto: "",
+        conceptos_clave: [],
+        casos_estudio: [],
+        errores_comunes: [],
+        recursos_referencia: [],
+        criterios_evaluacion: [],
+        completitud: 0,
+      })
+    }
+    setCompleteness(calculateCompleteness())
+  }, [documentacionExistente, faseId, form])
+
   // Update completeness on form change
   useEffect(() => {
     const subscription = form.watch(() => {

@@ -5,6 +5,7 @@ import { SurrealDbModule } from "./core/database";
 import { AuthGuard } from "./core/guards/auth.guard";
 import { UsuariosModule } from "./domains/usuarios/usuarios.module";
 import { ProgramasModule } from "./domains/programas/programas.module";
+import { GeneracionModule } from "./domains/generacion/generacion.module";
 
 /**
  * Módulo principal de la aplicación
@@ -24,6 +25,8 @@ import { ProgramasModule } from "./domains/programas/programas.module";
     UsuariosModule,
 
     ProgramasModule,
+
+    GeneracionModule,
   ],
   providers: [
     // Guard global de autenticación

@@ -40,8 +40,8 @@ DEFINE FIELD IF NOT EXISTS updated_at ON programa TYPE datetime
     VALUE time::now();
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS programaEstadoIdx ON programa FIELDS estado;
-DEFINE INDEX IF NOT EXISTS programaCreadorIdx ON programa FIELDS creador;
+DEFINE INDEX programaEstadoIdx ON programa FIELDS estado;
+DEFINE INDEX programaCreadorIdx ON programa FIELDS creador;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: version_programa
@@ -67,7 +67,7 @@ DEFINE FIELD IF NOT EXISTS created_at ON version_programa TYPE datetime
     READONLY;
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS versionProgramaIdx ON version_programa FIELDS programa;
+DEFINE INDEX versionProgramaIdx ON version_programa FIELDS programa;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: cohorte
@@ -103,9 +103,9 @@ DEFINE FIELD IF NOT EXISTS updated_at ON cohorte TYPE datetime
     VALUE time::now();
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS cohorteActivoIdx ON cohorte FIELDS activo;
-DEFINE INDEX IF NOT EXISTS cohorteProgramaIdx ON cohorte FIELDS programa;
-DEFINE INDEX IF NOT EXISTS cohorteInstructorIdx ON cohorte FIELDS instructor;
+DEFINE INDEX cohorteActivoIdx ON cohorte FIELDS activo;
+DEFINE INDEX cohorteProgramaIdx ON cohorte FIELDS programa;
+DEFINE INDEX cohorteInstructorIdx ON cohorte FIELDS instructor;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: fase
@@ -143,8 +143,8 @@ DEFINE FIELD IF NOT EXISTS updated_at ON fase TYPE datetime
     VALUE time::now();
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS faseProgramaIdx ON fase FIELDS programa;
-DEFINE INDEX IF NOT EXISTS faseOrdenIdx ON fase FIELDS programa, orden;
+DEFINE INDEX faseProgramaIdx ON fase FIELDS programa;
+DEFINE INDEX faseOrdenIdx ON fase FIELDS programa, orden;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: fase_documentation
@@ -177,7 +177,7 @@ DEFINE FIELD IF NOT EXISTS updated_at ON fase_documentation TYPE datetime
     VALUE time::now();
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS faseDocFaseIdx ON fase_documentation FIELDS fase UNIQUE;
+DEFINE INDEX faseDocFaseIdx ON fase_documentation FIELDS fase UNIQUE;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: proof_point
@@ -221,9 +221,9 @@ DEFINE FIELD IF NOT EXISTS updated_at ON proof_point TYPE datetime
     VALUE time::now();
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS proofPointFaseIdx ON proof_point FIELDS fase;
-DEFINE INDEX IF NOT EXISTS proofPointSlugIdx ON proof_point FIELDS slug UNIQUE;
-DEFINE INDEX IF NOT EXISTS proofPointOrdenIdx ON proof_point FIELDS fase, orden_en_fase;
+DEFINE INDEX proofPointFaseIdx ON proof_point FIELDS fase;
+DEFINE INDEX proofPointSlugIdx ON proof_point FIELDS slug UNIQUE;
+DEFINE INDEX proofPointOrdenIdx ON proof_point FIELDS fase, orden_en_fase;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: prerequisitos_proof_point
@@ -242,7 +242,7 @@ DEFINE FIELD IF NOT EXISTS created_at ON prerequisitos_proof_point TYPE datetime
     READONLY;
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS prereqPPIdx ON prerequisitos_proof_point FIELDS proof_point, prerequisito UNIQUE;
+DEFINE INDEX prereqPPIdx ON prerequisitos_proof_point FIELDS proof_point, prerequisito UNIQUE;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: nivel
@@ -275,8 +275,8 @@ DEFINE FIELD IF NOT EXISTS updated_at ON nivel TYPE datetime
     VALUE time::now();
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS nivelProofPointIdx ON nivel FIELDS proof_point;
-DEFINE INDEX IF NOT EXISTS nivelNumeroIdx ON nivel FIELDS proof_point, numero_nivel;
+DEFINE INDEX nivelProofPointIdx ON nivel FIELDS proof_point;
+DEFINE INDEX nivelNumeroIdx ON nivel FIELDS proof_point, numero_nivel;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: componente
@@ -313,9 +313,9 @@ DEFINE FIELD IF NOT EXISTS updated_at ON componente TYPE datetime
     VALUE time::now();
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS componenteNivelIdx ON componente FIELDS nivel;
-DEFINE INDEX IF NOT EXISTS componenteTipoIdx ON componente FIELDS tipo;
-DEFINE INDEX IF NOT EXISTS componenteOrdenIdx ON componente FIELDS nivel, orden;
+DEFINE INDEX componenteNivelIdx ON componente FIELDS nivel;
+DEFINE INDEX componenteTipoIdx ON componente FIELDS tipo;
+DEFINE INDEX componenteOrdenIdx ON componente FIELDS nivel, orden;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: prerequisitos_componente
@@ -334,7 +334,7 @@ DEFINE FIELD IF NOT EXISTS created_at ON prerequisitos_componente TYPE datetime
     READONLY;
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS prereqCompIdx ON prerequisitos_componente FIELDS componente, prerequisito UNIQUE;
+DEFINE INDEX prereqCompIdx ON prerequisitos_componente FIELDS componente, prerequisito UNIQUE;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: rubrica_evaluacion
@@ -367,4 +367,4 @@ DEFINE FIELD IF NOT EXISTS updated_at ON rubrica_evaluacion TYPE datetime
     VALUE time::now();
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS rubricaCompIdx ON rubrica_evaluacion FIELDS componente;
+DEFINE INDEX rubricaCompIdx ON rubrica_evaluacion FIELDS componente;

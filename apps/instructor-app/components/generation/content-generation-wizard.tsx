@@ -15,6 +15,7 @@ import {
   Cpu,
   DollarSign,
   CheckCircle,
+  AlertCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -33,6 +34,8 @@ interface ContentGenerationWizardProps {
   tipoComponente: TipoComponente
   nombreComponente: string
   contexto: {
+    faseId: string
+    componenteId: string
     programa: string
     fase: string
     proofPoint: string
@@ -40,7 +43,7 @@ interface ContentGenerationWizardProps {
     nivel: string
     objetivoNivel: string
   }
-  onGenerate: (config: GenerationConfig) => void
+  onGenerate: (contenidoGenerado: any) => void
 }
 
 export function ContentGenerationWizard({
@@ -53,6 +56,10 @@ export function ContentGenerationWizard({
 }: ContentGenerationWizardProps) {
   const [currentStep, setCurrentStep] = useState(1)
   const [config, setConfig] = useState<Partial<GenerationConfig>>({
+    // IDs requeridos por el backend
+    faseId: contexto.faseId,
+    componenteId: contexto.componenteId,
+
     tipo_componente: tipoComponente,
     nombre_componente: nombreComponente,
     programa_nombre: contexto.programa,
@@ -67,12 +74,13 @@ export function ContentGenerationWizard({
     estilo_narrativo: "conversacional",
     duracion_target: 20,
     elementos_incluir: ["ejemplos", "actividades", "reflexiones"],
-    modelo_ia: "gpt4o",
+    modelo_ia: "gpt-4o-mini", // Actualizado para coincidir con el backend
     temperatura: 0.7,
     usar_few_shot: true,
   })
   const [isGenerating, setIsGenerating] = useState(false)
   const [generationStep, setGenerationStep] = useState(0)
+  const [generationError, setGenerationError] = useState<string | null>(null)
   const [showPrompt, setShowPrompt] = useState(false)
 
   if (!isOpen) return null
@@ -91,17 +99,61 @@ export function ContentGenerationWizard({
     if (currentStep > 1) setCurrentStep(currentStep - 1)
   }
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     setIsGenerating(true)
-    setGenerationStep(1)
+    setGenerationStep(0)
+    setGenerationError(null)
 
-    // Simular progreso de generación
-    setTimeout(() => setGenerationStep(2), 2000)
-    setTimeout(() => setGenerationStep(3), 5000)
-    setTimeout(() => {
+    // Simular un poco de progreso para la UI
+    setTimeout(() => setGenerationStep(1), 1500) // "Procesando contexto..."
+    setTimeout(() => setGenerationStep(2), 3000) // "Generando contenido..."
+
+    try {
+      const response = await fetch("/api/v1/generacion/componente", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // TODO: Agregar Authorization header con el token del usuario
+          // "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify(config),
+        // CRÍTICO: Timeout de 120 segundos (el doble del tiempo máximo esperado)
+        signal: AbortSignal.timeout(120000),
+      })
+
+      if (!response.ok) {
+        let errorMessage = "Error del servidor"
+        try {
+          const errData = await response.json()
+          errorMessage = errData.message || errData.error || errorMessage
+        } catch {
+          // Si no puede parsear el error, usar el mensaje por defecto
+        }
+        throw new Error(errorMessage)
+      }
+
+      const contenidoGenerado = await response.json()
+
+      setGenerationStep(3) // "Validando calidad..."
       setIsGenerating(false)
-      onGenerate(config as GenerationConfig)
-    }, 7000)
+
+      // Pasa el contenido+análisis a la función que muestra el preview
+      onGenerate(contenidoGenerado)
+    } catch (err: any) {
+      setIsGenerating(false)
+      setGenerationStep(0)
+
+      // Manejar diferentes tipos de errores
+      let errorMsg = "Error al generar contenido"
+      if (err.name === "TimeoutError" || err.name === "AbortError") {
+        errorMsg = "La generación tomó demasiado tiempo. Por favor, intenta nuevamente."
+      } else if (err.message) {
+        errorMsg = err.message
+      }
+
+      setGenerationError(errorMsg)
+      console.error("Error en generación:", err)
+    }
   }
 
   const generationSteps = [
@@ -600,6 +652,26 @@ Retorna en formato JSON estructurado con contenido y metadata.`
                         className="bg-primary h-2 rounded-full transition-all duration-500"
                         style={{ width: `${(generationStep / generationSteps.length) * 100}%` }}
                       />
+                    </div>
+                  </div>
+                </Card>
+              )}
+
+              {generationError && (
+                <Card className="p-6 bg-destructive/10 border-destructive/30">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-destructive mb-1">Error en la Generación</h4>
+                      <p className="text-sm text-destructive/90">{generationError}</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-3"
+                        onClick={() => setGenerationError(null)}
+                      >
+                        Cerrar
+                      </Button>
                     </div>
                   </div>
                 </Card>

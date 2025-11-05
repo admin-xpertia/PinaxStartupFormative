@@ -42,10 +42,10 @@ DEFINE FIELD IF NOT EXISTS user_agent ON evento_telemetria TYPE string;
 DEFINE FIELD IF NOT EXISTS dispositivo ON evento_telemetria TYPE string;
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS eventoEstudianteIdx ON evento_telemetria FIELDS estudiante;
-DEFINE INDEX IF NOT EXISTS eventoComponenteIdx ON evento_telemetria FIELDS componente;
-DEFINE INDEX IF NOT EXISTS eventoTipoIdx ON evento_telemetria FIELDS tipo_evento;
-DEFINE INDEX IF NOT EXISTS eventoTimestampIdx ON evento_telemetria FIELDS timestamp;
+DEFINE INDEX eventoEstudianteIdx ON evento_telemetria FIELDS estudiante;
+DEFINE INDEX eventoComponenteIdx ON evento_telemetria FIELDS componente;
+DEFINE INDEX eventoTipoIdx ON evento_telemetria FIELDS tipo_evento;
+DEFINE INDEX eventoTimestampIdx ON evento_telemetria FIELDS timestamp;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: metricas_componente
@@ -112,8 +112,8 @@ DEFINE FIELD IF NOT EXISTS updated_at ON metricas_componente TYPE datetime
     VALUE time::now();
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS metricasCompIdx ON metricas_componente FIELDS componente;
-DEFINE INDEX IF NOT EXISTS metricasCohorteIdx ON metricas_componente FIELDS cohorte;
+DEFINE INDEX metricasCompIdx ON metricas_componente FIELDS componente;
+DEFINE INDEX metricasCohorteIdx ON metricas_componente FIELDS cohorte;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: metricas_proof_point
@@ -153,8 +153,8 @@ DEFINE FIELD IF NOT EXISTS updated_at ON metricas_proof_point TYPE datetime
     VALUE time::now();
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS metricasPPIdx ON metricas_proof_point FIELDS proof_point;
-DEFINE INDEX IF NOT EXISTS metricasPPCohorteIdx ON metricas_proof_point FIELDS cohorte;
+DEFINE INDEX metricasPPIdx ON metricas_proof_point FIELDS proof_point;
+DEFINE INDEX metricasPPCohorteIdx ON metricas_proof_point FIELDS cohorte;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: punto_de_friccion
@@ -214,10 +214,10 @@ DEFINE FIELD IF NOT EXISTS updated_at ON punto_de_friccion TYPE datetime
     VALUE time::now();
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS friccionCompIdx ON punto_de_friccion FIELDS componente;
-DEFINE INDEX IF NOT EXISTS friccionCohorteIdx ON punto_de_friccion FIELDS cohorte;
-DEFINE INDEX IF NOT EXISTS friccionSeveridadIdx ON punto_de_friccion FIELDS severidad;
-DEFINE INDEX IF NOT EXISTS friccionEstadoIdx ON punto_de_friccion FIELDS estado;
+DEFINE INDEX friccionCompIdx ON punto_de_friccion FIELDS componente;
+DEFINE INDEX friccionCohorteIdx ON punto_de_friccion FIELDS cohorte;
+DEFINE INDEX friccionSeveridadIdx ON punto_de_friccion FIELDS severidad;
+DEFINE INDEX friccionEstadoIdx ON punto_de_friccion FIELDS estado;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: metricas_cohorte
@@ -262,7 +262,7 @@ DEFINE FIELD IF NOT EXISTS updated_at ON metricas_cohorte TYPE datetime
     VALUE time::now();
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS metricasCohorteIdx ON metricas_cohorte FIELDS cohorte;
+DEFINE INDEX metricasCohorteIdx ON metricas_cohorte FIELDS cohorte;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: alerta_sistema
@@ -308,7 +308,7 @@ DEFINE FIELD IF NOT EXISTS created_at ON alerta_sistema TYPE datetime
     READONLY;
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS alertaTipoIdx ON alerta_sistema FIELDS tipo;
-DEFINE INDEX IF NOT EXISTS alertaSeveridadIdx ON alerta_sistema FIELDS severidad;
-DEFINE INDEX IF NOT EXISTS alertaLeidaIdx ON alerta_sistema FIELDS leida;
-DEFINE INDEX IF NOT EXISTS alertaCohorteIdx ON alerta_sistema FIELDS cohorte;
+DEFINE INDEX alertaTipoIdx ON alerta_sistema FIELDS tipo;
+DEFINE INDEX alertaSeveridadIdx ON alerta_sistema FIELDS severidad;
+DEFINE INDEX alertaLeidaIdx ON alerta_sistema FIELDS leida;
+DEFINE INDEX alertaCohorteIdx ON alerta_sistema FIELDS cohorte;

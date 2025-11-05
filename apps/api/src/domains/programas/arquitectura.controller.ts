@@ -59,7 +59,8 @@ export class ArquitecturaController {
   })
   @ApiResponse({
     status: 403,
-    description: "No autorizado - No eres propietario de alguno de los elementos",
+    description:
+      "No autorizado - No eres propietario de alguno de los elementos",
   })
   @ApiResponse({
     status: 500,

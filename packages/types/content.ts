@@ -8,6 +8,10 @@ export type PersonalidadPersonaje = "cooperativo" | "esceptico" | "ocupado" | "d
 
 // Configuración de generación
 export interface GenerationConfig {
+  // IDs de contexto (requeridos por el backend)
+  faseId: string
+  componenteId: string
+
   // Contexto
   programa_nombre: string
   fase_nombre: string
