@@ -9,8 +9,8 @@ import { ProgramasModule } from "../programas/programas.module";
 import { SurrealDbModule } from "src/core/database";
 
 @Module({
-  imports: [ProgramasModule, SurrealDbModule],
-  controllers: [GeneracionController, PromptTemplateController],
+  imports: [HttpModule, ProgramasModule, SurrealDbModule],
+  controllers: [GeneracionController],
   providers: [
     GeneracionService,
     PromptTemplateService,
