@@ -1,3 +1,6 @@
+"use client"
+
+import useSWR from "swr"
 import { AppHeader } from "@/components/app-header"
 import { Sidebar } from "@/components/sidebar"
 import { Breadcrumbs } from "@/components/shared/breadcrumbs"
@@ -6,13 +9,60 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { mockPrograms } from "@/lib/mock-data"
 import { Edit, Eye, Users, BarChart3, Layers, Target, Clock, BookOpen, FileText, Workflow } from "lucide-react"
 import Link from "next/link"
+import { notFound } from "next/navigation"
+import { fetcher } from "@/lib/fetcher"
+import { LoadingState } from "@/components/shared/loading-state"
+import { ErrorState } from "@/components/shared/error-state"
 
 export default function ProgramDetailPage({ params }: { params: { id: string } }) {
-  // Find the program by ID
-  const program = mockPrograms.find((p) => p.id === params.id) || mockPrograms[0]
+  const {
+    data: program,
+    error,
+    isLoading,
+    mutate,
+  } = useSWR(params?.id ? `/api/v1/programas/${params.id}` : null, fetcher)
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen overflow-hidden bg-background">
+        <Sidebar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <AppHeader />
+          <main className="flex-1 overflow-y-auto">
+            <LoadingState text="Cargando programa..." />
+          </main>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-screen overflow-hidden bg-background">
+        <Sidebar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <AppHeader />
+          <main className="flex-1 overflow-y-auto">
+            <ErrorState message={error.message || "Error al cargar el programa"} retry={() => mutate()} />
+          </main>
+        </div>
+      </div>
+    )
+  }
+
+  if (!program) {
+    notFound()
+  }
+
+  const programId = program.id ?? params.id
+  const stats = program.estadisticas ?? {
+    fases: 0,
+    proof_points: 0,
+    duracion: "-",
+    estudiantes: 0,
+  }
   const isPublished = program.estado === "publicado"
 
   return (
@@ -33,13 +83,13 @@ export default function ProgramDetailPage({ params }: { params: { id: string } }
                     {isPublished ? "Publicado" : "Borrador"}
                   </Badge>
                   <Button variant="outline" size="sm" asChild>
-                    <Link href={`/programas/${program.id}/preview`}>
+                    <Link href={`/programas/${programId}/preview`}>
                       <Eye className="mr-2 h-4 w-4" />
                       Vista Previa
                     </Link>
                   </Button>
                   <Button size="sm" asChild>
-                    <Link href={`/programas/${program.id}/editar`}>
+                    <Link href={`/programas/${programId}/editar`}>
                       <Edit className="mr-2 h-4 w-4" />
                       Editar
                     </Link>
@@ -58,7 +108,7 @@ export default function ProgramDetailPage({ params }: { params: { id: string } }
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{program.estadisticas.fases}</div>
+                  <div className="text-2xl font-bold">{stats.fases}</div>
                 </CardContent>
               </Card>
 
@@ -70,7 +120,7 @@ export default function ProgramDetailPage({ params }: { params: { id: string } }
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{program.estadisticas.proof_points}</div>
+                  <div className="text-2xl font-bold">{stats.proof_points}</div>
                 </CardContent>
               </Card>
 
@@ -82,7 +132,7 @@ export default function ProgramDetailPage({ params }: { params: { id: string } }
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{program.estadisticas.duracion}</div>
+                  <div className="text-2xl font-bold">{stats.duracion}</div>
                 </CardContent>
               </Card>
 
@@ -94,7 +144,7 @@ export default function ProgramDetailPage({ params }: { params: { id: string } }
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{program.estadisticas.estudiantes}</div>
+                  <div className="text-2xl font-bold">{stats.estudiantes}</div>
                 </CardContent>
               </Card>
             </div>
@@ -121,7 +171,7 @@ export default function ProgramDetailPage({ params }: { params: { id: string } }
                     </CardHeader>
                     <CardContent>
                       <Button asChild className="w-full">
-                        <Link href={`/programas/${program.id}/arquitectura`}>Ver Arquitectura Visual</Link>
+                        <Link href={`/programas/${programId}/arquitectura`}>Ver Arquitectura Visual</Link>
                       </Button>
                     </CardContent>
                   </Card>
@@ -136,7 +186,7 @@ export default function ProgramDetailPage({ params }: { params: { id: string } }
                     </CardHeader>
                     <CardContent>
                       <Button asChild className="w-full bg-transparent" variant="outline">
-                        <Link href={`/programas/${program.id}/fases/fase-1/documentacion`}>Editar Documentación</Link>
+                        <Link href={`/programas/${programId}/fases/fase-1/documentacion`}>Editar Documentación</Link>
                       </Button>
                     </CardContent>
                   </Card>
@@ -185,7 +235,7 @@ export default function ProgramDetailPage({ params }: { params: { id: string } }
                         Visualiza y edita la arquitectura completa del programa
                       </p>
                       <Button asChild>
-                        <Link href={`/programas/${program.id}/arquitectura`}>Abrir Vista de Arquitectura</Link>
+                        <Link href={`/programas/${programId}/arquitectura`}>Abrir Vista de Arquitectura</Link>
                       </Button>
                     </div>
                   </CardContent>

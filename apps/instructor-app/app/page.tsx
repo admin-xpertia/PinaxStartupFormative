@@ -1,19 +1,23 @@
 "use client"
 
 import { useState } from "react"
+import useSWR from "swr"
 import { AppHeader } from "@/components/app-header"
 import { Sidebar } from "@/components/sidebar"
 import { StatsCard } from "@/components/stats-card"
 import { ProgramCard } from "@/components/program-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Search, Filter } from "lucide-react"
-import { programs, quickStats } from "@/lib/mock-data"
+import { Plus, Search, Filter, BookOpen } from "lucide-react"
 import { ProgramWizard } from "@/components/wizard/program-wizard"
 import { useUIStore } from "@/stores/ui-store"
 import { cn } from "@/lib/utils"
 import { Breadcrumbs } from "@/components/shared/breadcrumbs"
 import { PageHeader } from "@/components/shared/page-header"
+import { LoadingState } from "@/components/shared/loading-state"
+import { EmptyState } from "@/components/shared/empty-state"
+import { ErrorState } from "@/components/shared/error-state"
+import { fetcher } from "@/lib/fetcher"
 
 const filters = ["Todos", "Publicados", "Borradores", "Archivados"] as const
 type FilterType = (typeof filters)[number]
@@ -23,7 +27,50 @@ export default function DashboardPage() {
   const [showWizard, setShowWizard] = useState(false)
   const { sidebarCollapsed } = useUIStore()
 
-  const filteredPrograms = programs.filter((program) => {
+  // Fetch programs and stats from API
+  const { data: programs, error: programsError, isLoading: loadingPrograms, mutate } = useSWR(
+    '/api/v1/programas',
+    fetcher
+  )
+  const { data: stats, error: statsError, isLoading: loadingStats } = useSWR(
+    '/api/v1/dashboard/stats',
+    fetcher
+  )
+
+  // Show loading state
+  if (loadingPrograms || loadingStats) {
+    return (
+      <div className="min-h-screen bg-background">
+        <AppHeader />
+        <Sidebar />
+        <main className={cn("pt-16 transition-all duration-300", sidebarCollapsed ? "ml-[70px]" : "ml-[280px]")}>
+          <LoadingState text="Cargando dashboard..." />
+        </main>
+      </div>
+    )
+  }
+
+  // Show error state
+  if (programsError || statsError) {
+    return (
+      <div className="min-h-screen bg-background">
+        <AppHeader />
+        <Sidebar />
+        <main className={cn("pt-16 transition-all duration-300", sidebarCollapsed ? "ml-[70px]" : "ml-[280px]")}>
+          <ErrorState
+            message={programsError?.message || statsError?.message || "Error al cargar datos"}
+            retry={() => {
+              mutate()
+            }}
+          />
+        </main>
+      </div>
+    )
+  }
+
+  const programList = Array.isArray(programs) ? programs : []
+
+  const filteredPrograms = programList.filter((program: any) => {
     if (activeFilter === "Todos") return true
     if (activeFilter === "Publicados") return program.estado === "publicado"
     if (activeFilter === "Borradores") return program.estado === "draft"
@@ -31,10 +78,46 @@ export default function DashboardPage() {
     return true
   })
 
+  // Transform stats to match StatsCard format
+  const quickStats = stats ? [
+    {
+      metrica: "programas",
+      label: "Programas Totales",
+      valor: (stats as any).totalPrograms?.toString() || "0",
+      descripcion: "Programas creados",
+      tendencia: "neutral" as const,
+      icono: "BookOpen" as const,
+    },
+    {
+      metrica: "estudiantes",
+      label: "Estudiantes Activos",
+      valor: (stats as any).totalStudents?.toString() || "0",
+      descripcion: "En todas las cohortes",
+      tendencia: "neutral" as const,
+      icono: "Users" as const,
+    },
+    {
+      metrica: "cohortes",
+      label: "Cohortes Activas",
+      valor: (stats as any).activeCohortes?.toString() || "0",
+      descripcion: "En progreso",
+      tendencia: "neutral" as const,
+      icono: "Calendar" as const,
+    },
+    {
+      metrica: "completacion",
+      label: "Tasa de Completación",
+      valor: `${(stats as any).avgCompletionRate || 0}%`,
+      descripcion: "Promedio general",
+      tendencia: "neutral" as const,
+      icono: "TrendingUp" as const,
+    },
+  ] : []
+
   const handleCreateProgram = (data: unknown) => {
-    console.log("[v0] Program created:", data)
+    console.log("[Dashboard] Program created:", data)
     setShowWizard(false)
-    // TODO: Save program to backend
+    mutate() // Revalidate programs list
   }
 
   return (

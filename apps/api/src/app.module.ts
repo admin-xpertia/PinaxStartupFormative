@@ -6,6 +6,9 @@ import { AuthGuard } from "./core/guards/auth.guard";
 import { UsuariosModule } from "./domains/usuarios/usuarios.module";
 import { ProgramasModule } from "./domains/programas/programas.module";
 import { GeneracionModule } from "./domains/generacion/generacion.module";
+import { ContenidoModule } from "./domains/contenido/contenido.module";
+import { CohortesModule } from "./domains/cohortes/cohortes.module";
+import { AnalyticsModule } from './domains/analytics/analytics.module';
 
 /**
  * Módulo principal de la aplicación
@@ -27,6 +30,12 @@ import { GeneracionModule } from "./domains/generacion/generacion.module";
     ProgramasModule,
 
     GeneracionModule,
+
+    ContenidoModule,
+
+    CohortesModule,
+
+    AnalyticsModule,
   ],
   providers: [
     // Guard global de autenticación

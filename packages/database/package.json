@@ -9,6 +9,11 @@
     "init:dev": "SURREAL_URL=http://localhost:8000 ./init-schema.sh",
     "init:test": "NAMESPACE=xpertia_test DATABASE=plataforma_test ./init-schema.sh",
     "reset:dev": "surreal sql --endpoint http://localhost:8000 --username root --password root --namespace xpertia --database plataforma 'REMOVE DATABASE plataforma;' && npm run init:dev",
+    "clean": "tsx clean.ts",
+    "clean:dev": "NODE_ENV=development tsx clean.ts",
+    "fresh": "npm run clean:dev && npm run init:dev",
+    "seed": "node --loader ts-node/esm seed.ts",
+    "seed:dev": "SURREAL_URL=http://localhost:8000 node --loader ts-node/esm seed.ts",
     "query": "surreal sql --endpoint http://localhost:8000 --username root --password root --namespace xpertia --database plataforma",
     "import": "surreal import --endpoint http://localhost:8000 --username root --password root --namespace xpertia --database plataforma",
     "export": "surreal export --endpoint http://localhost:8000 --username root --password root --namespace xpertia --database plataforma"
@@ -25,7 +30,9 @@
     "surrealdb.js": "^0.11.1"
   },
   "devDependencies": {
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2",
+    "@types/node": "^20.0.0"
   },
   "files": [
     "schema/**/*.surql",

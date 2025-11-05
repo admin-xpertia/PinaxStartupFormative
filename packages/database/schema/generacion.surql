@@ -143,3 +143,30 @@ DEFINE FIELD IF NOT EXISTS created_at ON generacion_feedback TYPE datetime
 DEFINE INDEX IF NOT EXISTS genFeedbackContIdx ON generacion_feedback FIELDS contenido_generado;
 DEFINE INDEX IF NOT EXISTS genFeedbackUsuarioIdx ON generacion_feedback FIELDS usuario;
 DEFINE INDEX IF NOT EXISTS genFeedbackRatingIdx ON generacion_feedback FIELDS rating;
+
+-- ----------------------------------------------------------------------------
+-- TABLA: prompt_template
+-- Descripción: Biblioteca de plantillas de prompts reutilizables
+-- ----------------------------------------------------------------------------
+DEFINE TABLE prompt_template SCHEMAFULL;
+
+DEFINE FIELD nombre ON prompt_template TYPE string;
+
+DEFINE FIELD descripcion ON prompt_template TYPE string;
+
+DEFINE FIELD tipo_componente ON prompt_template TYPE string
+    ASSERT $value IN ['leccion', 'cuaderno', 'simulacion', 'herramienta'];
+
+DEFINE FIELD prompt_template ON prompt_template TYPE string;
+
+DEFINE FIELD config_default ON prompt_template TYPE object;
+
+DEFINE FIELD autor ON prompt_template TYPE string;
+
+DEFINE FIELD es_oficial ON prompt_template TYPE bool
+    DEFAULT false;
+
+DEFINE FIELD creador ON prompt_template TYPE record<user>;
+
+DEFINE FIELD created_at ON prompt_template TYPE datetime
+    DEFAULT time::now();

@@ -333,38 +333,29 @@ DEFINE FIELD IF NOT EXISTS created_at ON prerequisitos_componente TYPE datetime
     DEFAULT time::now()
     READONLY;
 
--- Índices
 DEFINE INDEX IF NOT EXISTS prereqCompIdx ON prerequisitos_componente FIELDS componente, prerequisito UNIQUE;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: rubrica_evaluacion
 -- Descripción: Rúbricas de evaluación para componentes
 -- ----------------------------------------------------------------------------
-DEFINE TABLE IF NOT EXISTS rubrica_evaluacion SCHEMAFULL;
+DEFINE TABLE rubrica_evaluacion SCHEMAFULL;
 
-DEFINE FIELD IF NOT EXISTS componente ON rubrica_evaluacion TYPE record<componente>
+DEFINE FIELD componente ON rubrica_evaluacion TYPE record<componente>
     ASSERT $value != NONE;
 
--- Dimensiones de evaluación
-DEFINE FIELD IF NOT EXISTS dimensiones ON rubrica_evaluacion TYPE array
-    DEFAULT [];
+-- 'dimensiones' contendrá: { nombre: string, peso: int, descriptores: [...] }
+DEFINE FIELD dimensiones ON rubrica_evaluacion TYPE array;
 
--- Descriptores por nivel
-DEFINE FIELD IF NOT EXISTS descriptores_nivel ON rubrica_evaluacion TYPE object
-    DEFAULT {};
+DEFINE FIELD pesos_validados ON rubrica_evaluacion TYPE bool
+    DEFAULT false;
 
--- Pesos de cada dimensión
-DEFINE FIELD IF NOT EXISTS pesos ON rubrica_evaluacion TYPE object
-    DEFAULT {};
+DEFINE FIELD created_at ON rubrica_evaluacion TYPE datetime
+    DEFAULT time::now();
 
--- Timestamps
-DEFINE FIELD IF NOT EXISTS created_at ON rubrica_evaluacion TYPE datetime
-    DEFAULT time::now()
-    READONLY;
-
-DEFINE FIELD IF NOT EXISTS updated_at ON rubrica_evaluacion TYPE datetime
+DEFINE FIELD updated_at ON rubrica_evaluacion TYPE datetime
     DEFAULT time::now()
     VALUE time::now();
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS rubricaCompIdx ON rubrica_evaluacion FIELDS componente;
+DEFINE INDEX rubricaCompIdx ON rubrica_evaluacion FIELDS componente;

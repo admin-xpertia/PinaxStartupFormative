@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import useSWR from "swr"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -23,10 +24,13 @@ import {
   AlertTriangle,
   Info,
 } from "lucide-react"
-import { mockCohortes } from "@/lib/mock-cohort-data"
 import type { Cohorte, CohorteStatus } from "@/types/cohort"
 import { cn } from "@/lib/utils"
 import { CohorteCreationWizard } from "@/components/cohort/cohort-creation-wizard"
+import { fetcher } from "@/lib/fetcher"
+import { LoadingState } from "@/components/shared/loading-state"
+import { ErrorState } from "@/components/shared/error-state"
+import { EmptyState } from "@/components/shared/empty-state"
 
 type ViewMode = "cards" | "table"
 
@@ -37,7 +41,24 @@ export function CohorteListView() {
   const [searchQuery, setSearchQuery] = useState("")
   const [showWizard, setShowWizard] = useState(false)
 
-  const filteredCohortes = mockCohortes.filter((cohorte) => {
+  const {
+    data: cohortes,
+    error,
+    isLoading,
+    mutate,
+  } = useSWR("/api/v1/cohortes", fetcher)
+
+  if (isLoading) {
+    return <LoadingState text="Cargando cohortes..." />
+  }
+
+  if (error) {
+    return <ErrorState message={error.message || "Error al cargar cohortes"} retry={() => mutate()} />
+  }
+
+  const cohorteList = Array.isArray(cohortes) ? cohortes : []
+
+  const filteredCohortes = cohorteList.filter((cohorte) => {
     const matchesStatus = filterStatus === "todas" || cohorte.estado === filterStatus
     const matchesSearch =
       searchQuery === "" ||
@@ -47,10 +68,10 @@ export function CohorteListView() {
   })
 
   const statusCounts = {
-    todas: mockCohortes.length,
-    activa: mockCohortes.filter((c) => c.estado === "activa").length,
-    proxima: mockCohortes.filter((c) => c.estado === "proxima").length,
-    finalizada: mockCohortes.filter((c) => c.estado === "finalizada").length,
+    todas: cohorteList.length,
+    activa: cohorteList.filter((c: Cohorte) => c.estado === "activa").length,
+    proxima: cohorteList.filter((c: Cohorte) => c.estado === "proxima").length,
+    finalizada: cohorteList.filter((c: Cohorte) => c.estado === "finalizada").length,
   }
 
   return (
@@ -152,19 +173,21 @@ export function CohorteListView() {
 
       {/* Empty State */}
       {filteredCohortes.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <Users className="h-12 w-12 text-slate-300 mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No se encontraron cohortes</h3>
-          <p className="text-slate-500 mb-4">
-            {searchQuery ? "Intenta con otros términos de búsqueda" : "Crea tu primera cohorte para comenzar"}
-          </p>
-          {!searchQuery && (
-            <Button onClick={() => setShowWizard(true)} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Crear Nueva Cohorte
-            </Button>
-          )}
-        </div>
+        <EmptyState
+          icon={Users}
+          title="No se encontraron cohortes"
+          description={
+            searchQuery ? "Intenta con otros términos de búsqueda" : "Crea tu primera cohorte para comenzar"
+          }
+          action={
+            searchQuery
+              ? undefined
+              : {
+                  label: "Crear Nueva Cohorte",
+                  onClick: () => setShowWizard(true),
+                }
+          }
+        />
       )}
 
       {/* Wizard Modal */}
@@ -173,6 +196,7 @@ export function CohorteListView() {
           onComplete={async (cohorte) => {
             console.log("Cohorte creada:", cohorte)
             setShowWizard(false)
+            await mutate()
             router.push(`/cohortes/${cohorte.id}`)
           }}
           onCancel={() => setShowWizard(false)}

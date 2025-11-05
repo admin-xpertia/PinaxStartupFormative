@@ -1,3 +1,6 @@
+"use client"
+
+import useSWR from "swr"
 import { AppHeader } from "@/components/app-header"
 import { Sidebar } from "@/components/sidebar"
 import { Breadcrumbs } from "@/components/shared/breadcrumbs"
@@ -5,7 +8,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { mockPrograms } from "@/lib/mock-data"
 import {
   ArrowLeft,
   CheckCircle2,
@@ -20,9 +22,52 @@ import {
   ChevronRight,
 } from "lucide-react"
 import Link from "next/link"
+import { fetcher } from "@/lib/fetcher"
+import { LoadingState } from "@/components/shared/loading-state"
+import { ErrorState } from "@/components/shared/error-state"
+import { notFound } from "next/navigation"
 
 export default function ProgramPreviewPage({ params }: { params: { id: string } }) {
-  const program = mockPrograms.find((p) => p.id === params.id) || mockPrograms[0]
+  const {
+    data: program,
+    error,
+    isLoading,
+    mutate,
+  } = useSWR(params?.id ? `/api/v1/programas/${params.id}` : null, fetcher)
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen overflow-hidden bg-background">
+        <Sidebar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <AppHeader />
+          <main className="flex-1 overflow-y-auto">
+            <LoadingState text="Cargando programa..." />
+          </main>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-screen overflow-hidden bg-background">
+        <Sidebar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <AppHeader />
+          <main className="flex-1 overflow-y-auto">
+            <ErrorState message={error.message || "Error al cargar el programa"} retry={() => mutate()} />
+          </main>
+        </div>
+      </div>
+    )
+  }
+
+  if (!program) {
+    notFound()
+  }
+
+  const programId = program.id ?? params.id
 
   // Mock data para la estructura del programa
   const fases = [
@@ -131,7 +176,7 @@ export default function ProgramPreviewPage({ params }: { params: { id: string } 
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/programas/${program.id}`}>
+                    <Link href={`/programas/${programId}`}>
                       <ArrowLeft className="h-4 w-4 mr-2" />
                       Volver
                     </Link>

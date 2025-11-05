@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import useSWR from "swr"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -27,9 +28,12 @@ import {
   Trash2,
   Download,
 } from "lucide-react"
-import { mockPrograms } from "@/lib/mock-data"
 import type { Cohorte, ProgramVersion } from "@/types/cohort"
 import { cn } from "@/lib/utils"
+import { fetcher } from "@/lib/fetcher"
+import { LoadingState } from "@/components/shared/loading-state"
+import { ErrorState } from "@/components/shared/error-state"
+import { EmptyState } from "@/components/shared/empty-state"
 
 // Schema de validación
 const cohorteSchema = z.object({
@@ -58,45 +62,6 @@ interface EstudianteInvitado {
 interface CohorteCreationWizardProps {
   onComplete: (cohorte: Cohorte) => Promise<void>
   onCancel: () => void
-}
-
-// Mock de versiones de programa
-const mockVersions: Record<string, ProgramVersion[]> = {
-  prog_001: [
-    {
-      version: "2.1",
-      estado: "actual",
-      fecha: "2024-01-15",
-      cambios: ["Nuevas simulaciones en Fase 3", "Mejoras en evaluación automática"],
-      cohortes_usando: 3,
-      recomendada: true,
-    },
-    {
-      version: "2.0",
-      estado: "anterior",
-      fecha: "2023-10-01",
-      cambios: ["Reestructuración completa", "Nuevos proof points"],
-      cohortes_usando: 5,
-    },
-    {
-      version: "2.2-beta",
-      estado: "beta",
-      fecha: "2024-02-01",
-      cambios: ["Integración con IA generativa", "Nuevos tipos de componentes"],
-      cohortes_usando: 0,
-      advertencia: "Versión en pruebas, puede tener cambios",
-    },
-  ],
-  prog_002: [
-    {
-      version: "1.5",
-      estado: "actual",
-      fecha: "2024-01-20",
-      cambios: ["Optimización de tiempos", "Nuevos casos de estudio"],
-      cohortes_usando: 2,
-      recomendada: true,
-    },
-  ],
 }
 
 export function CohorteCreationWizard({ onComplete, onCancel }: CohorteCreationWizardProps) {
@@ -128,8 +93,23 @@ export function CohorteCreationWizard({ onComplete, onCancel }: CohorteCreationW
   const versionId = watch("programa_version_id")
   const fechaInicio = watch("fecha_inicio")
 
-  const selectedProgram = mockPrograms.find((p) => p.id === programaId)
-  const availableVersions = programaId ? mockVersions[programaId] || [] : []
+  const {
+    data: programs,
+    error: programsError,
+    isLoading: loadingPrograms,
+    mutate: refreshPrograms,
+  } = useSWR("/api/v1/programas", fetcher)
+
+  const {
+    data: versions,
+    error: versionsError,
+    isLoading: loadingVersions,
+    mutate: refreshVersions,
+  } = useSWR(programaId ? `/api/v1/programas/${programaId}/versiones` : null, fetcher)
+
+  const programList = Array.isArray(programs) ? programs : []
+  const selectedProgram = programList.find((p: any) => p.id === programaId)
+  const availableVersions = (Array.isArray(versions) ? versions : []) as ProgramVersion[]
 
   // Auto-calcular fecha fin cuando se selecciona fecha inicio
   const handleFechaInicioChange = (fecha: string) => {
@@ -159,8 +139,7 @@ export function CohorteCreationWizard({ onComplete, onCancel }: CohorteCreationW
   }
 
   const onSubmit = async (data: CohorteFormData) => {
-    const programa = mockPrograms.find((p) => p.id === data.programa_id)
-    const version = availableVersions.find((v) => v.version === data.programa_version_id)
+    const programa = programList.find((p: any) => p.id === data.programa_id)
 
     const nuevaCohorte: Cohorte = {
       id: `coh_${Date.now()}`,
@@ -275,6 +254,13 @@ export function CohorteCreationWizard({ onComplete, onCancel }: CohorteCreationW
                 setValue={setValue}
                 selectedProgram={selectedProgram}
                 availableVersions={availableVersions}
+                programs={programList}
+                loadingPrograms={loadingPrograms}
+                programsError={programsError}
+                onRetryPrograms={refreshPrograms}
+                loadingVersions={loadingVersions}
+                versionsError={versionsError}
+                onRetryVersions={refreshVersions}
               />
             )}
 
@@ -367,7 +353,37 @@ function Step1ProgramaVersion({
   setValue,
   selectedProgram,
   availableVersions,
+  programs,
+  loadingPrograms,
+  programsError,
+  onRetryPrograms,
+  loadingVersions,
+  versionsError,
+  onRetryVersions,
 }: any) {
+  if (loadingPrograms) {
+    return <LoadingState text="Cargando programas..." />
+  }
+
+  if (programsError) {
+    return (
+      <ErrorState
+        message={programsError.message || "Error al cargar programas"}
+        retry={onRetryPrograms}
+      />
+    )
+  }
+
+  if (!programs.length) {
+    return (
+      <EmptyState
+        icon={BookOpen}
+        title="Aún no hay programas"
+        description="Crea un programa antes de iniciar una cohorte."
+      />
+    )
+  }
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
@@ -383,7 +399,7 @@ function Step1ProgramaVersion({
             <SelectValue placeholder="Selecciona un programa" />
           </SelectTrigger>
           <SelectContent>
-            {mockPrograms.map((programa) => (
+            {programs.map((programa: any) => (
               <SelectItem key={programa.id} value={programa.id}>
                 <div className="flex flex-col">
                   <span className="font-medium">{programa.nombre}</span>
@@ -411,39 +427,57 @@ function Step1ProgramaVersion({
       {programaId && (
         <div className="space-y-2">
           <Label>Versión del Programa *</Label>
-          <div className="grid gap-3">
-            {availableVersions.map((version: ProgramVersion) => (
-              <div
-                key={version.version}
-                onClick={() => setValue("programa_version_id", version.version)}
-                className={cn(
-                  "border rounded-lg p-4 cursor-pointer transition-all hover:border-primary",
-                  versionId === version.version && "border-primary bg-primary/5",
-                )}
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">v{version.version}</Badge>
-                    {version.estado === "actual" && <Badge className="bg-emerald-100 text-emerald-700">Actual</Badge>}
-                    {version.estado === "beta" && <Badge className="bg-amber-100 text-amber-700">Beta</Badge>}
-                    {version.recomendada && <Badge className="bg-blue-100 text-blue-700">Recomendada</Badge>}
+          {loadingVersions ? (
+            <LoadingState text="Cargando versiones..." size="sm" className="py-6" />
+          ) : versionsError ? (
+            <ErrorState
+              message={versionsError.message || "Error al cargar las versiones del programa"}
+              retry={onRetryVersions}
+              className="min-h-[200px]"
+            />
+          ) : availableVersions.length > 0 ? (
+            <div className="grid gap-3">
+              {availableVersions.map((version: ProgramVersion) => (
+                <div
+                  key={version.version}
+                  onClick={() => setValue("programa_version_id", version.version)}
+                  className={cn(
+                    "border rounded-lg p-4 cursor-pointer transition-all hover:border-primary",
+                    versionId === version.version && "border-primary bg-primary/5",
+                  )}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">v{version.version}</Badge>
+                      {version.estado === "actual" && (
+                        <Badge className="bg-emerald-100 text-emerald-700">Actual</Badge>
+                      )}
+                      {version.estado === "beta" && <Badge className="bg-amber-100 text-amber-700">Beta</Badge>}
+                      {version.recomendada && <Badge className="bg-blue-100 text-blue-700">Recomendada</Badge>}
+                    </div>
+                    <span className="text-sm text-slate-500">{new Date(version.fecha).toLocaleDateString("es-ES")}</span>
                   </div>
-                  <span className="text-sm text-slate-500">{new Date(version.fecha).toLocaleDateString("es-ES")}</span>
+                  <ul className="text-sm text-slate-600 space-y-1 mb-2">
+                    {version.cambios.map((cambio, index) => (
+                      <li key={index}>• {cambio}</li>
+                    ))}
+                  </ul>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500">
+                      Usada en {version.cohortes_usando} cohorte{version.cohortes_usando !== 1 && "s"}
+                    </span>
+                    {version.advertencia && <span className="text-amber-600">{version.advertencia}</span>}
+                  </div>
                 </div>
-                <ul className="text-sm text-slate-600 space-y-1 mb-2">
-                  {version.cambios.map((cambio, index) => (
-                    <li key={index}>• {cambio}</li>
-                  ))}
-                </ul>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-500">
-                    Usada en {version.cohortes_usando} cohorte{version.cohortes_usando !== 1 && "s"}
-                  </span>
-                  {version.advertencia && <span className="text-amber-600">{version.advertencia}</span>}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={BookOpen}
+              title="Sin versiones disponibles"
+              description="Este programa aún no tiene versiones publicadas."
+            />
+          )}
           {errors.programa_version_id && <p className="text-sm text-red-500">{errors.programa_version_id.message}</p>}
         </div>
       )}

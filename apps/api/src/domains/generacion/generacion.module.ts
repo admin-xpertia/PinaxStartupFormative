@@ -2,15 +2,18 @@ import { Module } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import OpenAI from "openai";
 import { GeneracionController } from "./generacion.controller";
+import { PromptTemplateController } from "./prompt-template.controller";
 import { GeneracionService, OPENAI_CLIENT } from "./generacion.service";
+import { PromptTemplateService } from "./prompt-template.service";
 import { ProgramasModule } from "../programas/programas.module";
 import { SurrealDbModule } from "src/core/database";
 
 @Module({
   imports: [ProgramasModule, SurrealDbModule],
-  controllers: [GeneracionController],
+  controllers: [GeneracionController, PromptTemplateController],
   providers: [
     GeneracionService,
+    PromptTemplateService,
     {
       provide: OPENAI_CLIENT,
       useFactory: (configService: ConfigService) => {
@@ -29,6 +32,6 @@ import { SurrealDbModule } from "src/core/database";
       inject: [ConfigService],
     },
   ],
-  exports: [GeneracionService],
+  exports: [GeneracionService, PromptTemplateService],
 })
 export class GeneracionModule {}

@@ -1,14 +1,18 @@
 "use client"
 
 import { useState } from "react"
+import useSWR from "swr"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { StudentDetailView } from "@/components/fase4/student-detail-view"
-import { mockStudentDetail } from "@/lib/mock-student-detail"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
+import { fetcher } from "@/lib/fetcher"
+import { LoadingState } from "@/components/shared/loading-state"
+import { ErrorState } from "@/components/shared/error-state"
+import type { EstudianteDetallado } from "@/types/student"
 import {
   UserPlus,
   Download,
@@ -36,6 +40,11 @@ export function StudentManagementTable({ students, cohorteId }: StudentManagemen
   const [searchQuery, setSearchQuery] = useState("")
   const [filterStatus, setFilterStatus] = useState<StudentStatus | "todos">("todos")
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
+
+  const { data: selectedStudent, isLoading: loadingStudentDetail } = useSWR<EstudianteDetallado>(
+    selectedStudentId ? `/api/v1/cohortes/${cohorteId}/estudiantes/${selectedStudentId}` : null,
+    fetcher
+  )
 
   const filteredStudents = students.filter((student) => {
     const matchesSearch =
@@ -285,13 +294,17 @@ export function StudentManagementTable({ students, cohorteId }: StudentManagemen
       {/* Sheet for student detail view */}
       <Sheet open={selectedStudentId !== null} onOpenChange={(open) => !open && setSelectedStudentId(null)}>
         <SheetContent side="right" className="w-[800px] max-w-[90vw] p-0">
-          {selectedStudentId && (
+          {loadingStudentDetail ? (
+            <div className="flex items-center justify-center h-full">
+              <LoadingState text="Cargando detalles del estudiante..." />
+            </div>
+          ) : selectedStudent ? (
             <StudentDetailView
-              student={mockStudentDetail}
+              student={selectedStudent}
               cohorteId={cohorteId}
               onClose={() => setSelectedStudentId(null)}
             />
-          )}
+          ) : null}
         </SheetContent>
       </Sheet>
     </div>

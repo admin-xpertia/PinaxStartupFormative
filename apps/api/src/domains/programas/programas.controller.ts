@@ -16,6 +16,7 @@ import {
   ArquitecturaResponseDto,
   UpdateFaseDocDto,
 } from "./dto";
+import { ProgramVersionDto } from "./dto/program-version.dto";
 import { ProgramaCreado } from "./types";
 
 /**
@@ -60,6 +61,21 @@ export class ProgramasController {
   @Get()
   async findAll(@User("id") userId: string) {
     return this.programasService.findAllByCreator(userId);
+  }
+
+  /**
+   * Obtiene las versiones disponibles de un programa.
+   *
+   * MVP: Por ahora solo devolvemos la versión actual (1.0)
+   * Futuro: Sistema completo de versionamiento con historial
+   *
+   * @param id - ID del programa
+   * @returns Lista de versiones del programa
+   */
+  @Get(":id/versiones")
+  @UseGuards(ProgramOwnershipGuard)
+  async getVersiones(@Param("id") id: string): Promise<ProgramVersionDto[]> {
+    return this.programasService.getVersiones(id);
   }
 
   /**

@@ -53,10 +53,11 @@ DEFINE INDEX IF NOT EXISTS eventoTimestampIdx ON evento_telemetria FIELDS timest
 -- ----------------------------------------------------------------------------
 DEFINE TABLE IF NOT EXISTS metricas_componente SCHEMAFULL;
 
-DEFINE FIELD IF NOT EXISTS componente ON metricas_componente TYPE record<componente>
+DEFINE FIELD IF NOT EXISTS componente_snapshot ON metricas_componente TYPE record<snapshot_componente>
     ASSERT $value != NONE;
 
-DEFINE FIELD IF NOT EXISTS cohorte ON metricas_componente TYPE record<cohorte>;
+DEFINE FIELD IF NOT EXISTS cohorte ON metricas_componente TYPE record<cohorte>
+    ASSERT $value != NONE;
 
 -- Métricas de completación
 DEFINE FIELD IF NOT EXISTS tasa_completacion ON metricas_componente TYPE float
@@ -112,7 +113,7 @@ DEFINE FIELD IF NOT EXISTS updated_at ON metricas_componente TYPE datetime
     VALUE time::now();
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS metricasCompIdx ON metricas_componente FIELDS componente;
+DEFINE INDEX IF NOT EXISTS metricasCompIdx ON metricas_componente FIELDS componente_snapshot;
 DEFINE INDEX IF NOT EXISTS metricasCohorteIdx ON metricas_componente FIELDS cohorte;
 
 -- ----------------------------------------------------------------------------
@@ -162,10 +163,11 @@ DEFINE INDEX IF NOT EXISTS metricasPPCohorteIdx ON metricas_proof_point FIELDS c
 -- ----------------------------------------------------------------------------
 DEFINE TABLE IF NOT EXISTS punto_de_friccion SCHEMAFULL;
 
-DEFINE FIELD IF NOT EXISTS componente ON punto_de_friccion TYPE record<componente>
+DEFINE FIELD IF NOT EXISTS componente_snapshot ON punto_de_friccion TYPE record<snapshot_componente>
     ASSERT $value != NONE;
 
-DEFINE FIELD IF NOT EXISTS cohorte ON punto_de_friccion TYPE record<cohorte>;
+DEFINE FIELD IF NOT EXISTS cohorte ON punto_de_friccion TYPE record<cohorte>
+    ASSERT $value != NONE;
 
 DEFINE FIELD IF NOT EXISTS tipo_problema ON punto_de_friccion TYPE string
     ASSERT $value IN [
@@ -176,6 +178,15 @@ DEFINE FIELD IF NOT EXISTS tipo_problema ON punto_de_friccion TYPE string
 DEFINE FIELD IF NOT EXISTS estudiantes_afectados ON punto_de_friccion TYPE int
     ASSERT $value >= 0;
 
+DEFINE FIELD IF NOT EXISTS estudiantes_totales ON punto_de_friccion TYPE int
+    ASSERT $value >= 0;
+
+DEFINE FIELD IF NOT EXISTS tasa_abandono ON punto_de_friccion TYPE option<float>;
+
+DEFINE FIELD IF NOT EXISTS tiempo_promedio ON punto_de_friccion TYPE option<int>;
+
+DEFINE FIELD IF NOT EXISTS tiempo_esperado ON punto_de_friccion TYPE option<int>;
+
 DEFINE FIELD IF NOT EXISTS porcentaje_afectados ON punto_de_friccion TYPE float
     DEFAULT 0.0
     ASSERT $value >= 0 AND $value <= 100;
@@ -185,6 +196,11 @@ DEFINE FIELD IF NOT EXISTS severidad ON punto_de_friccion TYPE string
     DEFAULT 'media';
 
 DEFINE FIELD IF NOT EXISTS descripcion ON punto_de_friccion TYPE string;
+
+-- AI-generated insights (simulated in seed)
+DEFINE FIELD IF NOT EXISTS analisis_ia ON punto_de_friccion TYPE string;
+
+DEFINE FIELD IF NOT EXISTS sugerencias ON punto_de_friccion TYPE array<string> DEFAULT [];
 
 -- Datos de soporte para el diagnóstico
 DEFINE FIELD IF NOT EXISTS datos_soporte ON punto_de_friccion TYPE object
@@ -214,7 +230,7 @@ DEFINE FIELD IF NOT EXISTS updated_at ON punto_de_friccion TYPE datetime
     VALUE time::now();
 
 -- Índices
-DEFINE INDEX IF NOT EXISTS friccionCompIdx ON punto_de_friccion FIELDS componente;
+DEFINE INDEX IF NOT EXISTS friccionCompIdx ON punto_de_friccion FIELDS componente_snapshot;
 DEFINE INDEX IF NOT EXISTS friccionCohorteIdx ON punto_de_friccion FIELDS cohorte;
 DEFINE INDEX IF NOT EXISTS friccionSeveridadIdx ON punto_de_friccion FIELDS severidad;
 DEFINE INDEX IF NOT EXISTS friccionEstadoIdx ON punto_de_friccion FIELDS estado;
@@ -312,3 +328,40 @@ DEFINE INDEX IF NOT EXISTS alertaTipoIdx ON alerta_sistema FIELDS tipo;
 DEFINE INDEX IF NOT EXISTS alertaSeveridadIdx ON alerta_sistema FIELDS severidad;
 DEFINE INDEX IF NOT EXISTS alertaLeidaIdx ON alerta_sistema FIELDS leida;
 DEFINE INDEX IF NOT EXISTS alertaCohorteIdx ON alerta_sistema FIELDS cohorte;
+
+-- ----------------------------------------------------------------------------
+-- TABLA: analisis_cualitativo
+-- Descripción: Análisis cualitativo de feedback y misconceptions
+-- ----------------------------------------------------------------------------
+DEFINE TABLE IF NOT EXISTS analisis_cualitativo SCHEMAFULL;
+
+DEFINE FIELD IF NOT EXISTS cohorte ON analisis_cualitativo TYPE record<cohorte>
+    ASSERT $value != NONE;
+
+-- Theme analysis
+DEFINE FIELD IF NOT EXISTS tema ON analisis_cualitativo TYPE string
+    ASSERT $value != NONE;
+
+DEFINE FIELD IF NOT EXISTS frecuencia ON analisis_cualitativo TYPE int
+    DEFAULT 0;
+
+DEFINE FIELD IF NOT EXISTS sentimiento ON analisis_cualitativo TYPE string
+    ASSERT $value IN ['positivo', 'neutral', 'negativo']
+    DEFAULT 'neutral';
+
+-- Misconception analysis (optional fields)
+DEFINE FIELD IF NOT EXISTS concepto_erroneo ON analisis_cualitativo TYPE option<string>;
+
+DEFINE FIELD IF NOT EXISTS descripcion_error ON analisis_cualitativo TYPE option<string>;
+
+DEFINE FIELD IF NOT EXISTS ejemplos_error ON analisis_cualitativo TYPE array<string>
+    DEFAULT [];
+
+-- Metadata
+DEFINE FIELD IF NOT EXISTS created_at ON analisis_cualitativo TYPE datetime
+    DEFAULT time::now()
+    READONLY;
+
+-- Índices
+DEFINE INDEX IF NOT EXISTS cualitativoCohorteIdx ON analisis_cualitativo FIELDS cohorte;
+DEFINE INDEX IF NOT EXISTS cualitativoTemaIdx ON analisis_cualitativo FIELDS tema;

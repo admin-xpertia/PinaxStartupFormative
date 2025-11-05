@@ -8,6 +8,7 @@
 -- ----------------------------------------------------------------------------
 -- TABLA: version_contenido
 -- Descripción: Historial de versiones de contenido de componentes
+-- Esta tabla es un 'log de auditoría' o 'snapshot' de un ComponenteContenido antes de que fuera modificado.
 -- ----------------------------------------------------------------------------
 DEFINE TABLE IF NOT EXISTS version_contenido SCHEMAFULL;
 
@@ -21,6 +22,7 @@ DEFINE FIELD IF NOT EXISTS numero_version ON version_contenido TYPE int
 DEFINE FIELD IF NOT EXISTS contenido_snapshot ON version_contenido TYPE object
     ASSERT $value != NONE;
 
+-- ej. "Editado por instructor"
 DEFINE FIELD IF NOT EXISTS cambios_descripcion ON version_contenido TYPE string;
 
 -- Tipo de cambio

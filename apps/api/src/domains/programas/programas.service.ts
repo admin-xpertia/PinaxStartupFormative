@@ -14,6 +14,7 @@ import {
   UpdatePrerequisitosDto,
   UpdateFaseDocDto,
 } from "./dto";
+import { ProgramVersionDto } from "./dto/program-version.dto";
 import { ProgramaCreado } from "./types";
 
 @Injectable()
@@ -816,5 +817,59 @@ export class ProgramasService {
     }
 
     return Math.round((score / totalChecks) * 100);
+  }
+
+  /**
+   * Obtiene las versiones disponibles de un programa.
+   *
+   * MVP: Por ahora solo devolvemos la versión actual (1.0)
+   * TODO: Implementar sistema completo de versionamiento con:
+   * - Tabla de versiones en DB
+   * - Snapshot de arquitectura por versión
+   * - Historial de cambios
+   * - Cohortes usando cada versión
+   */
+  async getVersiones(programaId: string): Promise<ProgramVersionDto[]> {
+    try {
+      // Obtener datos básicos del programa
+      const query = `SELECT * FROM type::thing("programa", "${programaId}")`;
+      const result = await this.surrealDb.query<any>(query);
+      const programa = result?.[0]?.[0];
+
+      if (!programa) {
+        throw new NotFoundException(
+          `Programa con ID ${programaId} no encontrado`,
+        );
+      }
+
+      // Query para contar cuántas cohortes usan este programa
+      const cohorteQuery = `
+        SELECT count() as total FROM cohorte
+        WHERE programa = type::thing("programa", "${programaId}")
+        GROUP ALL
+      `;
+      const cohorteResult = await this.surrealDb.query<any>(cohorteQuery);
+      const cohortesUsando = cohorteResult?.[0]?.[0]?.total || 0;
+
+      // Por ahora, devolver solo la versión actual (MVP)
+      const version: ProgramVersionDto = {
+        version: "1.0",
+        estado: "actual",
+        fecha: programa.created_at || new Date().toISOString(),
+        cambios: ["Versión inicial del programa"],
+        cohortes_usando: cohortesUsando,
+        recomendada: true,
+      };
+
+      return [version];
+    } catch (error) {
+      this.logger.error(
+        `Error getting versions for programa ${programaId}:`,
+        error,
+      );
+      throw new InternalServerErrorException(
+        "Error al obtener versiones del programa",
+      );
+    }
   }
 }

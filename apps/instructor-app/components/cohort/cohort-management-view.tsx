@@ -1,25 +1,62 @@
 "use client"
 
 import { useState } from "react"
+import useSWR from "swr"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ChevronRight, BarChart3, Settings, Users, MessageSquare, Calendar } from "lucide-react"
-import { mockCohortes, mockCohorteStudents } from "@/lib/mock-cohort-data"
 import { StudentManagementTable } from "./student-management-table"
 import { CommunicationHistory } from "./communication-history"
+import { fetcher } from "@/lib/fetcher"
+import { LoadingState } from "@/components/shared/loading-state"
+import { ErrorState } from "@/components/shared/error-state"
+import { EmptyState } from "@/components/shared/empty-state"
 
 interface CohorteManagementViewProps {
   cohorteId: string
 }
 
 export function CohorteManagementView({ cohorteId }: CohorteManagementViewProps) {
-  const cohorte = mockCohortes.find((c) => c.id === cohorteId)
+  const {
+    data: cohorte,
+    error: cohorteError,
+    isLoading: loadingCohorte,
+    mutate: refreshCohorte,
+  } = useSWR(cohorteId ? `/api/v1/cohortes/${cohorteId}` : null, fetcher)
+  const {
+    data: students,
+    error: studentsError,
+    isLoading: loadingStudents,
+    mutate: refreshStudents,
+  } = useSWR(cohorteId ? `/api/v1/cohortes/${cohorteId}/estudiantes` : null, fetcher)
+
   const [activeTab, setActiveTab] = useState("estudiantes")
 
-  if (!cohorte) {
-    return <div>Cohorte no encontrada</div>
+  if (loadingCohorte) {
+    return <LoadingState text="Cargando cohorte..." />
   }
+
+  if (cohorteError) {
+    return (
+      <ErrorState
+        message={cohorteError.message || "Error al cargar la cohorte"}
+        retry={() => refreshCohorte()}
+      />
+    )
+  }
+
+  if (!cohorte) {
+    return (
+      <EmptyState
+        icon={Users}
+        title="Cohorte no encontrada"
+        description="Verifica que la cohorte exista o crea una nueva."
+      />
+    )
+  }
+
+  const studentList = Array.isArray(students) ? students : []
 
   const getStatusBadge = () => {
     switch (cohorte.estado) {
@@ -90,7 +127,16 @@ export function CohorteManagementView({ cohorteId }: CohorteManagementViewProps)
         </TabsList>
 
         <TabsContent value="estudiantes" className="mt-6">
-          <StudentManagementTable students={mockCohorteStudents} cohorteId={cohorteId} />
+          {loadingStudents ? (
+            <LoadingState text="Cargando estudiantes..." size="sm" className="py-6" />
+          ) : studentsError ? (
+            <ErrorState
+              message={studentsError.message || "Error al cargar estudiantes"}
+              retry={() => refreshStudents()}
+            />
+          ) : (
+            <StudentManagementTable students={studentList} cohorteId={cohorteId} />
+          )}
         </TabsContent>
 
         <TabsContent value="comunicaciones" className="mt-6">
