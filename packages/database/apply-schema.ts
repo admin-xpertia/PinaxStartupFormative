@@ -130,7 +130,8 @@ function buildTransactionPayload(schemas: Array<{ name: string; contents: string
     )
     .join('\n\n');
 
-  return `BEGIN TRANSACTION;\n\n${joinedSchemas}\n\nCOMMIT TRANSACTION;`;
+  // NO usar transacciones para permitir que los DEFINE IF NOT EXISTS funcionen correctamente
+  return joinedSchemas;
 }
 
 type SurrealConstructor = new () => {

@@ -1,6 +1,11 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import Surreal from 'surrealdb.js';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import Surreal from "surrealdb.js";
 
 /**
  * Servicio para gestionar la conexión con SurrealDB
@@ -28,15 +33,15 @@ export class SurrealDbService implements OnModuleInit, OnModuleDestroy {
    */
   private async connect(): Promise<void> {
     try {
-      this.logger.log('Conectando a SurrealDB...');
+      this.logger.log("Conectando a SurrealDB...");
 
       this.db = new Surreal();
 
-      const url = this.configService.get<string>('SURREAL_URL');
-      const namespace = this.configService.get<string>('SURREAL_NAMESPACE');
-      const database = this.configService.get<string>('SURREAL_DATABASE');
-      const user = this.configService.get<string>('SURREAL_USER');
-      const pass = this.configService.get<string>('SURREAL_PASS');
+      const url = this.configService.get<string>("SURREAL_URL");
+      const namespace = this.configService.get<string>("SURREAL_NAMESPACE");
+      const database = this.configService.get<string>("SURREAL_DATABASE");
+      const user = this.configService.get<string>("SURREAL_USER");
+      const pass = this.configService.get<string>("SURREAL_PASS");
 
       // Conectar al servidor
       await this.db.connect(url);
@@ -54,7 +59,7 @@ export class SurrealDbService implements OnModuleInit, OnModuleDestroy {
         `Conectado a SurrealDB: ${url} (${namespace}/${database})`,
       );
     } catch (error) {
-      this.logger.error('Error al conectar con SurrealDB', error);
+      this.logger.error("Error al conectar con SurrealDB", error);
       throw error;
     }
   }
@@ -66,10 +71,10 @@ export class SurrealDbService implements OnModuleInit, OnModuleDestroy {
     try {
       if (this.db) {
         await this.db.close();
-        this.logger.log('Desconectado de SurrealDB');
+        this.logger.log("Desconectado de SurrealDB");
       }
     } catch (error) {
-      this.logger.error('Error al desconectar de SurrealDB', error);
+      this.logger.error("Error al desconectar de SurrealDB", error);
     }
   }
 
@@ -78,7 +83,7 @@ export class SurrealDbService implements OnModuleInit, OnModuleDestroy {
    */
   getDb(): Surreal {
     if (!this.db) {
-      throw new Error('SurrealDB no está conectado');
+      throw new Error("SurrealDB no está conectado");
     }
     return this.db;
   }
@@ -155,9 +160,17 @@ export class SurrealDbService implements OnModuleInit, OnModuleDestroy {
     credentials: Record<string, any>,
   ): Promise<string> {
     try {
+      // Incluir alias en mayúsculas para compatibilidad con definiciones ACCESS/SCOPES
+      const namespace = this.configService.get<string>("SURREAL_NAMESPACE");
+      const database = this.configService.get<string>("SURREAL_DATABASE");
+
       const token = await this.db.signin({
-        NS: this.configService.get<string>('SURREAL_NAMESPACE'),
-        DB: this.configService.get<string>('SURREAL_DATABASE'),
+        scope,
+        namespace,
+        database,
+        NS: namespace,
+        DB: database,
+        AC: scope,
         SC: scope,
         ...credentials,
       });
@@ -176,9 +189,17 @@ export class SurrealDbService implements OnModuleInit, OnModuleDestroy {
     credentials: Record<string, any>,
   ): Promise<string> {
     try {
+      // Incluir alias en mayúsculas para compatibilidad con definiciones ACCESS/SCOPES
+      const namespace = this.configService.get<string>("SURREAL_NAMESPACE");
+      const database = this.configService.get<string>("SURREAL_DATABASE");
+
       const token = await this.db.signup({
-        NS: this.configService.get<string>('SURREAL_NAMESPACE'),
-        DB: this.configService.get<string>('SURREAL_DATABASE'),
+        scope,
+        namespace,
+        database,
+        NS: namespace,
+        DB: database,
+        AC: scope,
         SC: scope,
         ...credentials,
       });
@@ -196,7 +217,7 @@ export class SurrealDbService implements OnModuleInit, OnModuleDestroy {
     try {
       await this.db.invalidate();
     } catch (error) {
-      this.logger.error('Error en invalidate', error);
+      this.logger.error("Error en invalidate", error);
       throw error;
     }
   }
@@ -208,7 +229,33 @@ export class SurrealDbService implements OnModuleInit, OnModuleDestroy {
     try {
       await this.db.authenticate(token);
     } catch (error) {
-      this.logger.error('Error en authenticateWithToken', error);
+      this.logger.error("Error en authenticateWithToken", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene información del usuario autenticado actual ($auth)
+   */
+  async getAuthInfo<T = any>(): Promise<T> {
+    try {
+      const authResult = await this.query<any>("RETURN $auth;");
+
+      if (authResult) {
+        return authResult as T;
+      }
+
+      // Respaldo: intentar SELECT (puede requerir permisos explícitos)
+      const selectAuth = await this.query<any>("SELECT * FROM $auth;");
+      if (selectAuth) {
+        return selectAuth as T;
+      }
+
+      // Último recurso: info()
+      const info = await this.db.info();
+      return info as T;
+    } catch (error) {
+      this.logger.error("Error en getAuthInfo", error);
       throw error;
     }
   }

@@ -1,9 +1,10 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
-import { SurrealDbModule } from './core/database';
-import { AuthGuard } from './core/guards/auth.guard';
-import { UsuariosModule } from './domains/usuarios/usuarios.module';
+import { Module } from "@nestjs/common";
+import { ConfigModule } from "@nestjs/config";
+import { APP_GUARD } from "@nestjs/core";
+import { SurrealDbModule } from "./core/database";
+import { AuthGuard } from "./core/guards/auth.guard";
+import { UsuariosModule } from "./domains/usuarios/usuarios.module";
+import { ProgramasModule } from "./domains/programas/programas.module";
 
 /**
  * Módulo principal de la aplicación
@@ -13,7 +14,7 @@ import { UsuariosModule } from './domains/usuarios/usuarios.module';
     // Configuración global
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath: ".env",
     }),
 
     // Database
@@ -21,6 +22,8 @@ import { UsuariosModule } from './domains/usuarios/usuarios.module';
 
     // Dominios
     UsuariosModule,
+
+    ProgramasModule,
   ],
   providers: [
     // Guard global de autenticación

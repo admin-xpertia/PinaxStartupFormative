@@ -4,9 +4,9 @@ import {
   UnauthorizedException,
   Logger,
   InternalServerErrorException,
-} from '@nestjs/common';
-import { SurrealDbService } from '../../core/database';
-import { SignupDto, SigninDto, AuthResponseDto } from './dto';
+} from "@nestjs/common";
+import { SurrealDbService } from "../../core/database";
+import { SignupDto, SigninDto, AuthResponseDto } from "./dto";
 
 /**
  * Servicio de autenticación
@@ -17,7 +17,7 @@ import { SignupDto, SigninDto, AuthResponseDto } from './dto';
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
-  private readonly INSTRUCTOR_SCOPE = 'instructor_scope';
+  private readonly INSTRUCTOR_SCOPE = "instructor_scope";
 
   constructor(private readonly surrealDb: SurrealDbService) {}
 
@@ -43,7 +43,7 @@ export class AuthService {
       // Retornar respuesta con token
       return new AuthResponseDto(token, user);
     } catch (error) {
-      this.handleAuthError(error, 'signup');
+      this.handleAuthError(error, "signup");
     }
   }
 
@@ -68,7 +68,7 @@ export class AuthService {
       // Retornar respuesta con token
       return new AuthResponseDto(token, user);
     } catch (error) {
-      this.handleAuthError(error, 'signin');
+      this.handleAuthError(error, "signin");
     }
   }
 
@@ -77,21 +77,65 @@ export class AuthService {
    */
   private async getUserFromToken(token: string): Promise<any> {
     try {
-      // Autenticarse con el token para obtener datos del usuario
+      // Autenticarse con el token para habilitar $auth
       await this.surrealDb.authenticateWithToken(token);
 
-      // Obtener información del usuario actual
-      const [result] = await this.surrealDb.query<any>(
-        'SELECT * FROM $auth',
-      );
+      // Intentar obtener el usuario desde $auth
+      const authInfo = await this.surrealDb.getAuthInfo<any>();
 
-      if (!result || !result.result) {
-        throw new UnauthorizedException('No se pudo obtener información del usuario');
+      let user = authInfo?.auth ?? authInfo;
+
+      if (Array.isArray(user)) {
+        if (user.length === 0) {
+          throw new UnauthorizedException("Usuario no encontrado");
+        }
+        user = user[0]?.result ?? user[0];
       }
 
-      return result.result;
+      if (!user) {
+        // Fallback: decodificar JWT y obtener el usuario manualmente
+        const payload = this.decodeJWT(token);
+        if (!payload?.ID) {
+          throw new UnauthorizedException("Usuario no encontrado");
+        }
+
+        const result = await this.surrealDb.select<any>(payload.ID);
+        if (!result || (Array.isArray(result) && result.length === 0)) {
+          throw new UnauthorizedException("Usuario no encontrado");
+        }
+
+        user = Array.isArray(result) ? result[0] : result;
+      }
+
+      if (user?.result) {
+        user = user.result;
+      }
+
+      if (user?.password_hash) {
+        delete user.password_hash;
+      }
+
+      return user;
     } catch (error) {
-      this.logger.error('Error al obtener información del usuario', error);
+      this.logger.error("Error al obtener información del usuario", error);
+      throw new UnauthorizedException("Token inválido");
+    }
+  }
+
+  /**
+   * Decodifica un JWT sin verificar la firma (solo para leer el payload)
+   */
+  private decodeJWT(token: string): any {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        throw new Error('Token JWT inválido');
+      }
+
+      const payload = Buffer.from(parts[1], 'base64').toString('utf8');
+      return JSON.parse(payload);
+    } catch (error) {
+      this.logger.error('Error al decodificar JWT', error);
       throw new UnauthorizedException('Token inválido');
     }
   }
@@ -103,34 +147,35 @@ export class AuthService {
     this.logger.error(`Error en ${operation}:`, error);
 
     // Extraer mensaje de error de SurrealDB
-    const errorMessage = error?.message || error?.toString() || '';
+    const errorMessage = error?.message || error?.toString() || "";
 
     // Usuario ya existe (en signup)
     if (
-      errorMessage.includes('already exists') ||
-      errorMessage.includes('duplicate') ||
-      errorMessage.includes('unique')
+      errorMessage.includes("already exists") ||
+      errorMessage.includes("duplicate") ||
+      errorMessage.includes("unique")
     ) {
-      throw new ConflictException('El email ya está registrado');
+      throw new ConflictException("El email ya está registrado");
     }
 
     // Credenciales inválidas (en signin)
     if (
-      errorMessage.includes('No record') ||
-      errorMessage.includes('invalid credentials') ||
-      errorMessage.includes('authentication failed')
+      errorMessage.includes("No record") ||
+      errorMessage.includes("invalid credentials") ||
+      errorMessage.includes("authentication failed") ||
+      errorMessage.includes("problem with authentication")
     ) {
-      throw new UnauthorizedException('Email o contraseña incorrectos');
+      throw new UnauthorizedException("Email o contraseña incorrectos");
     }
 
     // Usuario inactivo
-    if (errorMessage.includes('activo')) {
-      throw new UnauthorizedException('Usuario inactivo');
+    if (errorMessage.includes("activo")) {
+      throw new UnauthorizedException("Usuario inactivo");
     }
 
     // Error genérico
     throw new InternalServerErrorException(
-      'Error en el proceso de autenticación',
+      "Error en el proceso de autenticación",
     );
   }
 
@@ -143,8 +188,8 @@ export class AuthService {
       const user = await this.getUserFromToken(token);
       return user;
     } catch (error) {
-      this.logger.error('Error al validar token', error);
-      throw new UnauthorizedException('Token inválido o expirado');
+      this.logger.error("Error al validar token", error);
+      throw new UnauthorizedException("Token inválido o expirado");
     }
   }
 
@@ -154,10 +199,10 @@ export class AuthService {
   async signout(): Promise<void> {
     try {
       await this.surrealDb.invalidate();
-      this.logger.log('Sesión cerrada exitosamente');
+      this.logger.log("Sesión cerrada exitosamente");
     } catch (error) {
-      this.logger.error('Error al cerrar sesión', error);
-      throw new InternalServerErrorException('Error al cerrar sesión');
+      this.logger.error("Error al cerrar sesión", error);
+      throw new InternalServerErrorException("Error al cerrar sesión");
     }
   }
 }

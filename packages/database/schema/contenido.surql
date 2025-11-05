@@ -206,6 +206,11 @@ DEFINE FIELD duracion_estimada_horas ON proof_point TYPE int
 
 DEFINE FIELD tipo_entregable_final ON proof_point TYPE string;
 
+-- Array de prerequisitos (record links a otros proof points)
+-- Este campo permite gestionar dependencias entre proof points de forma más directa
+DEFINE FIELD prerequisitos ON proof_point TYPE array<record<proof_point>>
+    DEFAULT [];
+
 -- Timestamps
 DEFINE FIELD created_at ON proof_point TYPE datetime
     DEFAULT time::now()

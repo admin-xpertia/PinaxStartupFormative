@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { WizardSidebar } from "./wizard-sidebar"
@@ -12,7 +13,7 @@ import type { ProgramFormData } from "@/types/wizard"
 
 interface ProgramWizardProps {
   onClose: () => void
-  onComplete: (data: ProgramFormData) => void
+  onComplete: (data: unknown) => void
 }
 
 export function ProgramWizard({ onClose, onComplete }: ProgramWizardProps) {
@@ -25,6 +26,9 @@ export function ProgramWizard({ onClose, onComplete }: ProgramWizardProps) {
     numero_fases: 4,
     fases: [],
   })
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
   const handleNext = () => {
     if (currentStep < 4) {
@@ -38,9 +42,36 @@ export function ProgramWizard({ onClose, onComplete }: ProgramWizardProps) {
     }
   }
 
-  const handleComplete = () => {
-    console.log("[v0] Creating program:", formData)
-    onComplete(formData)
+  const handleComplete = async () => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch("/api/v1/programas", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      })
+
+      if (!response.ok) {
+        const errData = await response.json()
+        throw new Error(errData.message || "Error al crear el programa")
+      }
+
+      const nuevoPrograma = await response.json()
+
+      onComplete(nuevoPrograma)
+      if (nuevoPrograma?.id) {
+        router.push(`/programas/${nuevoPrograma.id}/arquitectura`)
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Ocurrió un error desconocido"
+      setError(message)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const updateFormData = (data: Partial<ProgramFormData>) => {
@@ -64,6 +95,11 @@ export function ProgramWizard({ onClose, onComplete }: ProgramWizardProps) {
         {/* Main Content */}
         <div className="flex-1 overflow-y-auto">
           <div className="mx-auto max-w-4xl px-16 py-12">
+            {error && (
+              <div className="mb-6 rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
             {currentStep === 1 && <Step1BasicInfo data={formData} onUpdate={updateFormData} />}
             {currentStep === 2 && <Step2Phases data={formData} onUpdate={updateFormData} />}
             {currentStep === 3 && <Step3ProofPoints data={formData} onUpdate={updateFormData} />}
@@ -89,7 +125,9 @@ export function ProgramWizard({ onClose, onComplete }: ProgramWizardProps) {
           {currentStep < 4 ? (
             <Button onClick={handleNext}>Siguiente →</Button>
           ) : (
-            <Button onClick={handleComplete}>Crear Programa</Button>
+            <Button onClick={handleComplete} disabled={isLoading}>
+              {isLoading ? "Creando..." : "Crear Programa"}
+            </Button>
           )}
         </div>
       </footer>

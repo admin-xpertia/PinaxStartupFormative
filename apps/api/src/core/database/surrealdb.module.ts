@@ -1,6 +1,6 @@
-import { Module, Global } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { SurrealDbService } from './surrealdb.service';
+import { Module, Global } from "@nestjs/common";
+import { ConfigModule } from "@nestjs/config";
+import { SurrealDbService } from "./surrealdb.service";
 
 /**
  * Módulo global para SurrealDB

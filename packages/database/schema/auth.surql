@@ -9,134 +9,138 @@
 -- TABLA: user
 -- Descripción: Usuarios del sistema (Instructores, Estudiantes, Admins)
 -- ----------------------------------------------------------------------------
-DEFINE TABLE user SCHEMAFULL;
+DEFINE TABLE IF NOT EXISTS user SCHEMAFULL PERMISSIONS
+    FOR select WHERE id = $auth OR id = $auth.id
+    FOR update WHERE id = $auth OR id = $auth.id
+    FOR delete NONE;
 
 -- Campos principales
-DEFINE FIELD email ON user TYPE string
+DEFINE FIELD IF NOT EXISTS email ON user TYPE string
     ASSERT $value != NONE
     AND string::contains($value, '@')
     AND string::len($value) >= 5;
 
-DEFINE FIELD nombre ON user TYPE string
+DEFINE FIELD IF NOT EXISTS nombre ON user TYPE string
     ASSERT $value != NONE AND string::len($value) >= 2;
 
-DEFINE FIELD password_hash ON user TYPE string
+DEFINE FIELD IF NOT EXISTS password_hash ON user TYPE string
     ASSERT $value != NONE;
 
-DEFINE FIELD rol ON user TYPE string
+DEFINE FIELD IF NOT EXISTS rol ON user TYPE string
     ASSERT $value IN ['admin', 'instructor', 'estudiante']
     DEFAULT 'estudiante';
 
-DEFINE FIELD preferencias ON user TYPE object
+DEFINE FIELD IF NOT EXISTS preferencias ON user TYPE object
     DEFAULT {};
 
-DEFINE FIELD activo ON user TYPE bool
+DEFINE FIELD IF NOT EXISTS activo ON user TYPE bool
     DEFAULT true;
 
 -- Timestamps
-DEFINE FIELD created_at ON user TYPE datetime
+DEFINE FIELD IF NOT EXISTS created_at ON user TYPE datetime
     DEFAULT time::now()
     READONLY;
 
-DEFINE FIELD updated_at ON user TYPE datetime
+DEFINE FIELD IF NOT EXISTS updated_at ON user TYPE datetime
     DEFAULT time::now()
     VALUE time::now();
 
 -- Índices para búsquedas rápidas y login
-DEFINE INDEX userEmailIdx ON user FIELDS email UNIQUE;
-DEFINE INDEX userRolIdx ON user FIELDS rol;
-DEFINE INDEX userActivoIdx ON user FIELDS activo;
+DEFINE INDEX IF NOT EXISTS userEmailIdx ON user FIELDS email UNIQUE;
+DEFINE INDEX IF NOT EXISTS userRolIdx ON user FIELDS rol;
+DEFINE INDEX IF NOT EXISTS userActivoIdx ON user FIELDS activo;
+
 
 -- ----------------------------------------------------------------------------
 -- TABLA: session
 -- Descripción: Sesiones activas de usuarios para control de autenticación
 -- ----------------------------------------------------------------------------
-DEFINE TABLE session SCHEMAFULL;
+DEFINE TABLE IF NOT EXISTS session SCHEMAFULL;
 
-DEFINE FIELD user ON session TYPE record<user>
+DEFINE FIELD IF NOT EXISTS user ON session TYPE record<user>
     ASSERT $value != NONE;
 
-DEFINE FIELD token ON session TYPE string
+DEFINE FIELD IF NOT EXISTS token ON session TYPE string
     ASSERT $value != NONE;
 
-DEFINE FIELD ip_address ON session TYPE string;
+DEFINE FIELD IF NOT EXISTS ip_address ON session TYPE string;
 
-DEFINE FIELD user_agent ON session TYPE string;
+DEFINE FIELD IF NOT EXISTS user_agent ON session TYPE string;
 
-DEFINE FIELD expires_at ON session TYPE datetime
+DEFINE FIELD IF NOT EXISTS expires_at ON session TYPE datetime
     ASSERT $value != NONE;
 
-DEFINE FIELD created_at ON session TYPE datetime
+DEFINE FIELD IF NOT EXISTS created_at ON session TYPE datetime
     DEFAULT time::now()
     READONLY;
 
-DEFINE FIELD last_activity ON session TYPE datetime
+DEFINE FIELD IF NOT EXISTS last_activity ON session TYPE datetime
     DEFAULT time::now()
     VALUE time::now();
 
 -- Índices
-DEFINE INDEX sessionTokenIdx ON session FIELDS token UNIQUE;
-DEFINE INDEX sessionUserIdx ON session FIELDS user;
-DEFINE INDEX sessionExpiresIdx ON session FIELDS expires_at;
+DEFINE INDEX IF NOT EXISTS sessionTokenIdx ON session FIELDS token UNIQUE;
+DEFINE INDEX IF NOT EXISTS sessionUserIdx ON session FIELDS user;
+DEFINE INDEX IF NOT EXISTS sessionExpiresIdx ON session FIELDS expires_at;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: refresh_token
 -- Descripción: Tokens de refresco para mantener sesiones activas
 -- ----------------------------------------------------------------------------
-DEFINE TABLE refresh_token SCHEMAFULL;
+DEFINE TABLE IF NOT EXISTS refresh_token SCHEMAFULL;
 
-DEFINE FIELD user ON refresh_token TYPE record<user>
+DEFINE FIELD IF NOT EXISTS user ON refresh_token TYPE record<user>
     ASSERT $value != NONE;
 
-DEFINE FIELD token ON refresh_token TYPE string
+DEFINE FIELD IF NOT EXISTS token ON refresh_token TYPE string
     ASSERT $value != NONE;
 
-DEFINE FIELD expires_at ON refresh_token TYPE datetime
+DEFINE FIELD IF NOT EXISTS expires_at ON refresh_token TYPE datetime
     ASSERT $value != NONE;
 
-DEFINE FIELD revoked ON refresh_token TYPE bool
+DEFINE FIELD IF NOT EXISTS revoked ON refresh_token TYPE bool
     DEFAULT false;
 
-DEFINE FIELD created_at ON refresh_token TYPE datetime
+DEFINE FIELD IF NOT EXISTS created_at ON refresh_token TYPE datetime
     DEFAULT time::now()
     READONLY;
 
 -- Índices
-DEFINE INDEX refreshTokenIdx ON refresh_token FIELDS token UNIQUE;
-DEFINE INDEX refreshUserIdx ON refresh_token FIELDS user;
-DEFINE INDEX refreshRevokedIdx ON refresh_token FIELDS revoked;
+DEFINE INDEX IF NOT EXISTS refreshTokenIdx ON refresh_token FIELDS token UNIQUE;
+DEFINE INDEX IF NOT EXISTS refreshUserIdx ON refresh_token FIELDS user;
+DEFINE INDEX IF NOT EXISTS refreshRevokedIdx ON refresh_token FIELDS revoked;
 
 -- ----------------------------------------------------------------------------
 -- TABLA: password_reset
 -- Descripción: Tokens para reseteo de contraseña
 -- ----------------------------------------------------------------------------
-DEFINE TABLE password_reset SCHEMAFULL;
+DEFINE TABLE IF NOT EXISTS password_reset SCHEMAFULL;
 
-DEFINE FIELD user ON password_reset TYPE record<user>
+DEFINE FIELD IF NOT EXISTS user ON password_reset TYPE record<user>
     ASSERT $value != NONE;
 
-DEFINE FIELD token ON password_reset TYPE string
+DEFINE FIELD IF NOT EXISTS token ON password_reset TYPE string
     ASSERT $value != NONE;
 
-DEFINE FIELD expires_at ON password_reset TYPE datetime
+DEFINE FIELD IF NOT EXISTS expires_at ON password_reset TYPE datetime
     ASSERT $value != NONE;
 
-DEFINE FIELD used ON password_reset TYPE bool
+DEFINE FIELD IF NOT EXISTS used ON password_reset TYPE bool
     DEFAULT false;
 
-DEFINE FIELD created_at ON password_reset TYPE datetime
+DEFINE FIELD IF NOT EXISTS created_at ON password_reset TYPE datetime
     DEFAULT time::now()
     READONLY;
 
 -- Índices
-DEFINE INDEX passwordResetTokenIdx ON password_reset FIELDS token UNIQUE;
-DEFINE INDEX passwordResetUserIdx ON password_reset FIELDS user;
+DEFINE INDEX IF NOT EXISTS passwordResetTokenIdx ON password_reset FIELDS token UNIQUE;
+DEFINE INDEX IF NOT EXISTS passwordResetUserIdx ON password_reset FIELDS user;
 
 -- ----------------------------------------------------------------------------
 -- SCOPE: instructor_scope
 -- Descripción: Scope para autenticación de instructores y administradores
 -- ----------------------------------------------------------------------------
-DEFINE SCOPE instructor_scope
+DEFINE SCOPE IF NOT EXISTS instructor_scope
     SESSION 14d
     SIGNUP (
         CREATE user SET
@@ -161,7 +165,7 @@ DEFINE SCOPE instructor_scope
 -- SCOPE: estudiante_scope
 -- Descripción: Scope para autenticación de estudiantes
 -- ----------------------------------------------------------------------------
-DEFINE SCOPE estudiante_scope
+DEFINE SCOPE IF NOT EXISTS estudiante_scope
     SESSION 30d
     SIGNUP (
         CREATE user SET

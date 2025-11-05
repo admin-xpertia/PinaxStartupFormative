@@ -1,2 +1,2 @@
-export * from './surrealdb.module';
-export * from './surrealdb.service';
+export * from "./surrealdb.module";
+export * from "./surrealdb.service";

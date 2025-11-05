@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input"
 import { Plus, Search, Filter } from "lucide-react"
 import { programs, quickStats } from "@/lib/mock-data"
 import { ProgramWizard } from "@/components/wizard/program-wizard"
-import type { ProgramFormData } from "@/types/wizard"
 import { useUIStore } from "@/stores/ui-store"
 import { cn } from "@/lib/utils"
 import { Breadcrumbs } from "@/components/shared/breadcrumbs"
@@ -32,7 +31,7 @@ export default function DashboardPage() {
     return true
   })
 
-  const handleCreateProgram = (data: ProgramFormData) => {
+  const handleCreateProgram = (data: unknown) => {
     console.log("[v0] Program created:", data)
     setShowWizard(false)
     // TODO: Save program to backend

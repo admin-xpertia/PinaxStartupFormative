@@ -4,9 +4,9 @@ import {
   ExecutionContext,
   UnauthorizedException,
   Logger,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { SurrealDbService } from '../database';
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { SurrealDbService } from "../database";
 
 /**
  * Guard de autenticación
@@ -26,7 +26,7 @@ export class AuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // Verificar si la ruta es pública
     const isPublic = this.reflector.get<boolean>(
-      'isPublic',
+      "isPublic",
       context.getHandler(),
     );
 
@@ -38,7 +38,7 @@ export class AuthGuard implements CanActivate {
     const token = this.extractTokenFromHeader(request);
 
     if (!token) {
-      throw new UnauthorizedException('Token no proporcionado');
+      throw new UnauthorizedException("Token no proporcionado");
     }
 
     try {
@@ -46,19 +46,22 @@ export class AuthGuard implements CanActivate {
       await this.surrealDb.authenticateWithToken(token);
 
       // Obtener información del usuario
-      const [result] = await this.surrealDb.query<any>('SELECT * FROM $auth');
+      const authInfo = await this.surrealDb.getAuthInfo<any>();
 
-      if (!result || !result.result) {
-        throw new UnauthorizedException('Token inválido');
+      const user =
+        Array.isArray(authInfo) && authInfo.length > 0 ? authInfo[0] : authInfo;
+
+      if (!user) {
+        throw new UnauthorizedException("Token inválido");
       }
 
       // Adjuntar usuario al request
-      request.user = result.result;
+      request.user = user;
 
       return true;
     } catch (error) {
-      this.logger.error('Error en autenticación:', error);
-      throw new UnauthorizedException('Token inválido o expirado');
+      this.logger.error("Error en autenticación:", error);
+      throw new UnauthorizedException("Token inválido o expirado");
     }
   }
 
@@ -72,8 +75,8 @@ export class AuthGuard implements CanActivate {
       return undefined;
     }
 
-    const [type, token] = authHeader.split(' ');
+    const [type, token] = authHeader.split(" ");
 
-    return type === 'Bearer' ? token : undefined;
+    return type === "Bearer" ? token : undefined;
   }
 }
