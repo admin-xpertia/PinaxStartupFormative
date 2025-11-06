@@ -4,14 +4,17 @@ import { APP_GUARD } from "@nestjs/core";
 import { SurrealDbModule } from "./core/database";
 import { AuthGuard } from "./core/guards/auth.guard";
 import { UsuariosModule } from "./domains/usuarios/usuarios.module";
-import { ProgramasModule } from "./domains/programas/programas.module";
-import { GeneracionModule } from "./domains/generacion/generacion.module";
-import { ContenidoModule } from "./domains/contenido/contenido.module";
-import { CohortesModule } from "./domains/cohortes/cohortes.module";
-import { AnalyticsModule } from "./domains/analytics/analytics.module";
+
+// New DDD Architecture Modules
+import { ProgramDesignModule } from "./modules/program-design.module";
+import { ExerciseCatalogModule } from "./modules/exercise-catalog.module";
+import { ExerciseInstanceModule } from "./modules/exercise-instance.module";
 
 /**
  * Módulo principal de la aplicación
+ *
+ * Nota: Se ha migrado a arquitectura DDD con bounded contexts.
+ * Los módulos legacy han sido reemplazados por los nuevos módulos DDD.
  */
 @Module({
   imports: [
@@ -24,18 +27,13 @@ import { AnalyticsModule } from "./domains/analytics/analytics.module";
     // Database
     SurrealDbModule,
 
-    // Dominios
+    // Legacy: Auth module (temporal - will be migrated to DDD)
     UsuariosModule,
 
-    ProgramasModule,
-
-    GeneracionModule,
-
-    ContenidoModule,
-
-    CohortesModule,
-
-    AnalyticsModule,
+    // DDD Bounded Context Modules
+    ProgramDesignModule,
+    ExerciseCatalogModule,
+    ExerciseInstanceModule,
   ],
   providers: [
     // Guard global de autenticación

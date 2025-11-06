@@ -29,9 +29,14 @@ async function bootstrap() {
 
   // Swagger documentation
   const config = new DocumentBuilder()
-    .setTitle("Xpertia Platform API")
-    .setDescription("API Backend para la plataforma educativa Xpertia")
+    .setTitle("Xpertia Classroom API")
+    .setDescription("AI-powered classroom management API - Domain-Driven Design Architecture")
     .setVersion("1.0")
+    .addTag("programs", "Program Design - Educational Programs Management")
+    .addTag("fases", "Program Fases/Phases Management")
+    .addTag("proof-points", "Proof Points Management")
+    .addTag("exercise-templates", "Exercise Catalog - Template Management")
+    .addTag("exercise-instances", "Exercise Instance - Exercise Assignments")
     .addBearerAuth(
       {
         type: "http",

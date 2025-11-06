@@ -9,9 +9,7 @@ import { Button } from "@/components/ui/button"
 import {
   LayoutDashboard,
   BookOpen,
-  Users,
   Library,
-  BarChart3,
   HelpCircle,
   MessageSquare,
   ChevronLeft,
@@ -28,9 +26,7 @@ interface NavItem {
 const mainNavItems: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/" },
   { label: "Mis Programas", icon: BookOpen, href: "/programas", badge: "4" },
-  { label: "Cohortes Activas", icon: Users, href: "/cohortes", badge: "2" },
   { label: "Biblioteca", icon: Library, href: "/biblioteca" },
-  { label: "Analytics", icon: BarChart3, href: "/analytics" },
 ]
 
 const helpItems: NavItem[] = [
