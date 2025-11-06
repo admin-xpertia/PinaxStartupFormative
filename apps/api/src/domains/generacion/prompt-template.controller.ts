@@ -9,13 +9,13 @@ import {
   Query,
   UseGuards,
   Request,
-} from '@nestjs/common';
-import { PromptTemplateService } from './prompt-template.service';
+} from "@nestjs/common";
+import { PromptTemplateService } from "./prompt-template.service";
 import {
   CrearPromptTemplateDto,
   ActualizarPromptTemplateDto,
   BuscarPromptTemplatesDto,
-} from './dto';
+} from "./dto";
 
 /**
  * Controlador para la gestión de plantillas de prompts.
@@ -29,7 +29,7 @@ import {
  * - POST /prompt-templates/:id/renderizar - Renderiza una plantilla con variables
  * - POST /prompt-templates/:id/clonar - Clona una plantilla
  */
-@Controller('prompt-templates')
+@Controller("prompt-templates")
 // @UseGuards(JwtAuthGuard) // TODO: Descomentar cuando se implemente autenticación
 export class PromptTemplateController {
   constructor(private readonly promptTemplateService: PromptTemplateService) {}
@@ -53,7 +53,7 @@ export class PromptTemplateController {
     @Body() dto: CrearPromptTemplateDto,
     @Request() req: any,
   ) {
-    const userId = req.user?.id || 'user:system'; // TODO: Obtener del JWT
+    const userId = req.user?.id || "user:system"; // TODO: Obtener del JWT
     return this.promptTemplateService.crearPlantilla(dto, userId);
   }
 
@@ -74,8 +74,8 @@ export class PromptTemplateController {
   /**
    * Obtiene una plantilla específica por su ID.
    */
-  @Get(':id')
-  async obtenerPlantilla(@Param('id') plantillaId: string) {
+  @Get(":id")
+  async obtenerPlantilla(@Param("id") plantillaId: string) {
     return this.promptTemplateService.obtenerPlantilla(plantillaId);
   }
 
@@ -84,13 +84,13 @@ export class PromptTemplateController {
    *
    * Solo el creador o un admin puede actualizar la plantilla.
    */
-  @Put(':id')
+  @Put(":id")
   async actualizarPlantilla(
-    @Param('id') plantillaId: string,
+    @Param("id") plantillaId: string,
     @Body() dto: ActualizarPromptTemplateDto,
     @Request() req: any,
   ) {
-    const userId = req.user?.id || 'user:system'; // TODO: Obtener del JWT
+    const userId = req.user?.id || "user:system"; // TODO: Obtener del JWT
     return this.promptTemplateService.actualizarPlantilla(
       plantillaId,
       dto,
@@ -104,9 +104,12 @@ export class PromptTemplateController {
    * Solo el creador o un admin puede eliminar la plantilla.
    * Las plantillas oficiales no pueden ser eliminadas.
    */
-  @Delete(':id')
-  async eliminarPlantilla(@Param('id') plantillaId: string, @Request() req: any) {
-    const userId = req.user?.id || 'user:system'; // TODO: Obtener del JWT
+  @Delete(":id")
+  async eliminarPlantilla(
+    @Param("id") plantillaId: string,
+    @Request() req: any,
+  ) {
+    const userId = req.user?.id || "user:system"; // TODO: Obtener del JWT
     return this.promptTemplateService.eliminarPlantilla(plantillaId, userId);
   }
 
@@ -124,10 +127,10 @@ export class PromptTemplateController {
    *
    * Response: El prompt renderizado como string
    */
-  @Post(':id/renderizar')
+  @Post(":id/renderizar")
   async renderizarPlantilla(
-    @Param('id') plantillaId: string,
-    @Body('variables') variables: Record<string, any>,
+    @Param("id") plantillaId: string,
+    @Body("variables") variables: Record<string, any>,
   ) {
     const promptRenderizado =
       await this.promptTemplateService.renderizarPlantilla(
@@ -149,13 +152,13 @@ export class PromptTemplateController {
    *   "nuevoNombre": "Mi copia de la plantilla"
    * }
    */
-  @Post(':id/clonar')
+  @Post(":id/clonar")
   async clonarPlantilla(
-    @Param('id') plantillaId: string,
-    @Body('nuevoNombre') nuevoNombre: string | undefined,
+    @Param("id") plantillaId: string,
+    @Body("nuevoNombre") nuevoNombre: string | undefined,
     @Request() req: any,
   ) {
-    const userId = req.user?.id || 'user:system'; // TODO: Obtener del JWT
+    const userId = req.user?.id || "user:system"; // TODO: Obtener del JWT
     return this.promptTemplateService.clonarPlantilla(
       plantillaId,
       userId,

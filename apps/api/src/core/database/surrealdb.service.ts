@@ -90,11 +90,53 @@ export class SurrealDbService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Ejecuta una query SurrealQL
+   *
+   * SurrealDB query() devuelve un array donde cada elemento corresponde
+   * a cada statement ejecutado. Por ejemplo:
+   * - Query única: [[{...registro...}]]
+   * - Múltiples queries: [[{...}], [{...}], ...]
    */
   async query<T = any>(sql: string, vars?: Record<string, any>): Promise<T> {
     try {
       const result: any = await this.db.query(sql, vars);
-      return result[0]?.result as T;
+
+      this.logger.debug(
+        `Query result RAW: ${JSON.stringify(result, null, 2)}`,
+      );
+      this.logger.debug(
+        `Query result type: ${typeof result}, isArray: ${Array.isArray(result)}, length: ${result?.length}`,
+      );
+
+      if (!Array.isArray(result)) {
+        return result as T;
+      }
+
+      // Si no hay resultados, retornar array vacío
+      if (result.length === 0) {
+        this.logger.warn("Query returned empty array - possible permission issue or failed assertion");
+        return [] as T;
+      }
+
+      // Si solo hay un statement en la query, extraer su resultado
+      if (result.length === 1) {
+        const firstResult = result[0];
+        this.logger.debug(
+          `First result type: ${typeof firstResult}, isArray: ${Array.isArray(firstResult)}, value: ${JSON.stringify(firstResult)}`,
+        );
+
+        // El resultado de cada statement es un array de registros
+        if (Array.isArray(firstResult)) {
+          // Si el statement devolvió un solo registro, retornarlo directamente
+          // Si devolvió múltiples, retornar el array
+          return firstResult as T;
+        }
+
+        // Fallback si no es un array (no debería pasar)
+        return firstResult as T;
+      }
+
+      // Si hay múltiples statements, retornar todos los resultados
+      return result as T;
     } catch (error) {
       this.logger.error(`Error en query: ${sql}`, error);
       throw error;

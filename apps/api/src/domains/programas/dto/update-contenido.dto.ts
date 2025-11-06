@@ -1,4 +1,4 @@
-import { IsObject, IsNotEmpty } from 'class-validator';
+import { IsObject, IsNotEmpty } from "class-validator";
 
 /**
  * DTO para actualizar el contenido de un componente.

@@ -19,7 +19,8 @@ export function AppHeader() {
   const { user, logout } = useAuth();
 
   // Obtener iniciales del nombre
-  const getInitials = (nombre: string) => {
+  const getInitials = (nombre: string | undefined) => {
+    if (!nombre) return 'U';
     return nombre
       .split(' ')
       .map(word => word[0])

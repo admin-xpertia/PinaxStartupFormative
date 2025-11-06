@@ -14,7 +14,7 @@ import { CommunicationDto } from "./dto/communication.dto";
 import { AuthGuard } from "src/core/guards/auth.guard";
 import { User } from "src/core/decorators";
 
-@Controller("api/v1/cohortes")
+@Controller("cohortes")
 @UseGuards(AuthGuard)
 export class CohortesController {
   constructor(private readonly cohortesService: CohortesService) {}
@@ -46,10 +46,7 @@ export class CohortesController {
    * Obtiene una cohorte específica por ID
    */
   @Get(":id")
-  async findOne(
-    @Param("id") id: string,
-    @User("id") userId: string,
-  ) {
+  async findOne(@Param("id") id: string, @User("id") userId: string) {
     return this.cohortesService.findCohorteById(id, userId);
   }
 

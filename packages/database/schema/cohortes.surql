@@ -10,6 +10,6 @@ DEFINE FIELD IF NOT EXISTS estudiantes ON cohorte FLEXIBLE TYPE array<record<use
 -- Note: inscripcion_cohorte is defined in ejecucion.surql with estudiante as record<estudiante>
 -- This schema only defines cohorte-related tables
 
-DEFINE TABLE IF NOT EXISTS tiene_estudiantes SCHEMALIKE cohorte;
+DEFINE TABLE IF NOT EXISTS tiene_estudiantes SCHEMAFULL;
 DEFINE FIELD IF NOT EXISTS in ON tiene_estudiantes TYPE record<user>;
 DEFINE FIELD IF NOT EXISTS out ON tiene_estudiantes TYPE record<cohorte>;

@@ -5,7 +5,7 @@ import {
   IsObject,
   IsOptional,
   IsIn,
-} from 'class-validator';
+} from "class-validator";
 
 /**
  * DTO para crear una plantilla de prompt.
@@ -21,8 +21,8 @@ export class CrearPromptTemplateDto {
 
   @IsNotEmpty()
   @IsString()
-  @IsIn(['leccion', 'cuaderno', 'simulacion', 'herramienta'])
-  tipoComponente!: 'leccion' | 'cuaderno' | 'simulacion' | 'herramienta';
+  @IsIn(["leccion", "cuaderno", "simulacion", "herramienta"])
+  tipoComponente!: "leccion" | "cuaderno" | "simulacion" | "herramienta";
 
   @IsNotEmpty()
   @IsString()
@@ -72,8 +72,8 @@ export class ActualizarPromptTemplateDto {
 export class BuscarPromptTemplatesDto {
   @IsOptional()
   @IsString()
-  @IsIn(['leccion', 'cuaderno', 'simulacion', 'herramienta'])
-  tipoComponente?: 'leccion' | 'cuaderno' | 'simulacion' | 'herramienta';
+  @IsIn(["leccion", "cuaderno", "simulacion", "herramienta"])
+  tipoComponente?: "leccion" | "cuaderno" | "simulacion" | "herramienta";
 
   @IsOptional()
   @IsBoolean()

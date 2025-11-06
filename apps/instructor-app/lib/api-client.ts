@@ -18,11 +18,13 @@ export const apiClient = axios.create({
  */
 apiClient.interceptors.request.use(
   (config) => {
-    // Obtener token de localStorage
-    const token = localStorage.getItem('auth_token');
+    // Obtener token de localStorage (solo en el cliente)
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('auth_token');
 
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
 
     return config;
@@ -38,13 +40,13 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Si hay error 401, remover token y recargar
-    if (error.response?.status === 401) {
+    // Si hay error 401, remover token y recargar (solo en el cliente)
+    if (error.response?.status === 401 && typeof window !== 'undefined') {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_user');
 
       // Redirigir a login si no estamos ya ahí
-      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+      if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
     }

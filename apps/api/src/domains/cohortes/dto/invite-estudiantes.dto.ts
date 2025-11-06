@@ -1,4 +1,4 @@
-import { IsArray, IsEmail, ArrayMinSize } from 'class-validator';
+import { IsArray, IsEmail, ArrayMinSize } from "class-validator";
 
 export class InviteEstudiantesDto {
   @IsArray()

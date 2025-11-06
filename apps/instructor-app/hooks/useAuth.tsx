@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { authApi, User } from '@/lib/api-client';
 
@@ -39,6 +39,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * Verifica si hay una sesión activa
    */
   const checkSession = async () => {
+    // Solo ejecutar en el cliente
+    if (typeof window === 'undefined') {
+      setLoading(false);
+      return;
+    }
+
     try {
       const token = localStorage.getItem('auth_token');
 
@@ -130,9 +136,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Error en logout:', error);
     } finally {
-      // Limpiar datos locales
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth_user');
+      // Limpiar datos locales (solo en el cliente)
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
+      }
       setUser(null);
       setLoading(false);
 

@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsObject, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, IsObject, IsOptional } from "class-validator";
 
 /**
  * DTO para editar el contenido de un componente.
@@ -19,7 +19,7 @@ export class EditarContenidoDto {
 
   @IsOptional()
   @IsString()
-  tipoCambio?: 'mayor' | 'menor' | 'patch' | 'revision';
+  tipoCambio?: "mayor" | "menor" | "patch" | "revision";
 }
 
 /**

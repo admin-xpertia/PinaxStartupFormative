@@ -10,6 +10,7 @@ import { Step2Phases } from "./steps/step-2-phases"
 import { Step3ProofPoints } from "./steps/step-3-proof-points"
 import { Step4Review } from "./steps/step-4-review"
 import type { ProgramFormData } from "@/types/wizard"
+import { apiClient } from "@/lib/api-client"
 
 interface ProgramWizardProps {
   onClose: () => void
@@ -47,27 +48,30 @@ export function ProgramWizard({ onClose, onComplete }: ProgramWizardProps) {
     setError(null)
 
     try {
-      const response = await fetch("/api/v1/programas", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      })
-
-      if (!response.ok) {
-        const errData = await response.json()
-        throw new Error(errData.message || "Error al crear el programa")
-      }
-
-      const nuevoPrograma = await response.json()
+      const response = await apiClient.post("/programas", formData)
+      const nuevoPrograma = response.data
 
       onComplete(nuevoPrograma)
       if (nuevoPrograma?.id) {
         router.push(`/programas/${nuevoPrograma.id}/arquitectura`)
       }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Ocurrió un error desconocido"
+    } catch (err: any) {
+      console.error("Error al crear programa:", err)
+
+      // Manejar errores de autenticación
+      if (err.response?.status === 401) {
+        setError(
+          "Tu sesión ha expirado. Por favor, inicia sesión nuevamente para continuar."
+        )
+        // El interceptor de api-client ya redirigirá al login
+        return
+      }
+
+      // Manejar otros errores
+      const message =
+        err.response?.data?.message ||
+        err.message ||
+        "Ocurrió un error al crear el programa. Por favor, intenta nuevamente."
       setError(message)
     } finally {
       setIsLoading(false)

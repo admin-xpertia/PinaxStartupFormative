@@ -47,6 +47,9 @@ export class ProgramOwnershipGuard implements CanActivate {
     this.logger.debug(`Parámetros de ruta: ${JSON.stringify(params)}`);
     this.logger.debug(`Body presente: ${body ? "Sí" : "No"}`);
 
+    // Limpiar el userId si incluye el prefijo "user:"
+    const cleanUserId = this.cleanRecordId(userId, "user");
+
     let query: string;
     let resourceId: string;
     let resourceType: string;
@@ -56,52 +59,57 @@ export class ProgramOwnershipGuard implements CanActivate {
     if (params.id && request.route.path.includes("/programas/:id")) {
       // Caso: GET /programas/:id/arquitectura
       resourceType = "programa";
+      const cleanProgramaId = this.cleanRecordId(params.id, "programa");
       resourceId = params.id.includes(":")
         ? params.id
         : `programa:${params.id}`;
       query = `
-        SELECT id FROM type::thing("programa", "${params.id}")
-        WHERE creador = type::thing("usuario", "${userId}");
+        SELECT id FROM type::thing("programa", "${cleanProgramaId}")
+        WHERE creador = type::thing("user", "${cleanUserId}");
       `;
     } else if (params.faseId) {
       // Caso: Operaciones sobre fases (ej. PUT /fases/:faseId)
       resourceType = "fase";
+      const cleanFaseId = this.cleanRecordId(params.faseId, "fase");
       resourceId = params.faseId.includes(":")
         ? params.faseId
         : `fase:${params.faseId}`;
       query = `
-        SELECT id FROM type::thing("fase", "${params.faseId}")
-        WHERE programa.creador = type::thing("usuario", "${userId}");
+        SELECT id FROM type::thing("fase", "${cleanFaseId}")
+        WHERE programa.creador = type::thing("user", "${cleanUserId}");
       `;
     } else if (params.id && request.route.path.includes("/proofpoints/:id")) {
       // Caso: PUT /proofpoints/:id/prerequisitos
       resourceType = "proof_point";
+      const cleanProofPointId = this.cleanRecordId(params.id, "proof_point");
       resourceId = params.id.includes(":")
         ? params.id
         : `proof_point:${params.id}`;
       query = `
-        SELECT id FROM type::thing("proof_point", "${params.id}")
-        WHERE fase.programa.creador = type::thing("usuario", "${userId}");
+        SELECT id FROM type::thing("proof_point", "${cleanProofPointId}")
+        WHERE fase.programa.creador = type::thing("user", "${cleanUserId}");
       `;
     } else if (params.nivelId) {
       // Caso: Operaciones sobre niveles
       resourceType = "nivel";
+      const cleanNivelId = this.cleanRecordId(params.nivelId, "nivel");
       resourceId = params.nivelId.includes(":")
         ? params.nivelId
         : `nivel:${params.nivelId}`;
       query = `
-        SELECT id FROM type::thing("nivel", "${params.nivelId}")
-        WHERE proof_point.fase.programa.creador = type::thing("usuario", "${userId}");
+        SELECT id FROM type::thing("nivel", "${cleanNivelId}")
+        WHERE proof_point.fase.programa.creador = type::thing("user", "${cleanUserId}");
       `;
     } else if (params.componenteId) {
       // Caso: Operaciones sobre componentes (desde params)
       resourceType = "componente";
+      const cleanComponenteId = this.cleanRecordId(params.componenteId, "componente");
       resourceId = params.componenteId.includes(":")
         ? params.componenteId
         : `componente:${params.componenteId}`;
       query = `
-        SELECT id FROM type::thing("componente", "${params.componenteId}")
-        WHERE nivel.proof_point.fase.programa.creador = type::thing("usuario", "${userId}");
+        SELECT id FROM type::thing("componente", "${cleanComponenteId}")
+        WHERE nivel.proof_point.fase.programa.creador = type::thing("user", "${cleanUserId}");
       `;
     } else if (body?.componenteId) {
       // Caso: Operaciones sobre componentes (desde body)
@@ -121,7 +129,7 @@ export class ProgramOwnershipGuard implements CanActivate {
 
       query = `
         SELECT id FROM type::thing("componente", "${componenteId}")
-        WHERE nivel.proof_point.fase.programa.creador = type::thing("usuario", "${userId}");
+        WHERE nivel.proof_point.fase.programa.creador = type::thing("user", "${cleanUserId}");
       `;
     } else {
       // No hay parámetro de ID para verificar (ej. POST /programas)
@@ -137,10 +145,15 @@ export class ProgramOwnershipGuard implements CanActivate {
 
       // Ejecutar la consulta de verificación
       const result = await this.surrealDb.query<any>(query);
-      const records = result?.[0];
+
+      // El método query() ahora retorna el resultado desempaquetado directamente
+      // Si es un array con elementos, el usuario es propietario
+      const records = Array.isArray(result) ? result : [result];
+
+      this.logger.debug(`Records recibidos: ${JSON.stringify(records)}`);
 
       // Si la consulta devuelve un resultado, el usuario es el propietario
-      if (records && Array.isArray(records) && records.length > 0) {
+      if (records && records.length > 0 && records[0]) {
         this.logger.log(
           `Acceso autorizado: Usuario ${userId} es propietario de ${resourceType} ${resourceId}`,
         );
@@ -165,5 +178,15 @@ export class ProgramOwnershipGuard implements CanActivate {
       );
       throw new ForbiddenException("Error al verificar permisos del recurso");
     }
+  }
+
+  /**
+   * Limpia el prefijo de tabla de un ID si está presente
+   * Ejemplo: "user:abc123" -> "abc123"
+   */
+  private cleanRecordId(id: string, table: string): string {
+    if (!id) return id;
+    const prefix = `${table}:`;
+    return id.startsWith(prefix) ? id.substring(prefix.length) : id;
   }
 }

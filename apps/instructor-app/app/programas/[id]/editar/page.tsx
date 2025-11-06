@@ -1,47 +1,34 @@
 "use client"
 
+import { use } from "react"
+import { useRouter } from "next/navigation"
 import useSWR from "swr"
-import { AppHeader } from "@/components/app-header"
-import { Sidebar } from "@/components/sidebar"
-import { Breadcrumbs } from "@/components/shared/breadcrumbs"
-import { PageHeader } from "@/components/shared/page-header"
 import { fetcher } from "@/lib/fetcher"
 import { LoadingState } from "@/components/shared/loading-state"
 import { ErrorState } from "@/components/shared/error-state"
 import { notFound } from "next/navigation"
+import type { Program } from "@/types/program"
+import { ProgramEditor } from "@/components/fase2/ProgramEditor"
+import { toast } from "sonner"
 
-export default function EditProgramPage({ params }: { params: { id: string } }) {
+export default function EditProgramPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
+  const router = useRouter()
   const {
     data: program,
     error,
     isLoading,
     mutate,
-  } = useSWR(params?.id ? `/api/v1/programas/${params.id}` : null, fetcher)
+  } = useSWR<Program>(id ? `/api/v1/programas/${id}` : null, fetcher)
 
   if (isLoading) {
-    return (
-      <div className="flex h-screen overflow-hidden bg-background">
-        <Sidebar />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <AppHeader />
-          <main className="flex-1 overflow-y-auto">
-            <LoadingState text="Cargando programa..." />
-          </main>
-        </div>
-      </div>
-    )
+    return <LoadingState text="Cargando programa..." />
   }
 
   if (error) {
     return (
-      <div className="flex h-screen overflow-hidden bg-background">
-        <Sidebar />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <AppHeader />
-          <main className="flex-1 overflow-y-auto">
-            <ErrorState message={error.message || "Error al cargar el programa"} retry={() => mutate()} />
-          </main>
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <ErrorState message={error.message || "Error al cargar el programa"} retry={() => mutate()} />
       </div>
     )
   }
@@ -50,24 +37,49 @@ export default function EditProgramPage({ params }: { params: { id: string } }) 
     notFound()
   }
 
+  const handleSave = async (updatedProgram: any) => {
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
+
+      console.log("Sending PUT request to:", `/api/v1/programas/${id}`)
+      console.log("Request body:", updatedProgram)
+
+      const response = await fetch(`/api/v1/programas/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(updatedProgram),
+      })
+
+      console.log("Response status:", response.status)
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error("Error response:", errorData)
+        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`)
+      }
+
+      const result = await response.json()
+      console.log("Save successful:", result)
+
+      // Revalidar datos
+      await mutate()
+
+      toast.success("Programa actualizado exitosamente")
+      router.push(`/programas/${id}`)
+    } catch (error) {
+      console.error("Error saving program:", error)
+      throw error
+    }
+  }
+
+  const handleCancel = () => {
+    router.push(`/programas/${id}`)
+  }
+
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <AppHeader />
-        <main className="flex-1 overflow-y-auto">
-          <div className="container mx-auto p-6 space-y-6">
-            <Breadcrumbs />
-            <PageHeader
-              title={`Editar: ${program.nombre}`}
-              description="Modifica la información y estructura del programa"
-            />
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Próximamente: Editor completo del programa</p>
-            </div>
-          </div>
-        </main>
-      </div>
-    </div>
+    <ProgramEditor programaId={id} programaActual={program} onSave={handleSave} onCancel={handleCancel} />
   )
 }

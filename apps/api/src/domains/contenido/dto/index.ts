@@ -1,2 +1,2 @@
-export * from './editar-contenido.dto';
-export * from './rubrica.dto';
+export * from "./editar-contenido.dto";
+export * from "./rubrica.dto";

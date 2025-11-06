@@ -3,9 +3,9 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
-} from '@nestjs/common';
-import { SurrealDbService } from 'src/core/database';
-import { CrearRubricaDto, ValidarPesosDto } from './dto';
+} from "@nestjs/common";
+import { SurrealDbService } from "src/core/database";
+import { CrearRubricaDto, ValidarPesosDto } from "./dto";
 
 @Injectable()
 export class RubricaService {
@@ -58,10 +58,12 @@ export class RubricaService {
     const rubrica = result?.[0];
 
     if (!rubrica || !rubrica.id) {
-      throw new BadRequestException('No se pudo crear la rúbrica');
+      throw new BadRequestException("No se pudo crear la rúbrica");
     }
 
-    this.logger.log(`Rúbrica creada exitosamente para componente ${componenteId}`);
+    this.logger.log(
+      `Rúbrica creada exitosamente para componente ${componenteId}`,
+    );
 
     return rubrica;
   }
@@ -147,7 +149,7 @@ export class RubricaService {
     this.logger.log(`Rúbrica ${rubricaId} eliminada exitosamente`);
 
     return {
-      mensaje: 'Rúbrica eliminada exitosamente',
+      mensaje: "Rúbrica eliminada exitosamente",
       rubricaId,
     };
   }
@@ -173,14 +175,14 @@ export class RubricaService {
 
       return {
         valido: true,
-        mensaje: 'Los pesos suman correctamente 100',
+        mensaje: "Los pesos suman correctamente 100",
       };
     } catch (error) {
       await this.marcarPesosValidados(rubricaId, false);
 
       return {
         valido: false,
-        mensaje: error instanceof Error ? error.message : 'Error de validación',
+        mensaje: error instanceof Error ? error.message : "Error de validación",
       };
     }
   }
@@ -323,10 +325,10 @@ export class RubricaService {
 
   private extractId(recordId: string): string {
     if (!recordId) {
-      throw new BadRequestException('ID inválido');
+      throw new BadRequestException("ID inválido");
     }
 
-    const parts = recordId.split(':');
+    const parts = recordId.split(":");
     return parts.length > 1 ? parts[parts.length - 1] : recordId;
   }
 }

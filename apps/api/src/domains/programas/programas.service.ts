@@ -37,113 +37,220 @@ export class ProgramasService {
       );
     }
 
-    const {
-      nombre_programa,
-      descripcion,
-      categoria,
-      duracion_semanas,
-      numero_fases,
-      fases,
-    } = data;
+    const { nombre_programa, descripcion, duracion_semanas, fases } = data;
 
     try {
       this.logger.log(
         `Creando programa "${nombre_programa}" para usuario ${creatorId}`,
       );
 
-      // Construir la transacción completa en SurrealQL
-      let tx = "BEGIN TRANSACTION;\n";
+      // Limpiar el creatorId si ya incluye el prefijo "user:"
+      const cleanCreatorId = this.cleanRecordId(creatorId, "user");
 
-      // 1. Crear el Programa
-      tx += `
-        LET $creador = type::thing("usuario", "${creatorId}");
-        LET $programa = CREATE programa SET
-          nombre = "${this.escapeSql(nombre_programa)}",
-          descripcion = "${this.escapeSql(descripcion)}",
-          categoria = "${this.escapeSql(categoria)}",
-          duracion_semanas = ${duracion_semanas},
-          numero_fases = ${numero_fases},
-          creador = $creador,
-          created_at = time::now();
+      // 1. Crear el Programa usando query directo en lugar de db.create()
+      this.logger.debug(`Creando programa para ${creatorId}`);
+
+      const datosPrograma = {
+        nombre: nombre_programa,
+        descripcion: descripcion,
+        duracion_semanas: duracion_semanas,
+        creador: `user:${cleanCreatorId}`,
+      };
+
+      this.logger.debug(
+        `Datos a enviar: ${JSON.stringify(datosPrograma, null, 2)}`,
+      );
+
+      // Usar query directa con SurrealQL en lugar de db.create()
+      const createQuery = `
+        CREATE programa CONTENT {
+          nombre: $nombre,
+          descripcion: $descripcion,
+          duracion_semanas: $duracion_semanas,
+          creador: type::thing('user', $creadorId)
+        }
       `;
 
-      // 2. Iterar sobre las Fases
-      for (const fase of fases) {
-        tx += `
-          LET $fase_${this.sanitizeId(fase.id)} = CREATE fase SET
-            nombre = "${this.escapeSql(fase.nombre_fase)}",
-            descripcion = "${this.escapeSql(fase.descripcion_fase)}",
-            objetivos_aprendizaje = "${this.escapeSql(fase.objetivos_aprendizaje)}",
-            duracion_semanas = ${fase.duracion_semanas_fase},
-            numero_proof_points = ${fase.numero_proof_points},
-            programa = $programa.id,
-            created_at = time::now();
-        `;
+      this.logger.debug(`Ejecutando query: ${createQuery}`);
+      this.logger.debug(
+        `Variables: ${JSON.stringify(
+          {
+            nombre: nombre_programa,
+            descripcion: descripcion,
+            duracion_semanas: duracion_semanas,
+            creadorId: cleanCreatorId,
+          },
+          null,
+          2,
+        )}`,
+      );
 
-        // 3. Iterar sobre los ProofPoints de cada Fase
-        for (const pp of fase.proof_points) {
-          tx += `
-            LET $pp_${this.sanitizeId(pp.id)} = CREATE proofpoint SET
-              nombre = "${this.escapeSql(pp.nombre_pp)}",
-              slug = "${this.escapeSql(pp.slug_pp)}",
-              descripcion = "${this.escapeSql(pp.descripcion_pp)}",
-              pregunta_central = "${this.escapeSql(pp.pregunta_central)}",
-              tipo_entregable = "${this.escapeSql(pp.tipo_entregable)}",
-              numero_niveles = ${pp.numero_niveles},
-              prerequisitos = ${JSON.stringify(pp.prerequisitos)},
-              duracion_estimada_horas = ${pp.duracion_estimada_horas},
-              fase = $fase_${this.sanitizeId(fase.id)}.id,
-              created_at = time::now();
-          `;
+      let programa: any;
+      try {
+        const result = await this.surrealDb.query<any[]>(createQuery, {
+          nombre: nombre_programa,
+          descripcion: descripcion,
+          duracion_semanas: duracion_semanas,
+          creadorId: cleanCreatorId,
+        });
+
+        this.logger.debug(
+          `Resultado raw de query: ${JSON.stringify(result, null, 2)}`,
+        );
+        programa = result;
+      } catch (createError) {
+        this.logger.error(`Error al crear programa: ${createError.message}`);
+        this.logger.error(`Stack: ${createError.stack}`);
+        throw createError;
+      }
+
+      this.logger.debug(
+        `Programa después de query: ${JSON.stringify(programa, null, 2)}`,
+      );
+
+      if (!programa || (Array.isArray(programa) && programa.length === 0)) {
+        throw new InternalServerErrorException(
+          "No se pudo crear el programa - respuesta vacía",
+        );
+      }
+
+      // El wrapper de query ya extrae el resultado, así que programa debería ser el objeto o array directamente
+      const programaData = Array.isArray(programa) ? programa[0] : programa;
+
+      if (!programaData || !programaData.id) {
+        throw new InternalServerErrorException(
+          "No se pudo crear el programa - sin ID",
+        );
+      }
+
+      this.logger.debug(`Programa creado: ${programaData.id}`);
+
+      const db = this.surrealDb.getDb();
+
+      // 2. Crear las Fases
+      for (let i = 0; i < fases.length; i++) {
+        const fase = fases[i];
+
+        const objetivosAprendizaje = fase.objetivos_aprendizaje
+          ? [fase.objetivos_aprendizaje]
+          : [];
+
+        this.logger.debug(`Creando fase ${i + 1}: ${fase.nombre_fase}`);
+
+        const faseResult: any = await db.create("fase", {
+          numero_fase: i + 1,
+          nombre: fase.nombre_fase,
+          descripcion: fase.descripcion_fase,
+          objetivos_aprendizaje: objetivosAprendizaje,
+          duracion_semanas_estimada: fase.duracion_semanas_fase,
+          orden: i,
+          programa: programaData.id,
+        });
+
+        const faseCreada = Array.isArray(faseResult)
+          ? faseResult[0]
+          : faseResult;
+
+        if (!faseCreada || !faseCreada.id) {
+          throw new InternalServerErrorException(
+            `No se pudo crear la fase: ${fase.nombre_fase}`,
+          );
+        }
+
+        this.logger.debug(`Fase creada: ${faseCreada.id}`);
+
+        // 3. Crear los ProofPoints de cada Fase
+        for (let j = 0; j < fase.proof_points.length; j++) {
+          const pp = fase.proof_points[j];
+
+          this.logger.debug(`Creando proof point ${j + 1}: ${pp.nombre_pp}`);
+
+          const ppResult: any = await db.create("proof_point", {
+            nombre: pp.nombre_pp,
+            slug: pp.slug_pp,
+            descripcion: pp.descripcion_pp,
+            pregunta_central: pp.pregunta_central,
+            tipo_entregable_final: pp.tipo_entregable,
+            orden_en_fase: j,
+            prerequisitos: pp.prerequisitos || [],
+            duracion_estimada_horas: pp.duracion_estimada_horas,
+            fase: faseCreada.id,
+          });
+
+          const ppCreado = Array.isArray(ppResult) ? ppResult[0] : ppResult;
+
+          if (!ppCreado || !ppCreado.id) {
+            throw new InternalServerErrorException(
+              `No se pudo crear el proof point: ${pp.nombre_pp}`,
+            );
+          }
+
+          this.logger.debug(`Proof point creado: ${ppCreado.id}`);
 
           // 4. Crear Niveles placeholder para cada ProofPoint
-          for (let i = 0; i < pp.numero_niveles; i++) {
-            const nivelNumero = i + 1;
-            tx += `
-              LET $nivel_${this.sanitizeId(pp.id)}_${nivelNumero} = CREATE nivel SET
-                numero = ${nivelNumero},
-                nombre = "Nivel ${nivelNumero}",
-                objetivo_especifico = "Objetivo pendiente de definir",
-                proof_point = $pp_${this.sanitizeId(pp.id)}.id,
-                created_at = time::now();
+          // Calcular duración estimada por componente basado en las horas del proof point
+          // Distribución: dividir las horas entre (numero_niveles * componentes_por_nivel)
+          // Asumimos 1 componente por nivel inicialmente
+          const horasPorNivel = pp.duracion_estimada_horas / pp.numero_niveles;
+          const minutosPorComponente = Math.round(horasPorNivel * 60); // Convertir horas a minutos
 
-              CREATE componente SET
-                nombre = "Lección (pendiente)",
-                tipo = "leccion",
-                orden = 1,
-                nivel = $nivel_${this.sanitizeId(pp.id)}_${nivelNumero}.id,
-                created_at = time::now();
-            `;
+          for (let k = 0; k < pp.numero_niveles; k++) {
+            const nivelNumero = k + 1;
+
+            this.logger.debug(
+              `Creando nivel ${nivelNumero} para proof point ${ppCreado.id}`,
+            );
+
+            const nivelResult: any = await db.create("nivel", {
+              numero_nivel: nivelNumero,
+              nombre: `Nivel ${nivelNumero}`,
+              objetivo_especifico: "Objetivo pendiente de definir",
+              criterio_completacion: { logica: "AND", reglas: [] },
+              proof_point: ppCreado.id,
+            });
+
+            const nivelCreado = Array.isArray(nivelResult)
+              ? nivelResult[0]
+              : nivelResult;
+
+            if (!nivelCreado || !nivelCreado.id) {
+              throw new InternalServerErrorException(
+                `No se pudo crear el nivel ${nivelNumero}`,
+              );
+            }
+
+            this.logger.debug(`Nivel creado: ${nivelCreado.id}`);
+
+            // Crear componente placeholder con duración calculada
+            const componenteResult: any = await db.create("componente", {
+              nombre: "Lección (pendiente)",
+              descripcion_breve: "",
+              tipo: "leccion",
+              orden: 1,
+              duracion_estimada_minutos: minutosPorComponente || 30, // Fallback a 30 minutos si el cálculo da 0
+              nivel: nivelCreado.id,
+            });
+
+            const componenteCreado = Array.isArray(componenteResult)
+              ? componenteResult[0]
+              : componenteResult;
+
+            if (!componenteCreado || !componenteCreado.id) {
+              throw new InternalServerErrorException(
+                `No se pudo crear el componente para nivel ${nivelNumero}`,
+              );
+            }
+
+            this.logger.debug(`Componente creado: ${componenteCreado.id}`);
           }
         }
       }
 
-      // Finalizar transacción y retornar el programa creado
-      tx += `
-        COMMIT TRANSACTION;
-        RETURN $programa;
-      `;
-
-      this.logger.debug(`Ejecutando transacción SurrealQL:\n${tx}`);
-
-      // Ejecutar la transacción completa
-      const result = await this.surrealDb.query<any>(tx);
-
-      // SurrealDB devuelve un array de resultados
-      // El último elemento debería ser el RETURN $programa
-      const programaCreado = result?.[result.length - 1]?.[0];
-
-      if (!programaCreado || !programaCreado.id) {
-        throw new InternalServerErrorException(
-          "No se pudo crear el programa, la transacción no retornó el programa esperado",
-        );
-      }
-
       this.logger.log(
-        `Programa creado exitosamente: ${programaCreado.id} - ${programaCreado.nombre}`,
+        `Programa creado exitosamente: ${programaData.id} - ${programaData.nombre}`,
       );
 
-      return programaCreado as ProgramaCreado;
+      return programaData as ProgramaCreado;
     } catch (error) {
       this.logger.error("Fallo la transacción de creación de programa:", error);
 
@@ -160,6 +267,7 @@ export class ProgramasService {
 
   /**
    * Obtiene todos los programas creados por un usuario específico
+   * Incluye estadísticas calculadas para cada programa
    */
   async findAllByCreator(creatorId: string | null): Promise<any[]> {
     if (!creatorId) {
@@ -167,14 +275,37 @@ export class ProgramasService {
     }
 
     try {
+      // Limpiar el creatorId si ya incluye el prefijo "user:"
+      const cleanCreatorId = this.cleanRecordId(creatorId, "user");
+
+      // Query que incluye estadísticas calculadas
       const query = `
-        SELECT * FROM programa
-        WHERE creador = type::thing("usuario", "${creatorId}")
+        SELECT *,
+          (SELECT count() FROM fase WHERE programa = $parent.id GROUP ALL)[0] AS total_fases,
+          (SELECT count() FROM proof_point WHERE fase.programa = $parent.id GROUP ALL)[0] AS total_proof_points,
+          (SELECT count() FROM cohorte WHERE programa = $parent.id AND activo = true GROUP ALL)[0] AS cohortes_activas,
+          (SELECT count() FROM cohorte WHERE programa = $parent.id GROUP ALL)[0] AS total_cohortes
+        FROM programa
+        WHERE creador = type::thing("user", "${cleanCreatorId}")
         ORDER BY created_at DESC;
       `;
 
       const result = await this.surrealDb.query<any[]>(query);
-      return result || [];
+
+      // Transformar los resultados para incluir estadísticas formateadas
+      const programas = (result || []).map(programa => ({
+        ...programa,
+        estadisticas: {
+          fases: `${programa.total_fases || 0} fases`,
+          proof_points: `${programa.total_proof_points || 0} proof points`,
+          duracion: `${programa.duracion_semanas || 0} semanas`,
+          estudiantes: programa.cohortes_activas > 0
+            ? `${programa.cohortes_activas} cohorte${programa.cohortes_activas !== 1 ? 's' : ''} activa${programa.cohortes_activas !== 1 ? 's' : ''}`
+            : '0 estudiantes'
+        }
+      }));
+
+      return programas;
     } catch (error) {
       this.logger.error(
         `Error al obtener programas del usuario ${creatorId}:`,
@@ -201,17 +332,57 @@ export class ProgramasService {
         `Obteniendo arquitectura completa del programa: ${programaId}`,
       );
 
-      // Usar FETCH de SurrealDB para obtener el grafo completo de objetos
-      // FETCH permite traer relaciones anidadas en una sola query
+      // Limpiar el ID si incluye el prefijo "programa:"
+      const cleanProgramaId = programaId.includes(":")
+        ? programaId.split(":")[1]
+        : programaId;
+
+      const programaRecordId = `type::thing("programa", "${cleanProgramaId}")`;
+
+      // Query compuesta para obtener programa y todas sus relaciones
+      // Como las relaciones están definidas en dirección inversa (fase->programa, no programa->fase),
+      // necesitamos hacer queries separadas y luego unirlas
       const query = `
-        SELECT * FROM type::thing("programa", "${programaId}")
-        FETCH fase, fase.proofpoint, fase.proofpoint.nivel, fase.proofpoint.nivel.componente;
+        LET $programa = (SELECT * FROM ${programaRecordId})[0];
+
+        LET $fases = SELECT *,
+          (SELECT * FROM proof_point WHERE fase = $parent.id ORDER BY orden, created_at) AS proof_points
+        FROM fase
+        WHERE programa = ${programaRecordId}
+        ORDER BY orden, created_at;
+
+        -- Para cada proof point, obtener sus niveles
+        LET $proof_points = SELECT *,
+          (SELECT * FROM nivel WHERE proof_point = $parent.id ORDER BY numero_nivel) AS niveles
+        FROM proof_point
+        WHERE fase.programa = ${programaRecordId};
+
+        -- Para cada nivel, obtener sus componentes
+        LET $niveles = SELECT *,
+          (SELECT * FROM componente WHERE nivel = $parent.id ORDER BY orden, created_at) AS componentes
+        FROM nivel
+        WHERE proof_point.fase.programa = ${programaRecordId};
+
+        -- Retornar el programa con sus fases embebidas
+        RETURN {
+          id: $programa.id,
+          nombre: $programa.nombre,
+          descripcion: $programa.descripcion,
+          duracion_semanas: $programa.duracion_semanas,
+          creador: $programa.creador,
+          created_at: $programa.created_at,
+          updated_at: $programa.updated_at,
+          fases: $fases
+        };
       `;
 
-      this.logger.debug(`Ejecutando query: ${query}`);
+      this.logger.debug(`Ejecutando query compuesta`);
 
-      const result = await this.surrealDb.query<any>(query);
-      const programa = result?.[0]?.[0];
+      const result = await this.surrealDb.query<any[]>(query);
+      this.logger.debug(`Query result: ${JSON.stringify(result)}`);
+
+      // El resultado de una query con RETURN es el valor retornado directamente
+      const programa = Array.isArray(result) && result.length > 0 ? result[result.length - 1] : null;
 
       if (!programa) {
         throw new NotFoundException(
@@ -219,66 +390,26 @@ export class ProgramasService {
         );
       }
 
-      // Organizar y ordenar los datos para mejor presentación
-      if (programa.fase && Array.isArray(programa.fase)) {
-        // Renombrar 'fase' a 'fases' para consistencia con el DTO
-        programa.fases = programa.fase;
-        delete programa.fase;
+      // Asegurar que fases sea un array (la query ya lo debe proveer)
+      if (!programa.fases || !Array.isArray(programa.fases)) {
+        programa.fases = [];
+      }
 
-        // Ordenar fases por created_at o por un campo 'orden' si existe
-        programa.fases.sort((a: any, b: any) => {
-          if (a.orden !== undefined && b.orden !== undefined) {
-            return a.orden - b.orden;
+      // La query ya trae todo anidado y ordenado correctamente,
+      // solo necesitamos asegurar que los arrays anidados existan
+      for (const fase of programa.fases) {
+        if (!fase.proof_points || !Array.isArray(fase.proof_points)) {
+          fase.proof_points = [];
+        }
+
+        for (const proofPoint of fase.proof_points) {
+          if (!proofPoint.niveles || !Array.isArray(proofPoint.niveles)) {
+            proofPoint.niveles = [];
           }
-          return (
-            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-          );
-        });
 
-        // Para cada fase, procesar sus proof points
-        for (const fase of programa.fases) {
-          if (fase.proofpoint && Array.isArray(fase.proofpoint)) {
-            // Renombrar 'proofpoint' a 'proof_points' para consistencia
-            fase.proof_points = fase.proofpoint;
-            delete fase.proofpoint;
-
-            // Ordenar proof points
-            fase.proof_points.sort((a: any, b: any) => {
-              if (a.orden !== undefined && b.orden !== undefined) {
-                return a.orden - b.orden;
-              }
-              return (
-                new Date(a.created_at).getTime() -
-                new Date(b.created_at).getTime()
-              );
-            });
-
-            // Para cada proof point, procesar sus niveles
-            for (const proofPoint of fase.proof_points) {
-              if (proofPoint.nivel && Array.isArray(proofPoint.nivel)) {
-                // Renombrar 'nivel' a 'niveles' para consistencia
-                proofPoint.niveles = proofPoint.nivel;
-                delete proofPoint.nivel;
-
-                // Ordenar niveles por número
-                proofPoint.niveles.sort(
-                  (a: any, b: any) => a.numero - b.numero,
-                );
-
-                // Para cada nivel, procesar sus componentes
-                for (const nivel of proofPoint.niveles) {
-                  if (nivel.componente && Array.isArray(nivel.componente)) {
-                    // Renombrar 'componente' a 'componentes' para consistencia
-                    nivel.componentes = nivel.componente;
-                    delete nivel.componente;
-
-                    // Ordenar componentes por orden
-                    nivel.componentes.sort(
-                      (a: any, b: any) => a.orden - b.orden,
-                    );
-                  }
-                }
-              }
+          for (const nivel of proofPoint.niveles) {
+            if (!nivel.componentes || !Array.isArray(nivel.componentes)) {
+              nivel.componentes = [];
             }
           }
         }
@@ -493,6 +624,9 @@ export class ProgramasService {
         {} as Record<string, OrdenItemDto[]>,
       );
 
+      // Limpiar el userId si incluye el prefijo "user:"
+      const cleanUserId = this.cleanRecordId(userId, "user");
+
       // Verificar propiedad para cada tipo de tabla
       for (const [table, tableItems] of Object.entries(itemsByTable)) {
         const ids = tableItems.map((item) => item.id);
@@ -503,31 +637,31 @@ export class ProgramasService {
           case "programa":
             ownershipQuery = `
               SELECT id FROM [${ids.map((id) => `${id}`).join(", ")}]
-              WHERE creador = type::thing("usuario", "${userId}");
+              WHERE creador = type::thing("user", "${cleanUserId}");
             `;
             break;
           case "fase":
             ownershipQuery = `
               SELECT id FROM [${ids.map((id) => `${id}`).join(", ")}]
-              WHERE programa.creador = type::thing("usuario", "${userId}");
+              WHERE programa.creador = type::thing("user", "${cleanUserId}");
             `;
             break;
           case "proof_point":
             ownershipQuery = `
               SELECT id FROM [${ids.map((id) => `${id}`).join(", ")}]
-              WHERE fase.programa.creador = type::thing("usuario", "${userId}");
+              WHERE fase.programa.creador = type::thing("user", "${cleanUserId}");
             `;
             break;
           case "nivel":
             ownershipQuery = `
               SELECT id FROM [${ids.map((id) => `${id}`).join(", ")}]
-              WHERE proof_point.fase.programa.creador = type::thing("usuario", "${userId}");
+              WHERE proof_point.fase.programa.creador = type::thing("user", "${cleanUserId}");
             `;
             break;
           case "componente":
             ownershipQuery = `
               SELECT id FROM [${ids.map((id) => `${id}`).join(", ")}]
-              WHERE nivel.proof_point.fase.programa.creador = type::thing("usuario", "${userId}");
+              WHERE nivel.proof_point.fase.programa.creador = type::thing("user", "${cleanUserId}");
             `;
             break;
           default:
@@ -688,6 +822,16 @@ export class ProgramasService {
    */
   private sanitizeId(id: string): string {
     return id.replace(/[^a-zA-Z0-9_]/g, "_");
+  }
+
+  /**
+   * Limpia el prefijo de tabla de un ID si está presente
+   * Ejemplo: "user:abc123" -> "abc123"
+   */
+  private cleanRecordId(id: string, table: string): string {
+    if (!id) return id;
+    const prefix = `${table}:`;
+    return id.startsWith(prefix) ? id.substring(prefix.length) : id;
   }
 
   /**
@@ -869,6 +1013,182 @@ export class ProgramasService {
       );
       throw new InternalServerErrorException(
         "Error al obtener versiones del programa",
+      );
+    }
+  }
+
+  /**
+   * Obtiene la información básica de un programa por su ID
+   * @param programaId - ID del programa (sin el prefijo "programa:")
+   * @returns Datos básicos del programa con estadísticas
+   */
+  async findById(programaId: string): Promise<any> {
+    try {
+      this.logger.log(`Obteniendo programa: ${programaId}`);
+
+      // Limpiar el ID si incluye el prefijo "programa:"
+      const cleanProgramaId = programaId.includes(":")
+        ? programaId.split(":")[1]
+        : programaId;
+
+      // Query que incluye estadísticas calculadas
+      const query = `
+        SELECT *,
+          (SELECT count() FROM fase WHERE programa = $parent.id GROUP ALL)[0] AS total_fases,
+          (SELECT count() FROM proof_point WHERE fase.programa = $parent.id GROUP ALL)[0] AS total_proof_points,
+          (SELECT count() FROM cohorte WHERE programa = $parent.id AND activo = true GROUP ALL)[0] AS cohortes_activas,
+          (SELECT count() FROM cohorte WHERE programa = $parent.id GROUP ALL)[0] AS total_cohortes
+        FROM type::thing("programa", "${cleanProgramaId}");
+      `;
+
+      const result = await this.surrealDb.query<any[]>(query);
+      const programa = Array.isArray(result) && result.length > 0 ? result[0] : null;
+
+      if (!programa) {
+        throw new NotFoundException(
+          `Programa con ID ${programaId} no encontrado`,
+        );
+      }
+
+      // Log para debug
+      this.logger.debug(`Programa raw data:`, JSON.stringify(programa, null, 2));
+      this.logger.debug(`total_fases type: ${typeof programa.total_fases}, value:`, programa.total_fases);
+      this.logger.debug(`total_proof_points type: ${typeof programa.total_proof_points}, value:`, programa.total_proof_points);
+
+      // Extraer valores numéricos de los objetos de SurrealDB si es necesario
+      const getTotalFases = () => {
+        if (typeof programa.total_fases === 'number') return programa.total_fases;
+        if (typeof programa.total_fases === 'object' && programa.total_fases !== null) {
+          return programa.total_fases.count || programa.total_fases.value || 0;
+        }
+        return 0;
+      };
+
+      const getTotalProofPoints = () => {
+        if (typeof programa.total_proof_points === 'number') return programa.total_proof_points;
+        if (typeof programa.total_proof_points === 'object' && programa.total_proof_points !== null) {
+          return programa.total_proof_points.count || programa.total_proof_points.value || 0;
+        }
+        return 0;
+      };
+
+      const getCohortesActivas = () => {
+        if (typeof programa.cohortes_activas === 'number') return programa.cohortes_activas;
+        if (typeof programa.cohortes_activas === 'object' && programa.cohortes_activas !== null) {
+          return programa.cohortes_activas.count || programa.cohortes_activas.value || 0;
+        }
+        return 0;
+      };
+
+      const totalFases = getTotalFases();
+      const totalProofPoints = getTotalProofPoints();
+      const cohortesActivas = getCohortesActivas();
+
+      this.logger.debug(`Extracted values - fases: ${totalFases}, proof_points: ${totalProofPoints}, cohortes: ${cohortesActivas}`);
+
+      // Transformar los resultados para incluir estadísticas formateadas
+      const programaConEstadisticas = {
+        ...programa,
+        estadisticas: {
+          fases: `${totalFases} fases`,
+          proof_points: `${totalProofPoints} proof points`,
+          duracion: `${programa.duracion_semanas || 0} semanas`,
+          estudiantes: cohortesActivas > 0
+            ? `${cohortesActivas} cohorte${cohortesActivas !== 1 ? 's' : ''} activa${cohortesActivas !== 1 ? 's' : ''}`
+            : '0 estudiantes'
+        }
+      };
+
+      return programaConEstadisticas;
+    } catch (error) {
+      this.logger.error(
+        `Error al obtener programa ${programaId}:`,
+        error,
+      );
+
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        "No se pudo obtener el programa",
+      );
+    }
+  }
+
+  /**
+   * Actualiza la información básica de un programa
+   * @param programaId - ID del programa (sin el prefijo "programa:")
+   * @param updateData - Datos a actualizar
+   * @returns Programa actualizado
+   */
+  async update(programaId: string, updateData: any): Promise<any> {
+    try {
+      this.logger.log(`Actualizando programa: ${programaId}`);
+
+      // Limpiar el ID si incluye el prefijo "programa:"
+      const cleanProgramaId = programaId.includes(":")
+        ? programaId.split(":")[1]
+        : programaId;
+
+      // Verificar que el programa existe
+      const programaExistente = await this.findById(cleanProgramaId);
+      if (!programaExistente) {
+        throw new NotFoundException(
+          `Programa con ID ${programaId} no encontrado`,
+        );
+      }
+
+      // Construir el objeto de actualización solo con campos definidos
+      const camposActualizacion: any = {};
+
+      if (updateData.nombre !== undefined) camposActualizacion.nombre = updateData.nombre;
+      if (updateData.descripcion !== undefined) camposActualizacion.descripcion = updateData.descripcion;
+      if (updateData.categoria !== undefined) camposActualizacion.categoria = updateData.categoria;
+      if (updateData.duracion_semanas !== undefined) camposActualizacion.duracion_semanas = updateData.duracion_semanas;
+      if (updateData.nivel_dificultad !== undefined) camposActualizacion.nivel_dificultad = updateData.nivel_dificultad;
+      if (updateData.imagen_portada_url !== undefined) camposActualizacion.imagen_portada_url = updateData.imagen_portada_url;
+      if (updateData.objetivos_aprendizaje !== undefined) camposActualizacion.objetivos_aprendizaje = updateData.objetivos_aprendizaje;
+      if (updateData.prerequisitos !== undefined) camposActualizacion.prerequisitos = updateData.prerequisitos;
+      if (updateData.audiencia_objetivo !== undefined) camposActualizacion.audiencia_objetivo = updateData.audiencia_objetivo;
+      if (updateData.tags !== undefined) camposActualizacion.tags = updateData.tags;
+      if (updateData.visible !== undefined) camposActualizacion.visible = updateData.visible;
+      if (updateData.estado !== undefined) camposActualizacion.estado = updateData.estado;
+
+      // Ejecutar update - SurrealDB actualiza updated_at automáticamente si está en el schema
+      const query = `
+        UPDATE type::thing("programa", "${cleanProgramaId}")
+        MERGE $campos;
+      `;
+
+      const result = await this.surrealDb.query<any[]>(query, {
+        campos: camposActualizacion,
+      });
+
+      const programaActualizado = Array.isArray(result) && result.length > 0 ? result[0] : null;
+
+      if (!programaActualizado) {
+        throw new InternalServerErrorException(
+          "No se pudo actualizar el programa",
+        );
+      }
+
+      this.logger.log(`Programa ${programaId} actualizado exitosamente`);
+
+      // Devolver el programa actualizado con estadísticas
+      return this.findById(cleanProgramaId);
+    } catch (error) {
+      this.logger.error(
+        `Error al actualizar programa ${programaId}:`,
+        error,
+      );
+
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        "No se pudo actualizar el programa",
       );
     }
   }

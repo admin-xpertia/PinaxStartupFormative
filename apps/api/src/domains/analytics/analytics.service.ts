@@ -3,8 +3,8 @@ import {
   Logger,
   NotFoundException,
   ForbiddenException,
-} from '@nestjs/common';
-import { SurrealDbService } from 'src/core/database';
+} from "@nestjs/common";
+import { SurrealDbService } from "src/core/database";
 
 @Injectable()
 export class AnalyticsService {
@@ -26,14 +26,14 @@ export class AnalyticsService {
     const result = await this.surrealDb.query<any>(query);
 
     if (!result || !Array.isArray(result) || result.length === 0) {
-      throw new NotFoundException('Cohorte no encontrada');
+      throw new NotFoundException("Cohorte no encontrada");
     }
 
     const cohorte = result[0];
     const cohorteInstructorId = this.extractIdFromRecord(cohorte.instructor);
 
     if (cohorteInstructorId !== instructorId) {
-      throw new ForbiddenException('No tienes acceso a esta cohorte');
+      throw new ForbiddenException("No tienes acceso a esta cohorte");
     }
   }
 
@@ -42,11 +42,11 @@ export class AnalyticsService {
    */
   private extractIdFromRecord(record: any): string {
     if (!record) return null;
-    if (typeof record === 'string') {
-      return record.includes(':') ? record : `user:${record}`;
+    if (typeof record === "string") {
+      return record.includes(":") ? record : `user:${record}`;
     }
     if (record.id) {
-      return typeof record.id === 'string' ? record.id : record.id.toString();
+      return typeof record.id === "string" ? record.id : record.id.toString();
     }
     return record.toString();
   }
@@ -56,7 +56,7 @@ export class AnalyticsService {
    */
   private normalizeId(id: string, table?: string): string {
     if (!id) return null;
-    if (id.includes(':')) return id;
+    if (id.includes(":")) return id;
     return table ? `${table}:${id}` : id;
   }
 
@@ -67,7 +67,7 @@ export class AnalyticsService {
   async getFrictionPoints(cohorteId: string, instructorId: string) {
     this.logger.log(`Obteniendo puntos de fricción para cohorte ${cohorteId}`);
 
-    const normalizedCohorteId = this.normalizeId(cohorteId, 'cohorte');
+    const normalizedCohorteId = this.normalizeId(cohorteId, "cohorte");
     await this.verificarAccesoCohorte(normalizedCohorteId, instructorId);
 
     const query = `
@@ -91,9 +91,11 @@ export class AnalyticsService {
    * Para: qualitative-analysis.tsx
    */
   async getQualitativeAnalysis(cohorteId: string, instructorId: string) {
-    this.logger.log(`Obteniendo análisis cualitativo para cohorte ${cohorteId}`);
+    this.logger.log(
+      `Obteniendo análisis cualitativo para cohorte ${cohorteId}`,
+    );
 
-    const normalizedCohorteId = this.normalizeId(cohorteId, 'cohorte');
+    const normalizedCohorteId = this.normalizeId(cohorteId, "cohorte");
     await this.verificarAccesoCohorte(normalizedCohorteId, instructorId);
 
     const query = `
@@ -114,7 +116,7 @@ export class AnalyticsService {
   async getHeatmapData(cohorteId: string, instructorId: string) {
     this.logger.log(`Obteniendo datos de heatmap para cohorte ${cohorteId}`);
 
-    const normalizedCohorteId = this.normalizeId(cohorteId, 'cohorte');
+    const normalizedCohorteId = this.normalizeId(cohorteId, "cohorte");
     await this.verificarAccesoCohorte(normalizedCohorteId, instructorId);
 
     // Obtener todos los componentes de la cohorte (a través del snapshot)
@@ -184,7 +186,7 @@ export class AnalyticsService {
         if (!progreso) {
           return {
             componente_snapshot: compId,
-            estado: 'no_iniciado',
+            estado: "no_iniciado",
             score: 0,
             tiempo_invertido_minutos: 0,
             orden: comp.orden,
@@ -226,8 +228,8 @@ export class AnalyticsService {
       `Obteniendo detalle de progreso del estudiante ${estudianteId} en cohorte ${cohorteId}`,
     );
 
-    const normalizedCohorteId = this.normalizeId(cohorteId, 'cohorte');
-    const normalizedEstudianteId = this.normalizeId(estudianteId, 'estudiante');
+    const normalizedCohorteId = this.normalizeId(cohorteId, "cohorte");
+    const normalizedEstudianteId = this.normalizeId(estudianteId, "estudiante");
 
     await this.verificarAccesoCohorte(normalizedCohorteId, instructorId);
 
@@ -244,7 +246,7 @@ export class AnalyticsService {
 
     const estudianteResult = await this.surrealDb.query(estudianteQuery);
     if (!estudianteResult || estudianteResult.length === 0) {
-      throw new NotFoundException('Estudiante no encontrado');
+      throw new NotFoundException("Estudiante no encontrado");
     }
 
     const estudiante = estudianteResult[0];
@@ -304,7 +306,7 @@ export class AnalyticsService {
   async getCohorteMetrics(cohorteId: string, instructorId: string) {
     this.logger.log(`Obteniendo métricas para cohorte ${cohorteId}`);
 
-    const normalizedCohorteId = this.normalizeId(cohorteId, 'cohorte');
+    const normalizedCohorteId = this.normalizeId(cohorteId, "cohorte");
     await this.verificarAccesoCohorte(normalizedCohorteId, instructorId);
 
     // Obtener métricas por componente

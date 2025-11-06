@@ -1,5 +1,6 @@
 "use client"
 
+import { use } from "react"
 import useSWR from "swr"
 import { AppHeader } from "@/components/app-header"
 import { Sidebar } from "@/components/sidebar"
@@ -26,14 +27,16 @@ import { fetcher } from "@/lib/fetcher"
 import { LoadingState } from "@/components/shared/loading-state"
 import { ErrorState } from "@/components/shared/error-state"
 import { notFound } from "next/navigation"
+import type { Program } from "@/types/program"
 
-export default function ProgramPreviewPage({ params }: { params: { id: string } }) {
+export default function ProgramPreviewPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const {
     data: program,
     error,
     isLoading,
     mutate,
-  } = useSWR(params?.id ? `/api/v1/programas/${params.id}` : null, fetcher)
+  } = useSWR<Program>(id ? `/api/v1/programas/${id}` : null, fetcher)
 
   if (isLoading) {
     return (
@@ -67,7 +70,7 @@ export default function ProgramPreviewPage({ params }: { params: { id: string } 
     notFound()
   }
 
-  const programId = program.id ?? params.id
+  const programId = program.id ?? id
 
   // Mock data para la estructura del programa
   const fases = [

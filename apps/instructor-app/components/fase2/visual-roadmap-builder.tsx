@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
+import { apiClient } from "@/lib/api-client"
 import {
   ZoomIn,
   ZoomOut,
@@ -234,29 +235,21 @@ export function VisualRoadmapBuilder({ programaId, programa, onUpdate, readonly 
     setPan({ x: 0, y: 0 })
   }
 
-  const persistOrder = (payload: { items: { id: string; orden: number }[]; programaId?: string; faseId?: string }) => {
-    return fetch("/api/v1/arquitectura/ordenar", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }).then(async (response) => {
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}))
-        throw new Error(errData.message || "No se pudo actualizar el orden")
-      }
-    })
+  const persistOrder = async (payload: { items: { id: string; orden: number }[]; programaId?: string; faseId?: string }) => {
+    try {
+      await apiClient.patch("/arquitectura/ordenar", payload)
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "No se pudo actualizar el orden")
+    }
   }
 
   const updatePrereqsRemote = async (proofPointId: string, prereqs: string[]) => {
-    const response = await fetch(`/api/v1/proofpoints/${proofPointId}/prerequisitos`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prerequisitos: prereqs }),
-    })
-
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}))
-      throw new Error(errData.message || "No se pudieron actualizar los prerequisitos")
+    try {
+      await apiClient.put(`/proofpoints/${proofPointId}/prerequisitos`, {
+        prerequisitos: prereqs,
+      })
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "No se pudieron actualizar los prerequisitos")
     }
   }
 
@@ -383,18 +376,12 @@ export function VisualRoadmapBuilder({ programaId, programa, onUpdate, readonly 
     if (!nombre || !nombre.trim()) return
 
     try {
-      const response = await fetch("/api/v1/fases", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ programaId, nombre: nombre.trim() }),
+      const response = await apiClient.post("/fases", {
+        programaId,
+        nombre: nombre.trim(),
       })
 
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}))
-        throw new Error(errData.message || "No se pudo crear la fase")
-      }
-
-      const nuevaFase = await response.json()
+      const nuevaFase = response.data
 
       const sanitizedFase: Fase = {
         id: nuevaFase.id,
@@ -430,22 +417,13 @@ export function VisualRoadmapBuilder({ programaId, programa, onUpdate, readonly 
     if (preguntaCentral === null) return
 
     try {
-      const response = await fetch("/api/v1/proofpoints", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          faseId,
-          nombre: nombre.trim(),
-          pregunta_central: preguntaCentral.trim(),
-        }),
+      const response = await apiClient.post("/proofpoints", {
+        faseId,
+        nombre: nombre.trim(),
+        pregunta_central: preguntaCentral.trim(),
       })
 
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}))
-        throw new Error(errData.message || "No se pudo crear el proof point")
-      }
-
-      const nuevoProofPoint = await response.json()
+      const nuevoProofPoint = response.data
 
       const sanitizedProofPoint: ProofPoint = {
         id: nuevoProofPoint.id,

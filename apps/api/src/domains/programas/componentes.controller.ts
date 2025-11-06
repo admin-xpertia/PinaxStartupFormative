@@ -8,10 +8,10 @@ import {
   Param,
   UseGuards,
   Request,
-} from '@nestjs/common';
-import { ComponentesService } from './componentes.service';
-import { UpdateContenidoDto } from './dto/update-contenido.dto';
-import { CrearRubricaDto } from '../contenido/dto';
+} from "@nestjs/common";
+import { ComponentesService } from "./componentes.service";
+import { UpdateContenidoDto } from "./dto/update-contenido.dto";
+import { CrearRubricaDto } from "../contenido/dto";
 
 /**
  * Controlador para la gestión de componentes (lecciones, cuadernos, simulaciones, herramientas).
@@ -27,7 +27,7 @@ import { CrearRubricaDto } from '../contenido/dto';
  * - POST /componentes/:componenteId/rubrica - Crea rúbrica
  * - PUT /rubricas/:rubricaId - Actualiza rúbrica
  */
-@Controller('componentes')
+@Controller("componentes")
 // @UseGuards(JwtAuthGuard, ProgramOwnershipGuard) // TODO: Descomentar cuando se implemente
 export class ComponentesController {
   constructor(private readonly componentesService: ComponentesService) {}
@@ -41,8 +41,8 @@ export class ComponentesController {
    * @param id - ID del componente
    * @returns El contenido actual del componente
    */
-  @Get(':id/contenido')
-  async getContenido(@Param('id') id: string) {
+  @Get(":id/contenido")
+  async getContenido(@Param("id") id: string) {
     return this.componentesService.getContenidoActual(id);
   }
 
@@ -62,13 +62,13 @@ export class ComponentesController {
    * @param req - Request con información del usuario autenticado
    * @returns El contenido actualizado
    */
-  @Put(':id/contenido')
+  @Put(":id/contenido")
   async updateContenido(
-    @Param('id') id: string,
+    @Param("id") id: string,
     @Body() updateContenidoDto: UpdateContenidoDto,
     @Request() req: any,
   ) {
-    const userId = req.user?.id || 'user:system'; // TODO: Obtener del JWT real
+    const userId = req.user?.id || "user:system"; // TODO: Obtener del JWT real
     return this.componentesService.updateContenidoConVersionamiento(
       id,
       updateContenidoDto.contenido,
@@ -82,8 +82,8 @@ export class ComponentesController {
    * @param componenteId - ID del componente
    * @returns La rúbrica asociada al componente
    */
-  @Get(':componenteId/rubrica')
-  async getRubrica(@Param('componenteId') componenteId: string) {
+  @Get(":componenteId/rubrica")
+  async getRubrica(@Param("componenteId") componenteId: string) {
     return this.componentesService.getRubrica(componenteId);
   }
 
@@ -98,9 +98,9 @@ export class ComponentesController {
    * @param dto - Datos de la rúbrica
    * @returns La rúbrica creada
    */
-  @Post(':componenteId/rubrica')
+  @Post(":componenteId/rubrica")
   async createRubrica(
-    @Param('componenteId') componenteId: string,
+    @Param("componenteId") componenteId: string,
     @Body() dto: CrearRubricaDto,
   ) {
     // Asegurarse de que el componenteId del parámetro coincida con el del body

@@ -13,6 +13,7 @@ import { User } from "src/core/decorators";
 import { ProgramasService } from "./programas.service";
 import {
   CreateProgramDto,
+  UpdateProgramaDto,
   ArquitecturaResponseDto,
   UpdateFaseDocDto,
 } from "./dto";
@@ -61,6 +62,34 @@ export class ProgramasController {
   @Get()
   async findAll(@User("id") userId: string) {
     return this.programasService.findAllByCreator(userId);
+  }
+
+  /**
+   * Obtiene la información básica de un programa específico
+   *
+   * @param id - ID del programa
+   * @returns Datos básicos del programa con estadísticas
+   */
+  @Get(":id")
+  @UseGuards(ProgramOwnershipGuard)
+  async findOne(@Param("id") id: string) {
+    return this.programasService.findById(id);
+  }
+
+  /**
+   * Actualiza la información básica de un programa
+   *
+   * @param id - ID del programa
+   * @param updateProgramaDto - Datos a actualizar
+   * @returns Programa actualizado con estadísticas
+   */
+  @Put(":id")
+  @UseGuards(ProgramOwnershipGuard)
+  async update(
+    @Param("id") id: string,
+    @Body() updateProgramaDto: UpdateProgramaDto,
+  ) {
+    return this.programasService.update(id, updateProgramaDto);
   }
 
   /**

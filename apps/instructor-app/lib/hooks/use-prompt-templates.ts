@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import useSWR, { mutate } from 'swr';
 import { toast } from '@/components/ui/use-toast';
+import { apiClient } from '@/lib/api-client';
 
 // ============================================================================
 // TIPOS
@@ -123,20 +124,8 @@ export function useCrearPlantilla() {
     setIsCreando(true);
 
     try {
-      const response = await fetch('/api/v1/prompt-templates', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(dto),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Error al crear la plantilla');
-      }
-
-      const plantilla = await response.json();
+      const response = await apiClient.post('/prompt-templates', dto);
+      const plantilla = response.data;
 
       // Revalidar la lista de plantillas
       mutate((key: string) => typeof key === 'string' && key.startsWith('/api/v1/prompt-templates'));
@@ -192,20 +181,8 @@ export function useActualizarPlantilla() {
     setIsActualizando(true);
 
     try {
-      const response = await fetch(`/api/v1/prompt-templates/${plantillaId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(dto),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Error al actualizar la plantilla');
-      }
-
-      const plantilla = await response.json();
+      const response = await apiClient.put(`/prompt-templates/${plantillaId}`, dto);
+      const plantilla = response.data;
 
       // Revalidar
       mutate(`/api/v1/prompt-templates/${plantillaId}`);
@@ -256,14 +233,7 @@ export function useEliminarPlantilla() {
     setIsEliminando(true);
 
     try {
-      const response = await fetch(`/api/v1/prompt-templates/${plantillaId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Error al eliminar la plantilla');
-      }
+      await apiClient.delete(`/prompt-templates/${plantillaId}`);
 
       // Revalidar la lista de plantillas
       mutate((key: string) => typeof key === 'string' && key.startsWith('/api/v1/prompt-templates'));
@@ -314,23 +284,11 @@ export function useClonarPlantilla() {
     setIsClonando(true);
 
     try {
-      const response = await fetch(
-        `/api/v1/prompt-templates/${plantillaId}/clonar`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ nuevoNombre }),
-        }
+      const response = await apiClient.post(
+        `/prompt-templates/${plantillaId}/clonar`,
+        { nuevoNombre }
       );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Error al clonar la plantilla');
-      }
-
-      const plantilla = await response.json();
+      const plantilla = response.data;
 
       // Revalidar la lista de plantillas
       mutate((key: string) => typeof key === 'string' && key.startsWith('/api/v1/prompt-templates'));
@@ -386,23 +344,11 @@ export function useRenderizarPlantilla() {
     setIsRenderizando(true);
 
     try {
-      const response = await fetch(
-        `/api/v1/prompt-templates/${plantillaId}/renderizar`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ variables }),
-        }
+      const response = await apiClient.post(
+        `/prompt-templates/${plantillaId}/renderizar`,
+        { variables }
       );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Error al renderizar la plantilla');
-      }
-
-      const { promptRenderizado } = await response.json();
+      const { promptRenderizado } = response.data;
 
       return promptRenderizado;
     } catch (error: any) {

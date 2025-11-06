@@ -3,13 +3,13 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
-} from '@nestjs/common';
-import { SurrealDbService } from 'src/core/database';
+} from "@nestjs/common";
+import { SurrealDbService } from "src/core/database";
 import {
   CrearPromptTemplateDto,
   ActualizarPromptTemplateDto,
   BuscarPromptTemplatesDto,
-} from './dto';
+} from "./dto";
 
 @Injectable()
 export class PromptTemplateService {
@@ -57,7 +57,7 @@ export class PromptTemplateService {
       tipoComponente,
       promptTemplate,
       configDefault: configDefault || {},
-      autor: autor || 'Desconocido',
+      autor: autor || "Desconocido",
       esOficial: esOficial || false,
       userId: this.extractId(userId),
     });
@@ -65,7 +65,7 @@ export class PromptTemplateService {
     const plantilla = result?.[0];
 
     if (!plantilla || !plantilla.id) {
-      throw new BadRequestException('No se pudo crear la plantilla');
+      throw new BadRequestException("No se pudo crear la plantilla");
     }
 
     this.logger.log(
@@ -81,25 +81,25 @@ export class PromptTemplateService {
   async buscarPlantillas(filtros: BuscarPromptTemplatesDto = {}) {
     const { tipoComponente, esOficial } = filtros;
 
-    let query = 'SELECT * FROM prompt_template';
+    let query = "SELECT * FROM prompt_template";
     const conditions: string[] = [];
     const params: Record<string, any> = {};
 
     if (tipoComponente) {
-      conditions.push('tipo_componente = $tipoComponente');
+      conditions.push("tipo_componente = $tipoComponente");
       params.tipoComponente = tipoComponente;
     }
 
     if (esOficial !== undefined) {
-      conditions.push('es_oficial = $esOficial');
+      conditions.push("es_oficial = $esOficial");
       params.esOficial = esOficial;
     }
 
     if (conditions.length > 0) {
-      query += ' WHERE ' + conditions.join(' AND ');
+      query += " WHERE " + conditions.join(" AND ");
     }
 
-    query += ' ORDER BY created_at DESC;';
+    query += " ORDER BY created_at DESC;";
 
     const plantillas = await this.surrealDb.query<any[]>(query, params);
 
@@ -188,7 +188,7 @@ export class PromptTemplateService {
 
     if (plantilla.es_oficial) {
       throw new BadRequestException(
-        'Las plantillas oficiales no pueden ser eliminadas',
+        "Las plantillas oficiales no pueden ser eliminadas",
       );
     }
 
@@ -208,7 +208,7 @@ export class PromptTemplateService {
     this.logger.log(`Plantilla ${plantillaId} eliminada exitosamente`);
 
     return {
-      mensaje: 'Plantilla eliminada exitosamente',
+      mensaje: "Plantilla eliminada exitosamente",
       plantillaId,
     };
   }
@@ -234,7 +234,7 @@ export class PromptTemplateService {
 
     // Reemplazar cada variable
     for (const [clave, valor] of Object.entries(variables)) {
-      const regex = new RegExp(`{{\\s*${clave}\\s*}}`, 'g');
+      const regex = new RegExp(`{{\\s*${clave}\\s*}}`, "g");
       promptRenderizado = promptRenderizado.replace(regex, String(valor));
     }
 
@@ -243,7 +243,7 @@ export class PromptTemplateService {
 
     if (variablesSinReemplazar.length > 0) {
       this.logger.warn(
-        `Variables sin reemplazar en plantilla ${plantillaId}: ${variablesSinReemplazar.join(', ')}`,
+        `Variables sin reemplazar en plantilla ${plantillaId}: ${variablesSinReemplazar.join(", ")}`,
       );
     }
 
@@ -253,7 +253,11 @@ export class PromptTemplateService {
   /**
    * Clona una plantilla existente para que el usuario pueda modificarla.
    */
-  async clonarPlantilla(plantillaId: string, userId: string, nuevoNombre?: string) {
+  async clonarPlantilla(
+    plantillaId: string,
+    userId: string,
+    nuevoNombre?: string,
+  ) {
     const plantillaOriginal = await this.obtenerPlantilla(plantillaId);
 
     const dto: CrearPromptTemplateDto = {
@@ -290,7 +294,9 @@ export class PromptTemplateService {
     // Extraer todas las variables
     const variables = this.extraerVariables(prompt);
 
-    this.logger.debug(`Variables encontradas en el prompt: ${variables.join(', ')}`);
+    this.logger.debug(
+      `Variables encontradas en el prompt: ${variables.join(", ")}`,
+    );
   }
 
   /**
@@ -310,10 +316,10 @@ export class PromptTemplateService {
 
   private extractId(recordId: string): string {
     if (!recordId) {
-      throw new BadRequestException('ID inválido');
+      throw new BadRequestException("ID inválido");
     }
 
-    const parts = recordId.split(':');
+    const parts = recordId.split(":");
     return parts.length > 1 ? parts[parts.length - 1] : recordId;
   }
 }

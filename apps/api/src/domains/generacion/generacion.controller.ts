@@ -59,8 +59,10 @@ export class GeneracionController {
       // Esta llamada AHORA es síncrona.
       // NestJS esperará a que generacionService termine.
       // Esto podría tomar 30-90 segundos.
-      const resultado =
-        await this.generacionService.generateContent(config, userId);
+      const resultado = await this.generacionService.generateContent(
+        config,
+        userId,
+      );
 
       this.logger.log(
         `Contenido generado exitosamente para componente: ${config.componenteId}`,

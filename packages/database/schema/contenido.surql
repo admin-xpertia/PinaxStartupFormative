@@ -9,7 +9,11 @@
 -- TABLA: programa
 -- Descripción: Programas educativos con sus características principales
 -- ----------------------------------------------------------------------------
-DEFINE TABLE IF NOT EXISTS programa SCHEMAFULL;
+DEFINE TABLE IF NOT EXISTS programa SCHEMAFULL PERMISSIONS
+    FOR select WHERE $auth != NONE
+    FOR create WHERE $auth != NONE AND $auth.rol IN ['instructor', 'admin']
+    FOR update WHERE $auth != NONE AND (creador = $auth OR creador = $auth.id OR $auth.rol = 'admin')
+    FOR delete WHERE $auth != NONE AND (creador = $auth OR creador = $auth.id OR $auth.rol = 'admin');
 
 DEFINE FIELD IF NOT EXISTS nombre ON programa TYPE string
     ASSERT $value != NONE AND string::len($value) >= 3;
@@ -20,11 +24,22 @@ DEFINE FIELD IF NOT EXISTS duracion_semanas ON programa TYPE int
     ASSERT $value > 0;
 
 DEFINE FIELD IF NOT EXISTS estado ON programa TYPE string
-    ASSERT $value IN ['draft', 'publicado', 'archivado']
+    ASSERT $value IN ['draft', 'borrador', 'revision', 'publicado', 'archivado']
     DEFAULT 'draft';
 
 DEFINE FIELD IF NOT EXISTS version_actual ON programa TYPE string
     DEFAULT '1.0.0';
+
+-- Campos opcionales del editor
+DEFINE FIELD IF NOT EXISTS categoria ON programa TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS nivel_dificultad ON programa TYPE option<string>
+    ASSERT $value = NONE OR $value IN ['principiante', 'intermedio', 'avanzado'];
+DEFINE FIELD IF NOT EXISTS imagen_portada_url ON programa TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS objetivos_aprendizaje ON programa TYPE option<array<string>>;
+DEFINE FIELD IF NOT EXISTS prerequisitos ON programa TYPE option<array<string>>;
+DEFINE FIELD IF NOT EXISTS audiencia_objetivo ON programa TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS tags ON programa TYPE option<array<string>>;
+DEFINE FIELD IF NOT EXISTS visible ON programa TYPE option<bool> DEFAULT true;
 
 -- Record Link al creador (debe ser instructor o admin)
 DEFINE FIELD IF NOT EXISTS creador ON programa TYPE record<user>
@@ -73,7 +88,11 @@ DEFINE INDEX IF NOT EXISTS versionProgramaIdx ON version_programa FIELDS program
 -- TABLA: cohorte
 -- Descripción: Instancias de ejecución de programas
 -- ----------------------------------------------------------------------------
-DEFINE TABLE IF NOT EXISTS cohorte SCHEMAFULL;
+DEFINE TABLE IF NOT EXISTS cohorte SCHEMAFULL PERMISSIONS
+    FOR select WHERE $auth != NONE
+    FOR create WHERE $auth != NONE AND $auth.rol IN ['instructor', 'admin']
+    FOR update WHERE $auth != NONE AND (instructor = $auth OR instructor = $auth.id OR $auth.rol = 'admin')
+    FOR delete WHERE $auth != NONE AND (instructor = $auth OR instructor = $auth.id OR $auth.rol = 'admin');
 
 DEFINE FIELD IF NOT EXISTS programa ON cohorte TYPE record<programa>
     ASSERT $value != NONE;
@@ -111,7 +130,11 @@ DEFINE INDEX IF NOT EXISTS cohorteInstructorIdx ON cohorte FIELDS instructor;
 -- TABLA: fase
 -- Descripción: Fases dentro de un programa
 -- ----------------------------------------------------------------------------
-DEFINE TABLE IF NOT EXISTS fase SCHEMAFULL;
+DEFINE TABLE IF NOT EXISTS fase SCHEMAFULL PERMISSIONS
+    FOR select WHERE $auth != NONE
+    FOR create WHERE $auth != NONE AND $auth.rol IN ['instructor', 'admin']
+    FOR update WHERE $auth != NONE AND (programa.creador = $auth OR programa.creador = $auth.id OR $auth.rol = 'admin')
+    FOR delete WHERE $auth != NONE AND (programa.creador = $auth OR programa.creador = $auth.id OR $auth.rol = 'admin');
 
 DEFINE FIELD IF NOT EXISTS programa ON fase TYPE record<programa>
     ASSERT $value != NONE;
@@ -150,7 +173,11 @@ DEFINE INDEX IF NOT EXISTS faseOrdenIdx ON fase FIELDS programa, orden;
 -- TABLA: fase_documentation
 -- Descripción: Documentación extendida de cada fase
 -- ----------------------------------------------------------------------------
-DEFINE TABLE IF NOT EXISTS fase_documentation SCHEMAFULL;
+DEFINE TABLE IF NOT EXISTS fase_documentation SCHEMAFULL PERMISSIONS
+    FOR select WHERE $auth != NONE
+    FOR create WHERE $auth != NONE AND $auth.rol IN ['instructor', 'admin']
+    FOR update WHERE $auth != NONE AND (fase.programa.creador = $auth OR fase.programa.creador = $auth.id OR $auth.rol = 'admin')
+    FOR delete WHERE $auth != NONE AND (fase.programa.creador = $auth OR fase.programa.creador = $auth.id OR $auth.rol = 'admin');
 
 DEFINE FIELD IF NOT EXISTS fase ON fase_documentation TYPE record<fase>
     ASSERT $value != NONE;
@@ -183,7 +210,11 @@ DEFINE INDEX IF NOT EXISTS faseDocFaseIdx ON fase_documentation FIELDS fase UNIQ
 -- TABLA: proof_point
 -- Descripción: Proof Points dentro de cada fase
 -- ----------------------------------------------------------------------------
-DEFINE TABLE IF NOT EXISTS proof_point SCHEMAFULL;
+DEFINE TABLE IF NOT EXISTS proof_point SCHEMAFULL PERMISSIONS
+    FOR select WHERE $auth != NONE
+    FOR create WHERE $auth != NONE AND $auth.rol IN ['instructor', 'admin']
+    FOR update WHERE $auth != NONE AND (fase.programa.creador = $auth OR fase.programa.creador = $auth.id OR $auth.rol = 'admin')
+    FOR delete WHERE $auth != NONE AND (fase.programa.creador = $auth OR fase.programa.creador = $auth.id OR $auth.rol = 'admin');
 
 DEFINE FIELD IF NOT EXISTS fase ON proof_point TYPE record<fase>
     ASSERT $value != NONE;
@@ -248,7 +279,11 @@ DEFINE INDEX IF NOT EXISTS prereqPPIdx ON prerequisitos_proof_point FIELDS proof
 -- TABLA: nivel
 -- Descripción: Niveles dentro de un Proof Point
 -- ----------------------------------------------------------------------------
-DEFINE TABLE IF NOT EXISTS nivel SCHEMAFULL;
+DEFINE TABLE IF NOT EXISTS nivel SCHEMAFULL PERMISSIONS
+    FOR select WHERE $auth != NONE
+    FOR create WHERE $auth != NONE AND $auth.rol IN ['instructor', 'admin']
+    FOR update WHERE $auth != NONE AND (proof_point.fase.programa.creador = $auth OR proof_point.fase.programa.creador = $auth.id OR $auth.rol = 'admin')
+    FOR delete WHERE $auth != NONE AND (proof_point.fase.programa.creador = $auth OR proof_point.fase.programa.creador = $auth.id OR $auth.rol = 'admin');
 
 DEFINE FIELD IF NOT EXISTS proof_point ON nivel TYPE record<proof_point>
     ASSERT $value != NONE;
@@ -282,7 +317,11 @@ DEFINE INDEX IF NOT EXISTS nivelNumeroIdx ON nivel FIELDS proof_point, numero_ni
 -- TABLA: componente
 -- Descripción: Componentes de aprendizaje (lección, cuaderno, simulación, herramienta)
 -- ----------------------------------------------------------------------------
-DEFINE TABLE IF NOT EXISTS componente SCHEMAFULL;
+DEFINE TABLE IF NOT EXISTS componente SCHEMAFULL PERMISSIONS
+    FOR select WHERE $auth != NONE
+    FOR create WHERE $auth != NONE AND $auth.rol IN ['instructor', 'admin']
+    FOR update WHERE $auth != NONE AND (nivel.proof_point.fase.programa.creador = $auth OR nivel.proof_point.fase.programa.creador = $auth.id OR $auth.rol = 'admin')
+    FOR delete WHERE $auth != NONE AND (nivel.proof_point.fase.programa.creador = $auth OR nivel.proof_point.fase.programa.creador = $auth.id OR $auth.rol = 'admin');
 
 DEFINE FIELD IF NOT EXISTS nivel ON componente TYPE record<nivel>
     ASSERT $value != NONE;
@@ -293,7 +332,7 @@ DEFINE FIELD IF NOT EXISTS tipo ON componente TYPE string
 DEFINE FIELD IF NOT EXISTS nombre ON componente TYPE string
     ASSERT $value != NONE;
 
-DEFINE FIELD IF NOT EXISTS descripcion_breve ON componente TYPE string;
+DEFINE FIELD IF NOT EXISTS descripcion_breve ON componente FLEXIBLE TYPE option<string>;
 
 DEFINE FIELD IF NOT EXISTS duracion_estimada_minutos ON componente TYPE int
     ASSERT $value > 0;
@@ -301,7 +340,7 @@ DEFINE FIELD IF NOT EXISTS duracion_estimada_minutos ON componente TYPE int
 DEFINE FIELD IF NOT EXISTS orden ON componente TYPE int
     ASSERT $value >= 0;
 
-DEFINE FIELD IF NOT EXISTS version_contenido_actual ON componente TYPE record<componente_contenido>;
+DEFINE FIELD IF NOT EXISTS version_contenido_actual ON componente FLEXIBLE TYPE option<record<componente_contenido>>;
 
 -- Timestamps
 DEFINE FIELD IF NOT EXISTS created_at ON componente TYPE datetime

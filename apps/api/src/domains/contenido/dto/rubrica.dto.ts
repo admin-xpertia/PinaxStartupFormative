@@ -9,9 +9,9 @@ import {
   Min,
   Max,
   Validate,
-} from 'class-validator';
-import { Type } from 'class-transformer';
-import { PesoTotalValidator } from '../validators/peso-total.validator';
+} from "class-validator";
+import { Type } from "class-transformer";
+import { PesoTotalValidator } from "../validators/peso-total.validator";
 
 /**
  * Descriptor de una dimensión de evaluación.
@@ -70,7 +70,7 @@ export class CrearRubricaDto {
   @ValidateNested({ each: true })
   @Type(() => DimensionDto)
   @Validate(PesoTotalValidator, {
-    message: 'La suma de los pesos de las dimensiones debe ser 100',
+    message: "La suma de los pesos de las dimensiones debe ser 100",
   })
   dimensiones!: DimensionDto[];
 

@@ -27,6 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import type { GenerationConfig, TipoComponente } from "@/types/content"
+import { apiClient } from "@/lib/api-client"
 
 interface ContentGenerationWizardProps {
   isOpen: boolean
@@ -109,30 +110,12 @@ export function ContentGenerationWizard({
     setTimeout(() => setGenerationStep(2), 3000) // "Generando contenido..."
 
     try {
-      const response = await fetch("/api/v1/generacion/componente", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          // TODO: Agregar Authorization header con el token del usuario
-          // "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify(config),
+      const response = await apiClient.post("/generacion/componente", config, {
         // CRÍTICO: Timeout de 120 segundos (el doble del tiempo máximo esperado)
-        signal: AbortSignal.timeout(120000),
+        timeout: 120000,
       })
 
-      if (!response.ok) {
-        let errorMessage = "Error del servidor"
-        try {
-          const errData = await response.json()
-          errorMessage = errData.message || errData.error || errorMessage
-        } catch {
-          // Si no puede parsear el error, usar el mensaje por defecto
-        }
-        throw new Error(errorMessage)
-      }
-
-      const contenidoGenerado = await response.json()
+      const contenidoGenerado = response.data
 
       setGenerationStep(3) // "Validando calidad..."
       setIsGenerating(false)
@@ -145,7 +128,7 @@ export function ContentGenerationWizard({
 
       // Manejar diferentes tipos de errores
       let errorMsg = "Error al generar contenido"
-      if (err.name === "TimeoutError" || err.name === "AbortError") {
+      if (err.code === "ECONNABORTED" || err.message?.includes("timeout")) {
         errorMsg = "La generación tomó demasiado tiempo. Por favor, intenta nuevamente."
       } else if (err.message) {
         errorMsg = err.message

@@ -8,7 +8,7 @@ import { ProgramasModule } from "./domains/programas/programas.module";
 import { GeneracionModule } from "./domains/generacion/generacion.module";
 import { ContenidoModule } from "./domains/contenido/contenido.module";
 import { CohortesModule } from "./domains/cohortes/cohortes.module";
-import { AnalyticsModule } from './domains/analytics/analytics.module';
+import { AnalyticsModule } from "./domains/analytics/analytics.module";
 
 /**
  * Módulo principal de la aplicación

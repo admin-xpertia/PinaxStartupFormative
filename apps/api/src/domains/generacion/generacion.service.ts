@@ -248,7 +248,7 @@ export class GeneracionService {
     // Ejecutar la transacción
     const transactionQuery = `
       BEGIN TRANSACTION;
-      ${queries.join('\n')}
+      ${queries.join("\n")}
       COMMIT TRANSACTION;
       RETURN $contenido;
     `;
@@ -259,7 +259,9 @@ export class GeneracionService {
       // El resultado de la transacción está en el último elemento
       const finalResult = result[result.length - 1];
 
-      this.logger.log(`Contenido guardado exitosamente para componente ${componente.plain}`);
+      this.logger.log(
+        `Contenido guardado exitosamente para componente ${componente.plain}`,
+      );
 
       return {
         contenido,
@@ -290,8 +292,12 @@ export class GeneracionService {
     const model = config.modelo_ia || "gpt-4o-mini";
     const temperature = config.temperatura ?? 0.7;
 
-    this.logger.log(`Llamando a OpenAI API con modelo: ${model}, temperatura: ${temperature}`);
-    this.logger.debug(`Longitud del prompt: ${prompt.length} caracteres (~${Math.ceil(prompt.length / 4)} tokens estimados)`);
+    this.logger.log(
+      `Llamando a OpenAI API con modelo: ${model}, temperatura: ${temperature}`,
+    );
+    this.logger.debug(
+      `Longitud del prompt: ${prompt.length} caracteres (~${Math.ceil(prompt.length / 4)} tokens estimados)`,
+    );
 
     try {
       const response = await this.openai.chat.completions.create({
@@ -311,7 +317,9 @@ export class GeneracionService {
         // max_tokens: 4096,
       });
 
-      this.logger.log(`Respuesta recibida de OpenAI. Tokens usados: ${response.usage?.total_tokens || 'N/A'}`);
+      this.logger.log(
+        `Respuesta recibida de OpenAI. Tokens usados: ${response.usage?.total_tokens || "N/A"}`,
+      );
 
       return response as ChatCompletion;
     } catch (error: any) {
@@ -331,7 +339,10 @@ export class GeneracionService {
       }
 
       if (error.status === 400) {
-        this.logger.error("Prompt que causó el error (primeros 500 chars):", prompt.substring(0, 500));
+        this.logger.error(
+          "Prompt que causó el error (primeros 500 chars):",
+          prompt.substring(0, 500),
+        );
         throw new InternalServerErrorException(
           "El prompt enviado a OpenAI es inválido. Revisa la configuración.",
         );
@@ -354,7 +365,10 @@ export class GeneracionService {
     const output = response.choices?.[0]?.message?.content;
 
     if (!output) {
-      this.logger.error("Respuesta de OpenAI sin contenido:", JSON.stringify(response));
+      this.logger.error(
+        "Respuesta de OpenAI sin contenido:",
+        JSON.stringify(response),
+      );
       throw new InternalServerErrorException(
         "La respuesta de OpenAI no contiene contenido procesable",
       );
@@ -375,7 +389,9 @@ export class GeneracionService {
       }
 
       if (!parsed.analisis_calidad) {
-        this.logger.warn("La respuesta no incluye 'analisis_calidad'. Se agregará un análisis vacío.");
+        this.logger.warn(
+          "La respuesta no incluye 'analisis_calidad'. Se agregará un análisis vacío.",
+        );
         parsed.analisis_calidad = {
           score_general: 0,
           metricas: {},
@@ -389,7 +405,10 @@ export class GeneracionService {
       return parsed;
     } catch (error: any) {
       this.logger.error("Error al parsear respuesta de OpenAI:", error.message);
-      this.logger.error("Contenido que falló al parsear (primeros 500 chars):", output.substring(0, 500));
+      this.logger.error(
+        "Contenido que falló al parsear (primeros 500 chars):",
+        output.substring(0, 500),
+      );
 
       throw new InternalServerErrorException(
         "La IA devolvió un formato inválido. El contenido no pudo ser parseado como JSON válido.",
@@ -588,7 +607,9 @@ ${JSON.stringify(jsonOutputSchema, null, 2)}
     const restrictions: string[] = ["## Restricciones y Preferencias:"];
 
     if (config.numero_secciones) {
-      restrictions.push(`- **Número de Secciones:** ${config.numero_secciones}`);
+      restrictions.push(
+        `- **Número de Secciones:** ${config.numero_secciones}`,
+      );
     }
 
     if (config.tipos_pregunta?.length) {
@@ -711,9 +732,7 @@ ${config.instrucciones_adicionales ? `- ${config.instrucciones_adicionales}` : "
    * Devuelve el esquema JSON de salida esperado
    * basado en el tipo de componente.
    */
-  private _getJsonOutputSchema(
-    tipo: TipoComponente,
-  ): Record<string, any> {
+  private _getJsonOutputSchema(tipo: TipoComponente): Record<string, any> {
     const baseSchema: Record<string, any> = {
       contenido: {},
       analisis_calidad: {
@@ -759,7 +778,8 @@ ${config.instrucciones_adicionales ? `- ${config.instrucciones_adicionales}` : "
     // Configurar el esquema de contenido según el tipo
     if (tipo === TipoComponente.LECCION) {
       baseSchema.contenido = {
-        markdown: "string (Contenido completo de la lección en formato Markdown)",
+        markdown:
+          "string (Contenido completo de la lección en formato Markdown)",
         palabras_estimadas: "number",
         tiempo_lectura_minutos: "number",
       };
@@ -790,7 +810,8 @@ ${config.instrucciones_adicionales ? `- ${config.instrucciones_adicionales}` : "
         escenario_inicial: "string (descripción del escenario)",
         banco_respuestas: [
           {
-            trigger: "string (palabras clave o contexto que activan esta respuesta)",
+            trigger:
+              "string (palabras clave o contexto que activan esta respuesta)",
             texto_respuesta: "string",
             emocion: "string (opcional)",
           },

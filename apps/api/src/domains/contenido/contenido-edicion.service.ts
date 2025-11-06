@@ -4,13 +4,13 @@ import {
   BadRequestException,
   ForbiddenException,
   Logger,
-} from '@nestjs/common';
-import { SurrealDbService } from 'src/core/database';
+} from "@nestjs/common";
+import { SurrealDbService } from "src/core/database";
 import {
   EditarContenidoDto,
   PublicarContenidoDto,
   RestaurarVersionDto,
-} from './dto';
+} from "./dto";
 
 @Injectable()
 export class ContenidoEdicionService {
@@ -45,11 +45,18 @@ export class ContenidoEdicionService {
       : null;
 
     // 2. Determinar si necesitamos crear una versión
-    const necesitaVersion = contenidoActual && contenidoActual.estado === 'publicado';
+    const necesitaVersion =
+      contenidoActual && contenidoActual.estado === "publicado";
 
     if (necesitaVersion) {
       // Crear snapshot del contenido publicado
-      await this.crearVersionSnapshot(componente, contenidoActual, userId, cambiosDescripcion || 'Edición manual', tipoCambio || 'patch');
+      await this.crearVersionSnapshot(
+        componente,
+        contenidoActual,
+        userId,
+        cambiosDescripcion || "Edición manual",
+        tipoCambio || "patch",
+      );
     }
 
     // 3. Crear o actualizar el contenido
@@ -80,7 +87,7 @@ export class ContenidoEdicionService {
     return {
       componenteContenidoId: nuevoContenidoId,
       versionCreada: necesitaVersion,
-      estado: 'draft',
+      estado: "draft",
     };
   }
 
@@ -104,8 +111,8 @@ export class ContenidoEdicionService {
       );
     }
 
-    if (contenido.estado === 'publicado') {
-      throw new BadRequestException('Este contenido ya está publicado');
+    if (contenido.estado === "publicado") {
+      throw new BadRequestException("Este contenido ya está publicado");
     }
 
     // Actualizar el estado a 'publicado'
@@ -119,12 +126,14 @@ export class ContenidoEdicionService {
       contenidoId: this.extractId(componenteContenidoId),
     });
 
-    this.logger.log(`Contenido ${componenteContenidoId} publicado exitosamente`);
+    this.logger.log(
+      `Contenido ${componenteContenidoId} publicado exitosamente`,
+    );
 
     return {
       componenteContenidoId,
-      estado: 'publicado',
-      mensaje: 'Contenido publicado. Futuras ediciones crearán versiones.',
+      estado: "publicado",
+      mensaje: "Contenido publicado. Futuras ediciones crearán versiones.",
     };
   }
 
@@ -145,7 +154,7 @@ export class ContenidoEdicionService {
     // Verificar que la versión pertenece al componente correcto
     if (this.extractId(version.componente) !== this.extractId(componenteId)) {
       throw new BadRequestException(
-        'La versión no pertenece a este componente',
+        "La versión no pertenece a este componente",
       );
     }
 
@@ -162,10 +171,10 @@ export class ContenidoEdicionService {
     // 4. Registrar el rollback en la tabla rollback_historia
     await this.registrarRollback(
       componenteId,
-      'componente_contenido:current', // Versión desde (placeholder)
+      "componente_contenido:current", // Versión desde (placeholder)
       versionId,
       userId,
-      razon || 'Restauración de versión anterior',
+      razon || "Restauración de versión anterior",
     );
 
     this.logger.log(
@@ -175,7 +184,7 @@ export class ContenidoEdicionService {
     return {
       componenteContenidoId: nuevoContenidoId,
       versionRestaurada: versionId,
-      estado: 'draft',
+      estado: "draft",
     };
   }
 
@@ -199,12 +208,18 @@ export class ContenidoEdicionService {
   /**
    * Compara dos versiones de contenido.
    */
-  async compararVersiones(versionAnteriorId: string, versionNuevaId: string, userId: string) {
+  async compararVersiones(
+    versionAnteriorId: string,
+    versionNuevaId: string,
+    userId: string,
+  ) {
     const versionAnterior = await this.obtenerVersion(versionAnteriorId);
     const versionNueva = await this.obtenerVersion(versionNuevaId);
 
     if (!versionAnterior || !versionNueva) {
-      throw new NotFoundException('Una o ambas versiones no fueron encontradas');
+      throw new NotFoundException(
+        "Una o ambas versiones no fueron encontradas",
+      );
     }
 
     // Calcular diferencias (implementación simplificada)
@@ -428,12 +443,8 @@ export class ContenidoEdicionService {
       campos_modificados: Object.keys(nueva).filter(
         (key) => JSON.stringify(anterior[key]) !== JSON.stringify(nueva[key]),
       ),
-      campos_agregados: Object.keys(nueva).filter(
-        (key) => !(key in anterior),
-      ),
-      campos_eliminados: Object.keys(anterior).filter(
-        (key) => !(key in nueva),
-      ),
+      campos_agregados: Object.keys(nueva).filter((key) => !(key in anterior)),
+      campos_eliminados: Object.keys(anterior).filter((key) => !(key in nueva)),
     };
   }
 
@@ -458,15 +469,15 @@ export class ContenidoEdicionService {
       );
     }
 
-    return partes.join(', ') || 'Sin cambios detectados';
+    return partes.join(", ") || "Sin cambios detectados";
   }
 
   private extractId(recordId: string): string {
     if (!recordId) {
-      throw new BadRequestException('ID inválido');
+      throw new BadRequestException("ID inválido");
     }
 
-    const parts = recordId.split(':');
+    const parts = recordId.split(":");
     return parts.length > 1 ? parts[parts.length - 1] : recordId;
   }
 }

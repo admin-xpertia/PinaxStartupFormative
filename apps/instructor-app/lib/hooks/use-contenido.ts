@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import useSWR, { mutate } from 'swr';
 import { toast } from '@/components/ui/use-toast';
+import { apiClient } from '@/lib/api-client';
 
 // ============================================================================
 // TIPOS
@@ -68,23 +70,11 @@ export function useGuardarContenido(componenteId: string) {
     setIsGuardando(true);
 
     try {
-      const response = await fetch(
-        `/api/v1/componentes/${componenteId}/contenido`,
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ contenido }),
-        }
+      const response = await apiClient.put(
+        `/componentes/${componenteId}/contenido`,
+        { contenido }
       );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Error al guardar el contenido');
-      }
-
-      const resultado = await response.json();
+      const resultado = response.data;
 
       // Revalidar el contenido
       mutate(`/api/v1/componentes/${componenteId}/contenido`);
@@ -134,20 +124,10 @@ export function usePublicarContenido() {
     setIsPublicando(true);
 
     try {
-      const response = await fetch('/api/v1/contenido/publicar', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ componenteContenidoId }),
+      const response = await apiClient.post('/contenido/publicar', {
+        componenteContenidoId,
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Error al publicar el contenido');
-      }
-
-      const resultado = await response.json();
+      const resultado = response.data;
 
       toast({
         title: 'Contenido publicado',
@@ -223,20 +203,12 @@ export function useRestaurarVersion() {
     setIsRestaurando(true);
 
     try {
-      const response = await fetch('/api/v1/contenido/restaurar', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ componenteId, versionId, razon }),
+      const response = await apiClient.post('/contenido/restaurar', {
+        componenteId,
+        versionId,
+        razon,
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Error al restaurar la versión');
-      }
-
-      const resultado = await response.json();
+      const resultado = response.data;
 
       // Revalidar el contenido y el historial
       mutate(`/api/v1/componentes/${componenteId}/contenido`);
@@ -265,6 +237,3 @@ export function useRestaurarVersion() {
     isRestaurando,
   };
 }
-
-// Importar useState
-import { useState } from 'react';

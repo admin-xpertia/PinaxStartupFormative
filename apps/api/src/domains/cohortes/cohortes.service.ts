@@ -38,9 +38,8 @@ export class CohortesService {
 
     // 1. Obtener la arquitectura completa del programa original
     const programaId = this.normalizeId(dto.programa_id_original);
-    const programaOriginal = await this.programasService.getProgramaConArquitectura(
-      programaId,
-    );
+    const programaOriginal =
+      await this.programasService.getProgramaConArquitectura(programaId);
 
     // Verificar que el usuario sea el creador del programa
     const creadorId = this.extractIdFromRecord(programaOriginal.creador);
@@ -96,7 +95,7 @@ export class CohortesService {
         programa_original = $programa_original_id,
         version = "${this.escapeSql(snapshotVersion)}",
         nombre = "${this.escapeSql(programaOriginal.nombre)}",
-        descripcion = "${this.escapeSql(programaOriginal.descripcion || '')}",
+        descripcion = "${this.escapeSql(programaOriginal.descripcion || "")}",
         instructor = $instructor;
     `;
 
@@ -105,7 +104,7 @@ export class CohortesService {
       LET $cohorte = CREATE cohorte SET
         nombre = "${this.escapeSql(dto.nombre)}",
         fecha_inicio = "${dto.fecha_inicio}",
-        ${dto.fecha_fin_estimada ? `fecha_fin_estimada = "${dto.fecha_fin_estimada}",` : ''}
+        ${dto.fecha_fin_estimada ? `fecha_fin_estimada = "${dto.fecha_fin_estimada}",` : ""}
         instructor = $instructor,
         snapshot_programa = $snapshot_programa.id;
     `;
@@ -138,7 +137,7 @@ export class CohortesService {
                 snapshot_fase = $${faseVar}.id,
                 proofpoint_original = type::thing("proofpoint", "${ppId}"),
                 nombre = "${this.escapeSql(pp.nombre)}",
-                pregunta_central = "${this.escapeSql(pp.pregunta_central || '')}",
+                pregunta_central = "${this.escapeSql(pp.pregunta_central || "")}",
                 orden_en_fase = ${pp.orden_en_fase || 0},
                 prerequisitos = [];
             `;
@@ -155,7 +154,7 @@ export class CohortesService {
                     snapshot_proofpoint = $${ppVar}.id,
                     nivel_original = type::thing("nivel", "${nivelId}"),
                     numero_nivel = ${nivel.numero || nivel.numero_nivel || 0},
-                    objetivo_especifico = "${this.escapeSql(nivel.objetivo_especifico || nivel.objetivo || 'Objetivo pendiente')}",
+                    objetivo_especifico = "${this.escapeSql(nivel.objetivo_especifico || nivel.objetivo || "Objetivo pendiente")}",
                     criterio_completacion = ${JSON.stringify(nivel.criterio_completacion || {})};
                 `;
 
@@ -171,7 +170,9 @@ export class CohortesService {
 
                     // Verificar si el componente tiene contenido
                     if (comp.version_contenido_actual) {
-                      const contenidoId = this.extractIdFromRecord(comp.version_contenido_actual);
+                      const contenidoId = this.extractIdFromRecord(
+                        comp.version_contenido_actual,
+                      );
 
                       tx += `
                         LET $contenido_original_${contenidoVar} = (SELECT * FROM type::thing("componente_contenido", "${contenidoId}") LIMIT 1)[0];
@@ -204,7 +205,7 @@ export class CohortesService {
                       LET $${compVar} = CREATE snapshot_componente SET
                         snapshot_nivel = $${nivelVar}.id,
                         componente_original = type::thing("componente", "${compId}"),
-                        tipo = "${this.escapeSql(comp.tipo || 'leccion')}",
+                        tipo = "${this.escapeSql(comp.tipo || "leccion")}",
                         nombre = "${this.escapeSql(comp.nombre)}",
                         orden = ${comp.orden || 0},
                         contenido = IF $${contenidoVar} != NONE THEN $${contenidoVar}.id ELSE NONE END,
@@ -231,12 +232,18 @@ export class CohortesService {
 
       // 4. Segunda pasada: Reconectar prerequisitos
       // Los prerequisitos deben apuntar a los IDs del snapshot, no a los originales
-      this.logger.debug("Iniciando segunda pasada para reconectar prerequisitos");
+      this.logger.debug(
+        "Iniciando segunda pasada para reconectar prerequisitos",
+      );
 
       for (const fase of programaOriginal.fases) {
         if (fase.proof_points && Array.isArray(fase.proof_points)) {
           for (const pp of fase.proof_points) {
-            if (pp.prerequisitos && Array.isArray(pp.prerequisitos) && pp.prerequisitos.length > 0) {
+            if (
+              pp.prerequisitos &&
+              Array.isArray(pp.prerequisitos) &&
+              pp.prerequisitos.length > 0
+            ) {
               const ppVar = mapaVariables.get(pp.id);
               if (ppVar) {
                 const prerequisitosSnapshotIds = pp.prerequisitos
@@ -245,7 +252,7 @@ export class CohortesService {
 
                 if (prerequisitosSnapshotIds.length > 0) {
                   tx += `
-                    UPDATE ${ppVar}.id SET prerequisitos = [${prerequisitosSnapshotIds.map((v: string) => `${v}.id`).join(', ')}];
+                    UPDATE ${ppVar}.id SET prerequisitos = [${prerequisitosSnapshotIds.map((v: string) => `${v}.id`).join(", ")}];
                   `;
                 }
               }
@@ -256,16 +263,22 @@ export class CohortesService {
               for (const nivel of pp.niveles) {
                 if (nivel.componentes && Array.isArray(nivel.componentes)) {
                   for (const comp of nivel.componentes) {
-                    if (comp.prerequisitos && Array.isArray(comp.prerequisitos) && comp.prerequisitos.length > 0) {
+                    if (
+                      comp.prerequisitos &&
+                      Array.isArray(comp.prerequisitos) &&
+                      comp.prerequisitos.length > 0
+                    ) {
                       const compVar = mapaVariables.get(comp.id);
                       if (compVar) {
                         const prerequisitosSnapshotIds = comp.prerequisitos
-                          .map((prereqId: string) => mapaVariables.get(prereqId))
+                          .map((prereqId: string) =>
+                            mapaVariables.get(prereqId),
+                          )
                           .filter((v: string | undefined) => v !== undefined);
 
                         if (prerequisitosSnapshotIds.length > 0) {
                           tx += `
-                            UPDATE ${compVar}.id SET prerequisitos = [${prerequisitosSnapshotIds.map((v: string) => `${v}.id`).join(', ')}];
+                            UPDATE ${compVar}.id SET prerequisitos = [${prerequisitosSnapshotIds.map((v: string) => `${v}.id`).join(", ")}];
                           `;
                         }
                       }
@@ -288,7 +301,9 @@ export class CohortesService {
       };
     `;
 
-    this.logger.debug(`Ejecutando transacción de snapshot (${tx.length} caracteres)`);
+    this.logger.debug(
+      `Ejecutando transacción de snapshot (${tx.length} caracteres)`,
+    );
 
     // Ejecutar la transacción masiva
     const result = await this.surrealDb.query<any>(tx);
@@ -341,7 +356,10 @@ export class CohortesService {
   /**
    * Obtiene una cohorte por ID con su información de snapshot
    */
-  async findCohorteById(cohorteId: string, instructorId?: string): Promise<any> {
+  async findCohorteById(
+    cohorteId: string,
+    instructorId?: string,
+  ): Promise<any> {
     try {
       const normalizedId = this.normalizeId(cohorteId);
 
@@ -363,7 +381,9 @@ export class CohortesService {
 
       // Verificar permisos si se proporciona instructorId
       if (instructorId) {
-        const instructorCohorteId = this.extractIdFromRecord(cohorte.instructor);
+        const instructorCohorteId = this.extractIdFromRecord(
+          cohorte.instructor,
+        );
         if (instructorCohorteId !== instructorId) {
           throw new ForbiddenException(
             "No tienes permiso para acceder a esta cohorte",
@@ -373,14 +393,15 @@ export class CohortesService {
 
       return cohorte;
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ForbiddenException
+      ) {
         throw error;
       }
 
       this.logger.error(`Error al obtener cohorte ${cohorteId}:`, error);
-      throw new InternalServerErrorException(
-        "Error al obtener la cohorte",
-      );
+      throw new InternalServerErrorException("Error al obtener la cohorte");
     }
   }
 

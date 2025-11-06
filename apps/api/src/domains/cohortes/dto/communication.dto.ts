@@ -1,6 +1,6 @@
 export class CommunicationDto {
   id: string;
-  tipo: 'email' | 'notificacion' | 'anuncio';
+  tipo: "email" | "notificacion" | "anuncio";
   asunto: string;
   contenido: string;
   fecha_envio: string;

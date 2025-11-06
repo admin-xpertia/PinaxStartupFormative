@@ -2,7 +2,7 @@ import {
   ValidatorConstraint,
   ValidatorConstraintInterface,
   ValidationArguments,
-} from 'class-validator';
+} from "class-validator";
 
 /**
  * Validador customizado que verifica que la suma de los pesos
@@ -11,7 +11,7 @@ import {
  * Uso:
  * @Validate(PesoTotalValidator)
  */
-@ValidatorConstraint({ name: 'pesoTotal', async: false })
+@ValidatorConstraint({ name: "pesoTotal", async: false })
 export class PesoTotalValidator implements ValidatorConstraintInterface {
   validate(dimensiones: any[], args: ValidationArguments): boolean {
     if (!Array.isArray(dimensiones) || dimensiones.length === 0) {
@@ -19,7 +19,7 @@ export class PesoTotalValidator implements ValidatorConstraintInterface {
     }
 
     const sumaPesos = dimensiones.reduce((sum, dim) => {
-      return sum + (typeof dim.peso === 'number' ? dim.peso : 0);
+      return sum + (typeof dim.peso === "number" ? dim.peso : 0);
     }, 0);
 
     // Permitir un margen de error de 0.01 para evitar problemas de precisión de punto flotante
@@ -30,11 +30,11 @@ export class PesoTotalValidator implements ValidatorConstraintInterface {
   defaultMessage(args: ValidationArguments): string {
     const dimensiones = args.value as any[];
     if (!Array.isArray(dimensiones)) {
-      return 'Las dimensiones deben ser un array válido';
+      return "Las dimensiones deben ser un array válido";
     }
 
     const sumaPesos = dimensiones.reduce((sum, dim) => {
-      return sum + (typeof dim.peso === 'number' ? dim.peso : 0);
+      return sum + (typeof dim.peso === "number" ? dim.peso : 0);
     }, 0);
 
     return `La suma de los pesos de las dimensiones debe ser 100. Suma actual: ${sumaPesos}`;

@@ -42,18 +42,44 @@ export class AuthGuard implements CanActivate {
     }
 
     try {
-      // Autenticar con el token
-      await this.surrealDb.authenticateWithToken(token);
+      // IMPORTANTE: NO cambiar la autenticación de la conexión del backend
+      // El backend debe mantener sus credenciales de admin para poder realizar operaciones
+      // En su lugar, vamos a decodificar el token JWT para extraer la información del usuario
 
-      // Obtener información del usuario
-      const authInfo = await this.surrealDb.getAuthInfo<any>();
+      // Decodificar el token para obtener el ID del usuario
+      // Los tokens JWT de SurrealDB tienen el formato: header.payload.signature
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        throw new UnauthorizedException("Token JWT inválido");
+      }
 
-      const user =
-        Array.isArray(authInfo) && authInfo.length > 0 ? authInfo[0] : authInfo;
+      // Decodificar el payload (segunda parte)
+      const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+      this.logger.debug("Token payload:", JSON.stringify(payload, null, 2));
+
+      // Extraer el ID del usuario del payload
+      // SurrealDB típicamente guarda el ID en el campo 'ID' o 'id'
+      const userId = payload.ID || payload.id;
+
+      if (!userId) {
+        throw new UnauthorizedException("Token no contiene ID de usuario");
+      }
+
+      this.logger.debug("User ID desde token:", userId);
+
+      // Consultar el usuario completo desde la base de datos usando el ID
+      // Nota: La conexión del backend sigue usando credenciales de admin
+      const users = await this.surrealDb.select<any>(userId);
+      const user = Array.isArray(users) ? users[0] : users;
 
       if (!user) {
-        throw new UnauthorizedException("Token inválido");
+        throw new UnauthorizedException("Usuario no encontrado");
       }
+
+      this.logger.debug("Usuario consultado:", JSON.stringify(user, null, 2));
+
+      // Asegurar que el user tenga el ID completo
+      user.id = userId;
 
       // Adjuntar usuario al request
       request.user = user;
@@ -61,6 +87,12 @@ export class AuthGuard implements CanActivate {
       return true;
     } catch (error) {
       this.logger.error("Error en autenticación:", error);
+
+      // Distinguir entre errores de formato de token y otros errores
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+
       throw new UnauthorizedException("Token inválido o expirado");
     }
   }

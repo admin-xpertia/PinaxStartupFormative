@@ -1,2 +1,2 @@
-export * from './create-cohorte.dto';
-export * from './invite-estudiantes.dto';
+export * from "./create-cohorte.dto";
+export * from "./invite-estudiantes.dto";

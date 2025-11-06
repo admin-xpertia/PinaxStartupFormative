@@ -1,5 +1,6 @@
 "use client"
 
+import { use } from "react"
 import useSWR from "swr"
 import { AppHeader } from "@/components/app-header"
 import { Sidebar } from "@/components/sidebar"
@@ -15,14 +16,16 @@ import { notFound } from "next/navigation"
 import { fetcher } from "@/lib/fetcher"
 import { LoadingState } from "@/components/shared/loading-state"
 import { ErrorState } from "@/components/shared/error-state"
+import type { Program } from "@/types/program"
 
-export default function ProgramDetailPage({ params }: { params: { id: string } }) {
+export default function ProgramDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const {
     data: program,
     error,
     isLoading,
     mutate,
-  } = useSWR(params?.id ? `/api/v1/programas/${params.id}` : null, fetcher)
+  } = useSWR<Program>(id ? `/api/v1/programas/${id}` : null, fetcher)
 
   if (isLoading) {
     return (
@@ -56,7 +59,7 @@ export default function ProgramDetailPage({ params }: { params: { id: string } }
     notFound()
   }
 
-  const programId = program.id ?? params.id
+  const programId = program.id ?? id
   const stats = program.estadisticas ?? {
     fases: 0,
     proof_points: 0,

@@ -4,10 +4,10 @@ import {
   InternalServerErrorException,
   Logger,
   BadRequestException,
-} from '@nestjs/common';
-import { SurrealDbService } from 'src/core/database';
-import { CrearRubricaDto } from '../contenido/dto';
-import { RubricaService } from '../contenido/rubrica.service';
+} from "@nestjs/common";
+import { SurrealDbService } from "src/core/database";
+import { CrearRubricaDto } from "../contenido/dto";
+import { RubricaService } from "../contenido/rubrica.service";
 
 @Injectable()
 export class ComponentesService {
@@ -39,7 +39,7 @@ export class ComponentesService {
 
     if (!componente?.version_contenido_actual) {
       throw new NotFoundException(
-        'Este componente aún no tiene contenido generado.',
+        "Este componente aún no tiene contenido generado.",
       );
     }
 
@@ -94,7 +94,7 @@ export class ComponentesService {
 
     if (!contenidoActualId) {
       throw new NotFoundException(
-        'No se puede actualizar un contenido que no existe.',
+        "No se puede actualizar un contenido que no existe.",
       );
     }
 
@@ -147,8 +147,8 @@ export class ComponentesService {
 
       return contenidoActualizado;
     } catch (error) {
-      this.logger.error('Falló la transacción de versionamiento:', error);
-      throw new InternalServerErrorException('Error al guardar el contenido.');
+      this.logger.error("Falló la transacción de versionamiento:", error);
+      throw new InternalServerErrorException("Error al guardar el contenido.");
     }
   }
 
@@ -174,10 +174,10 @@ export class ComponentesService {
 
   private extractId(recordId: string): string {
     if (!recordId) {
-      throw new BadRequestException('ID inválido');
+      throw new BadRequestException("ID inválido");
     }
 
-    const parts = recordId.split(':');
+    const parts = recordId.split(":");
     return parts.length > 1 ? parts[parts.length - 1] : recordId;
   }
 }

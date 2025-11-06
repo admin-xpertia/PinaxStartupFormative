@@ -1,21 +1,21 @@
 'use client';
 
 import useSWR from "swr"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { VisualRoadmapBuilder } from "@/components/fase2/visual-roadmap-builder"
 import { LoadingState } from "@/components/shared/loading-state"
+import { apiClient } from "@/lib/api-client"
+import { Button } from "@/components/ui/button"
+import { ArrowLeft } from "lucide-react"
 
 const fetcher = async (url: string) => {
-  const response = await fetch(url)
-  if (!response.ok) {
-    const errData = await response.json().catch(() => ({}))
-    throw new Error(errData.message || "Error al cargar la arquitectura del programa")
-  }
-  return response.json()
+  const response = await apiClient.get(url)
+  return response.data
 }
 
 export default function ArquitecturaPage() {
   const params = useParams()
+  const router = useRouter()
   const programaIdParam = params?.id
   const programaId = Array.isArray(programaIdParam) ? programaIdParam[0] : programaIdParam
 
@@ -24,7 +24,7 @@ export default function ArquitecturaPage() {
     error,
     isLoading,
     mutate,
-  } = useSWR(programaId ? `/api/v1/programas/${programaId}/arquitectura` : null, fetcher, {
+  } = useSWR(programaId ? `/programas/${programaId}/arquitectura` : null, fetcher, {
     revalidateOnFocus: false,
   })
 
@@ -49,8 +49,25 @@ export default function ArquitecturaPage() {
   }
 
   return (
-    <div className="h-screen">
-      <VisualRoadmapBuilder programaId={programaId} programa={programa} onUpdate={handleUpdate} readonly={false} />
+    <div className="h-screen flex flex-col">
+      <div className="border-b bg-background px-6 py-3 flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.push('/')}
+          className="gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Volver al inicio
+        </Button>
+        <div className="flex-1">
+          <h1 className="text-lg font-semibold">{programa.nombre}</h1>
+          <p className="text-sm text-muted-foreground">Arquitectura del programa</p>
+        </div>
+      </div>
+      <div className="flex-1 overflow-hidden">
+        <VisualRoadmapBuilder programaId={programaId} programa={programa} onUpdate={handleUpdate} readonly={false} />
+      </div>
     </div>
   )
 }

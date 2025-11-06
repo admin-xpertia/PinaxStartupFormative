@@ -9,16 +9,16 @@ import {
   Query,
   UseGuards,
   Request,
-} from '@nestjs/common';
-import { ContenidoEdicionService } from './contenido-edicion.service';
-import { RubricaService } from './rubrica.service';
+} from "@nestjs/common";
+import { ContenidoEdicionService } from "./contenido-edicion.service";
+import { RubricaService } from "./rubrica.service";
 import {
   EditarContenidoDto,
   PublicarContenidoDto,
   RestaurarVersionDto,
   CrearRubricaDto,
   ValidarPesosDto,
-} from './dto';
+} from "./dto";
 
 /**
  * Controlador para la gestión de contenido y rúbricas.
@@ -37,7 +37,7 @@ import {
  * - POST /contenido/rubrica/validar - Valida los pesos de una rúbrica
  * - POST /contenido/rubrica/evaluar/:componenteId - Evalúa usando la rúbrica
  */
-@Controller('contenido')
+@Controller("contenido")
 // @UseGuards(JwtAuthGuard) // TODO: Descomentar cuando se implemente autenticación
 export class ContenidoController {
   constructor(
@@ -55,9 +55,9 @@ export class ContenidoController {
    * Si el contenido actual está publicado, se crea automáticamente una versión
    * y un nuevo registro en estado 'draft'.
    */
-  @Post('editar')
+  @Post("editar")
   async editarContenido(@Body() dto: EditarContenidoDto, @Request() req: any) {
-    const userId = req.user?.id || 'user:system'; // TODO: Obtener del JWT
+    const userId = req.user?.id || "user:system"; // TODO: Obtener del JWT
     return this.contenidoEdicionService.editarContenido(dto, userId);
   }
 
@@ -65,45 +65,45 @@ export class ContenidoController {
    * Publica el contenido de un componente.
    * Cambia el estado de 'draft' a 'publicado'.
    */
-  @Post('publicar')
+  @Post("publicar")
   async publicarContenido(
     @Body() dto: PublicarContenidoDto,
     @Request() req: any,
   ) {
-    const userId = req.user?.id || 'user:system'; // TODO: Obtener del JWT
+    const userId = req.user?.id || "user:system"; // TODO: Obtener del JWT
     return this.contenidoEdicionService.publicarContenido(dto, userId);
   }
 
   /**
    * Restaura una versión anterior del contenido.
    */
-  @Post('restaurar')
+  @Post("restaurar")
   async restaurarVersion(
     @Body() dto: RestaurarVersionDto,
     @Request() req: any,
   ) {
-    const userId = req.user?.id || 'user:system'; // TODO: Obtener del JWT
+    const userId = req.user?.id || "user:system"; // TODO: Obtener del JWT
     return this.contenidoEdicionService.restaurarVersion(dto, userId);
   }
 
   /**
    * Obtiene el historial de versiones de un componente.
    */
-  @Get('historial/:componenteId')
-  async obtenerHistorialVersiones(@Param('componenteId') componenteId: string) {
+  @Get("historial/:componenteId")
+  async obtenerHistorialVersiones(@Param("componenteId") componenteId: string) {
     return this.contenidoEdicionService.obtenerHistorialVersiones(componenteId);
   }
 
   /**
    * Compara dos versiones de contenido.
    */
-  @Get('comparar')
+  @Get("comparar")
   async compararVersiones(
-    @Query('versionAnterior') versionAnteriorId: string,
-    @Query('versionNueva') versionNuevaId: string,
+    @Query("versionAnterior") versionAnteriorId: string,
+    @Query("versionNueva") versionNuevaId: string,
     @Request() req: any,
   ) {
-    const userId = req.user?.id || 'user:system'; // TODO: Obtener del JWT
+    const userId = req.user?.id || "user:system"; // TODO: Obtener del JWT
     return this.contenidoEdicionService.compararVersiones(
       versionAnteriorId,
       versionNuevaId,
@@ -118,7 +118,7 @@ export class ContenidoController {
   /**
    * Crea una nueva rúbrica de evaluación para un componente.
    */
-  @Post('rubrica')
+  @Post("rubrica")
   async crearRubrica(@Body() dto: CrearRubricaDto) {
     return this.rubricaService.crearRubrica(dto);
   }
@@ -126,17 +126,17 @@ export class ContenidoController {
   /**
    * Obtiene la rúbrica de un componente.
    */
-  @Get('rubrica/:componenteId')
-  async obtenerRubrica(@Param('componenteId') componenteId: string) {
+  @Get("rubrica/:componenteId")
+  async obtenerRubrica(@Param("componenteId") componenteId: string) {
     return this.rubricaService.obtenerRubrica(componenteId);
   }
 
   /**
    * Actualiza una rúbrica existente.
    */
-  @Put('rubrica/:rubricaId')
+  @Put("rubrica/:rubricaId")
   async actualizarRubrica(
-    @Param('rubricaId') rubricaId: string,
+    @Param("rubricaId") rubricaId: string,
     @Body() dto: Partial<CrearRubricaDto>,
   ) {
     return this.rubricaService.actualizarRubrica(rubricaId, dto);
@@ -145,15 +145,15 @@ export class ContenidoController {
   /**
    * Elimina una rúbrica.
    */
-  @Delete('rubrica/:rubricaId')
-  async eliminarRubrica(@Param('rubricaId') rubricaId: string) {
+  @Delete("rubrica/:rubricaId")
+  async eliminarRubrica(@Param("rubricaId") rubricaId: string) {
     return this.rubricaService.eliminarRubrica(rubricaId);
   }
 
   /**
    * Valida que los pesos de las dimensiones de una rúbrica suman 100.
    */
-  @Post('rubrica/validar')
+  @Post("rubrica/validar")
   async validarPesos(@Body() dto: ValidarPesosDto) {
     return this.rubricaService.validarPesos(dto);
   }
@@ -164,9 +164,9 @@ export class ContenidoController {
    * Body: { dimensionNombre: nivelSeleccionado }
    * Ejemplo: { "Claridad de Ideas": "Excelente", "Uso de Evidencia": "Bueno" }
    */
-  @Post('rubrica/evaluar/:componenteId')
+  @Post("rubrica/evaluar/:componenteId")
   async evaluarConRubrica(
-    @Param('componenteId') componenteId: string,
+    @Param("componenteId") componenteId: string,
     @Body() evaluacion: Record<string, string>,
   ) {
     return this.rubricaService.evaluarConRubrica(componenteId, evaluacion);
