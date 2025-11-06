@@ -14,9 +14,13 @@ import { FaseDocumentationRepository } from '../infrastructure/database/reposito
 import { CreateProgramUseCase } from '../application/program-design/use-cases/CreateProgram/CreateProgramUseCase';
 import { PublishProgramUseCase } from '../application/program-design/use-cases/PublishProgram/PublishProgramUseCase';
 import { ArchiveProgramUseCase } from '../application/program-design/use-cases/ArchiveProgram/ArchiveProgramUseCase';
+import { AddFaseToProgramUseCase } from '../application/program-design/use-cases/AddFaseToProgram/AddFaseToProgramUseCase';
+import { AddProofPointToFaseUseCase } from '../application/program-design/use-cases/AddProofPointToFase/AddProofPointToFaseUseCase';
 
 // Controllers
 import { ProgramController } from '../presentation/controllers/program-design/program.controller';
+import { FaseController } from '../presentation/controllers/program-design/fase.controller';
+import { ProofPointController } from '../presentation/controllers/program-design/proof-point.controller';
 
 /**
  * ProgramDesignModule
@@ -56,10 +60,14 @@ import { ProgramController } from '../presentation/controllers/program-design/pr
     CreateProgramUseCase,
     PublishProgramUseCase,
     ArchiveProgramUseCase,
+    AddFaseToProgramUseCase,
+    AddProofPointToFaseUseCase,
   ],
   controllers: [
     // REST API Controllers
     ProgramController,
+    FaseController,
+    ProofPointController,
   ],
   exports: [
     // Export repositories for use in other modules
@@ -72,6 +80,8 @@ import { ProgramController } from '../presentation/controllers/program-design/pr
     CreateProgramUseCase,
     PublishProgramUseCase,
     ArchiveProgramUseCase,
+    AddFaseToProgramUseCase,
+    AddProofPointToFaseUseCase,
 
     // Export mapper for potential reuse
     ProgramMapper,

@@ -121,7 +121,7 @@ export class ProgramController {
     let programs;
 
     if (status) {
-      const programStatus = ProgramStatus.create(status);
+      const programStatus = ProgramStatus.create(status as any);
       programs = await this.programRepository.findByStatus(programStatus);
     } else {
       programs = await this.programRepository.findAll();

@@ -15,6 +15,9 @@ import { ExerciseContentRepository } from '../infrastructure/database/repositori
 // Use Cases
 import { AddExerciseToProofPointUseCase } from '../application/exercise-instance/use-cases/AddExerciseToProofPoint/AddExerciseToProofPointUseCase';
 
+// Controllers
+import { ExerciseInstanceController } from '../presentation/controllers/exercise-instance/exercise-instance.controller';
+
 /**
  * ExerciseInstanceModule
  * Module for Exercise Instance bounded context
@@ -22,6 +25,7 @@ import { AddExerciseToProofPointUseCase } from '../application/exercise-instance
  * Provides:
  * - ExerciseInstance and ExerciseContent repositories
  * - Use cases for exercise management
+ * - REST API controllers
  */
 @Module({
   imports: [
@@ -45,6 +49,10 @@ import { AddExerciseToProofPointUseCase } from '../application/exercise-instance
 
     // Use Cases
     AddExerciseToProofPointUseCase,
+  ],
+  controllers: [
+    // REST API Controllers
+    ExerciseInstanceController,
   ],
   exports: [
     // Export repositories for use in other modules

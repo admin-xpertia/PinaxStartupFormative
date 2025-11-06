@@ -7,6 +7,9 @@ import { ExerciseMapper } from '../infrastructure/mappers/ExerciseMapper';
 // Repositories
 import { ExerciseTemplateRepository } from '../infrastructure/database/repositories/ExerciseTemplateRepository';
 
+// Controllers
+import { ExerciseTemplateController } from '../presentation/controllers/exercise-catalog/exercise-template.controller';
+
 /**
  * ExerciseCatalogModule
  * Module for Exercise Catalog bounded context
@@ -14,6 +17,7 @@ import { ExerciseTemplateRepository } from '../infrastructure/database/repositor
  * Provides:
  * - ExerciseTemplate repository
  * - Exercise mapper
+ * - REST API controllers
  */
 @Module({
   imports: [SurrealDbModule],
@@ -26,6 +30,10 @@ import { ExerciseTemplateRepository } from '../infrastructure/database/repositor
       provide: 'IExerciseTemplateRepository',
       useClass: ExerciseTemplateRepository,
     },
+  ],
+  controllers: [
+    // REST API Controllers
+    ExerciseTemplateController,
   ],
   exports: [
     // Export repository for use in other modules
