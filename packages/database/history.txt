@@ -1,7 +1,0 @@
-#V2
-DEFINE TABLE IF NOT EXISTS user SCHEMAFULL PERMISSIONS    FOR select WHERE id = $auth OR id = $auth.id
-INFO FOR DB;
-REMOVE TABLE user; REMOVE TABLE session;
-DEFINE TABLE IF NOT EXISTS user SCHEMAFULL PERMISSIONS    FOR select WHERE id = $auth OR id = $auth.id
-INFO FOR DB;
-SELECT id, email, rol FROM user;
