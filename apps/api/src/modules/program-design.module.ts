@@ -12,6 +12,11 @@ import { FaseDocumentationRepository } from '../infrastructure/database/reposito
 
 // Use Cases
 import { CreateProgramUseCase } from '../application/program-design/use-cases/CreateProgram/CreateProgramUseCase';
+import { PublishProgramUseCase } from '../application/program-design/use-cases/PublishProgram/PublishProgramUseCase';
+import { ArchiveProgramUseCase } from '../application/program-design/use-cases/ArchiveProgram/ArchiveProgramUseCase';
+
+// Controllers
+import { ProgramController } from '../presentation/controllers/program-design/program.controller';
 
 /**
  * ProgramDesignModule
@@ -21,6 +26,7 @@ import { CreateProgramUseCase } from '../application/program-design/use-cases/Cr
  * - Domain repositories
  * - Use cases
  * - Infrastructure mappers
+ * - REST API controllers
  */
 @Module({
   imports: [SurrealDbModule],
@@ -48,6 +54,12 @@ import { CreateProgramUseCase } from '../application/program-design/use-cases/Cr
 
     // Use Cases
     CreateProgramUseCase,
+    PublishProgramUseCase,
+    ArchiveProgramUseCase,
+  ],
+  controllers: [
+    // REST API Controllers
+    ProgramController,
   ],
   exports: [
     // Export repositories for use in other modules
@@ -58,6 +70,8 @@ import { CreateProgramUseCase } from '../application/program-design/use-cases/Cr
 
     // Export use cases for controllers
     CreateProgramUseCase,
+    PublishProgramUseCase,
+    ArchiveProgramUseCase,
 
     // Export mapper for potential reuse
     ProgramMapper,
