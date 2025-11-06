@@ -237,6 +237,11 @@ DEFINE FIELD IF NOT EXISTS duracion_estimada_horas ON proof_point TYPE int
 
 DEFINE FIELD IF NOT EXISTS tipo_entregable_final ON proof_point TYPE string;
 
+-- Documentación contextual específica del proof point (markdown)
+-- Usado para generar ejercicios con contexto específico
+DEFINE FIELD IF NOT EXISTS documentacion_contexto ON proof_point TYPE string
+    DEFAULT '';
+
 -- Array de prerequisitos (record links a otros proof points)
 -- Este campo permite gestionar dependencias entre proof points de forma más directa
 DEFINE FIELD IF NOT EXISTS prerequisitos ON proof_point TYPE array<record<proof_point>>
@@ -275,113 +280,30 @@ DEFINE FIELD IF NOT EXISTS created_at ON prerequisitos_proof_point TYPE datetime
 -- Índices
 DEFINE INDEX IF NOT EXISTS prereqPPIdx ON prerequisitos_proof_point FIELDS proof_point, prerequisito UNIQUE;
 
--- ----------------------------------------------------------------------------
--- TABLA: nivel
--- Descripción: Niveles dentro de un Proof Point
--- ----------------------------------------------------------------------------
-DEFINE TABLE IF NOT EXISTS nivel SCHEMAFULL PERMISSIONS
-    FOR select WHERE $auth != NONE
-    FOR create WHERE $auth != NONE AND $auth.rol IN ['instructor', 'admin']
-    FOR update WHERE $auth != NONE AND (proof_point.fase.programa.creador = $auth OR proof_point.fase.programa.creador = $auth.id OR $auth.rol = 'admin')
-    FOR delete WHERE $auth != NONE AND (proof_point.fase.programa.creador = $auth OR proof_point.fase.programa.creador = $auth.id OR $auth.rol = 'admin');
-
-DEFINE FIELD IF NOT EXISTS proof_point ON nivel TYPE record<proof_point>
-    ASSERT $value != NONE;
-
-DEFINE FIELD IF NOT EXISTS numero_nivel ON nivel TYPE int
-    ASSERT $value > 0;
-
-DEFINE FIELD IF NOT EXISTS nombre ON nivel TYPE string
-    ASSERT $value != NONE;
-
-DEFINE FIELD IF NOT EXISTS objetivo_especifico ON nivel TYPE string;
-
--- Criterio de completación con lógica AND/OR
-DEFINE FIELD IF NOT EXISTS criterio_completacion ON nivel TYPE object
-    DEFAULT { logica: 'AND', reglas: [] };
-
--- Timestamps
-DEFINE FIELD IF NOT EXISTS created_at ON nivel TYPE datetime
-    DEFAULT time::now()
-    READONLY;
-
-DEFINE FIELD IF NOT EXISTS updated_at ON nivel TYPE datetime
-    DEFAULT time::now()
-    VALUE time::now();
-
--- Índices
-DEFINE INDEX IF NOT EXISTS nivelProofPointIdx ON nivel FIELDS proof_point;
-DEFINE INDEX IF NOT EXISTS nivelNumeroIdx ON nivel FIELDS proof_point, numero_nivel;
-
--- ----------------------------------------------------------------------------
--- TABLA: componente
--- Descripción: Componentes de aprendizaje (lección, cuaderno, simulación, herramienta)
--- ----------------------------------------------------------------------------
-DEFINE TABLE IF NOT EXISTS componente SCHEMAFULL PERMISSIONS
-    FOR select WHERE $auth != NONE
-    FOR create WHERE $auth != NONE AND $auth.rol IN ['instructor', 'admin']
-    FOR update WHERE $auth != NONE AND (nivel.proof_point.fase.programa.creador = $auth OR nivel.proof_point.fase.programa.creador = $auth.id OR $auth.rol = 'admin')
-    FOR delete WHERE $auth != NONE AND (nivel.proof_point.fase.programa.creador = $auth OR nivel.proof_point.fase.programa.creador = $auth.id OR $auth.rol = 'admin');
-
-DEFINE FIELD IF NOT EXISTS nivel ON componente TYPE record<nivel>
-    ASSERT $value != NONE;
-
-DEFINE FIELD IF NOT EXISTS tipo ON componente TYPE string
-    ASSERT $value IN ['leccion', 'cuaderno', 'simulacion', 'herramienta'];
-
-DEFINE FIELD IF NOT EXISTS nombre ON componente TYPE string
-    ASSERT $value != NONE;
-
-DEFINE FIELD IF NOT EXISTS descripcion_breve ON componente FLEXIBLE TYPE option<string>;
-
-DEFINE FIELD IF NOT EXISTS duracion_estimada_minutos ON componente TYPE int
-    ASSERT $value > 0;
-
-DEFINE FIELD IF NOT EXISTS orden ON componente TYPE int
-    ASSERT $value >= 0;
-
-DEFINE FIELD IF NOT EXISTS version_contenido_actual ON componente FLEXIBLE TYPE option<record<componente_contenido>>;
-
--- Timestamps
-DEFINE FIELD IF NOT EXISTS created_at ON componente TYPE datetime
-    DEFAULT time::now()
-    READONLY;
-
-DEFINE FIELD IF NOT EXISTS updated_at ON componente TYPE datetime
-    DEFAULT time::now()
-    VALUE time::now();
-
--- Índices
-DEFINE INDEX IF NOT EXISTS componenteNivelIdx ON componente FIELDS nivel;
-DEFINE INDEX IF NOT EXISTS componenteTipoIdx ON componente FIELDS tipo;
-DEFINE INDEX IF NOT EXISTS componenteOrdenIdx ON componente FIELDS nivel, orden;
-
--- ----------------------------------------------------------------------------
--- TABLA: prerequisitos_componente
--- Descripción: Relación de prerrequisitos entre Componentes
--- ----------------------------------------------------------------------------
-DEFINE TABLE IF NOT EXISTS prerequisitos_componente SCHEMAFULL;
-
-DEFINE FIELD IF NOT EXISTS componente ON prerequisitos_componente TYPE record<componente>
-    ASSERT $value != NONE;
-
-DEFINE FIELD IF NOT EXISTS prerequisito ON prerequisitos_componente TYPE record<componente>
-    ASSERT $value != NONE;
-
-DEFINE FIELD IF NOT EXISTS created_at ON prerequisitos_componente TYPE datetime
-    DEFAULT time::now()
-    READONLY;
-
-DEFINE INDEX IF NOT EXISTS prereqCompIdx ON prerequisitos_componente FIELDS componente, prerequisito UNIQUE;
+-- ============================================================================
+-- LEGACY TABLES REMOVED
+-- ============================================================================
+-- The following tables were removed as part of the migration to the new
+-- simplified 3-level hierarchy (Programa → Fase → ProofPoint → ExerciseInstance):
+-- - nivel (lines 287-320)
+-- - componente (lines 325-363)
+-- - prerequisitos_componente (lines 368-381)
+--
+-- See migrations/001-remove-nivel-componente-tables.surql for details.
+-- See LEGACY_CLEANUP.md for the complete migration guide.
+-- ============================================================================
 
 -- ----------------------------------------------------------------------------
 -- TABLA: rubrica_evaluacion
 -- Descripción: Rúbricas de evaluación para componentes
+-- DEPRECATED: This table references the legacy 'componente' table.
+-- TODO: Update to reference exercise_instance or remove entirely.
 -- ----------------------------------------------------------------------------
 DEFINE TABLE rubrica_evaluacion SCHEMAFULL;
 
-DEFINE FIELD componente ON rubrica_evaluacion TYPE record<componente>
-    ASSERT $value != NONE;
+-- DEPRECATED: componente field references removed table
+-- DEFINE FIELD componente ON rubrica_evaluacion TYPE record<componente>
+--     ASSERT $value != NONE;
 
 -- 'dimensiones' contendrá: { nombre: string, peso: int, descriptores: [...] }
 DEFINE FIELD dimensiones ON rubrica_evaluacion TYPE array;

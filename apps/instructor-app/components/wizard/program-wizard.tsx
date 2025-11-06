@@ -43,12 +43,69 @@ export function ProgramWizard({ onClose, onComplete }: ProgramWizardProps) {
     }
   }
 
+  const validateFormData = (): boolean => {
+    // Validar campos básicos
+    if (!formData.nombre_programa?.trim()) {
+      setError("El nombre del programa es requerido")
+      return false
+    }
+
+    // Validar fases
+    for (let i = 0; i < formData.fases.length; i++) {
+      const fase = formData.fases[i]
+      if (!fase.nombre_fase?.trim()) {
+        setError(`La fase ${i + 1} necesita un nombre`)
+        return false
+      }
+
+      // Validar proof points
+      for (let j = 0; j < fase.proof_points.length; j++) {
+        const pp = fase.proof_points[j]
+        if (!pp.nombre_pp?.trim()) {
+          setError(`El proof point ${j + 1} de la fase ${i + 1} necesita un nombre`)
+          return false
+        }
+        if (!pp.pregunta_central?.trim()) {
+          setError(`El proof point ${j + 1} de la fase ${i + 1} necesita una pregunta central`)
+          return false
+        }
+      }
+    }
+
+    return true
+  }
+
   const handleComplete = async () => {
-    setIsLoading(true)
     setError(null)
 
+    // Validar antes de enviar
+    if (!validateFormData()) {
+      return
+    }
+
+    setIsLoading(true)
+
     try {
-      const response = await apiClient.post("/programas", formData)
+      // Asegurar que todos los campos numéricos sean enteros válidos
+      const sanitizedData = {
+        ...formData,
+        duracion_semanas: Number.parseInt(String(formData.duracion_semanas)) || 0,
+        numero_fases: Number.parseInt(String(formData.numero_fases)) || 0,
+        fases: formData.fases.map(fase => ({
+          ...fase,
+          duracion_semanas_fase: Number.parseInt(String(fase.duracion_semanas_fase)) || 0,
+          numero_proof_points: Number.parseInt(String(fase.numero_proof_points)) || 0,
+          proof_points: fase.proof_points.map(pp => ({
+            ...pp,
+            numero_niveles: Number.parseInt(String(pp.numero_niveles)) || 3,
+            duracion_estimada_horas: Number.parseInt(String(pp.duracion_estimada_horas)) || 0,
+          }))
+        }))
+      }
+
+      console.log("Datos a enviar:", JSON.stringify(sanitizedData, null, 2))
+
+      const response = await apiClient.post("/programas", sanitizedData)
       const nuevoPrograma = response.data
 
       onComplete(nuevoPrograma)
@@ -57,6 +114,7 @@ export function ProgramWizard({ onClose, onComplete }: ProgramWizardProps) {
       }
     } catch (err: any) {
       console.error("Error al crear programa:", err)
+      console.error("Error response:", err.response?.data)
 
       // Manejar errores de autenticación
       if (err.response?.status === 401) {
@@ -64,6 +122,15 @@ export function ProgramWizard({ onClose, onComplete }: ProgramWizardProps) {
           "Tu sesión ha expirado. Por favor, inicia sesión nuevamente para continuar."
         )
         // El interceptor de api-client ya redirigirá al login
+        return
+      }
+
+      // Manejar errores de validación del backend
+      if (err.response?.status === 400 && err.response?.data?.message) {
+        const errorMessage = Array.isArray(err.response.data.message)
+          ? err.response.data.message.join(", ")
+          : err.response.data.message
+        setError(`Error de validación: ${errorMessage}`)
         return
       }
 

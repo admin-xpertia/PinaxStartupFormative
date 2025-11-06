@@ -1,0 +1,726 @@
+{
+  "templates": [
+    {
+      "nombre": "Lección Interactiva",
+      "categoria": "leccion_interactiva",
+      "descripcion": "Transmitir conocimiento conceptual de manera activa donde el aprendiz interactúa con el contenido en lugar de consumirlo pasivamente, permitiendo verificar comprensión en tiempo real.",
+      "objetivo_pedagogico": "Facilitar aprendizaje activo mediante contenido interactivo con verificación de comprensión inmediata",
+      "rol_ia": "La IA actúa como facilitador de aprendizaje activo que evalúa respuestas inmediatamente, proporciona feedback explicativo, genera casos de aplicación múltiples, contextualiza términos técnicos mediante glosario dinámico, y adapta profundidad de explicaciones según nivel de comprensión.",
+      "icono": "📖",
+      "color": "#3b82f6",
+      "configuracion_schema": {
+        "duracion_minutos": {
+          "type": "number",
+          "label": "Duración estimada (minutos)",
+          "default": 20,
+          "min": 10,
+          "max": 60
+        },
+        "profundidad": {
+          "type": "select",
+          "label": "Nivel de profundidad",
+          "options": ["basica", "intermedia", "avanzada"],
+          "default": "intermedia"
+        },
+        "incluir_quizzes": {
+          "type": "boolean",
+          "label": "Incluir quizzes embebidos",
+          "default": true
+        },
+        "incluir_glosario": {
+          "type": "boolean",
+          "label": "Incluir glosario de términos",
+          "default": true
+        },
+        "numero_ejemplos": {
+          "type": "number",
+          "label": "Número de ejemplos prácticos",
+          "default": 3,
+          "min": 1,
+          "max": 5
+        }
+      },
+      "output_schema": {
+        "titulo": "string",
+        "introduccion": "string (markdown)",
+        "secciones": [
+          {
+            "titulo": "string",
+            "contenido": "string (markdown)",
+            "ejemplos": ["string"],
+            "quiz": {
+              "pregunta": "string",
+              "opciones": ["string"],
+              "respuesta_correcta": "number (index)",
+              "explicacion": "string"
+            }
+          }
+        ],
+        "glosario": [
+          {
+            "termino": "string",
+            "definicion": "string"
+          }
+        ],
+        "resumen": "string (markdown)",
+        "recursos_adicionales": ["string"]
+      }
+    },
+    {
+      "nombre": "Cuaderno de Trabajo",
+      "categoria": "cuaderno_trabajo",
+      "descripcion": "Guiar al aprendiz a documentar, estructurar y reflexionar sobre su propio trabajo, proporcionando andamiaje que gradualmente se retira mientras se evalúa calidad y se ofrece feedback formativo continuo.",
+      "objetivo_pedagogico": "Desarrollar capacidad de reflexión estructurada y documentación rigurosa del pensamiento",
+      "rol_ia": "La IA funciona como editor inteligente y evaluador de proceso que analiza patrones de pensamiento, proporciona feedback en tiempo real, valida completitud y coherencia, identifica gaps específicos, y evalúa rigor del razonamiento.",
+      "icono": "📝",
+      "color": "#8b5cf6",
+      "configuracion_schema": {
+        "duracion_minutos": {
+          "type": "number",
+          "label": "Duración estimada (minutos)",
+          "default": 45,
+          "min": 20,
+          "max": 120
+        },
+        "numero_secciones": {
+          "type": "number",
+          "label": "Número de secciones",
+          "default": 4,
+          "min": 2,
+          "max": 8
+        },
+        "tipo_preguntas": {
+          "type": "multiselect",
+          "label": "Tipos de preguntas",
+          "options": ["reflexion", "aplicacion", "analisis", "sintesis"],
+          "default": ["reflexion", "aplicacion"]
+        },
+        "nivel_andamiaje": {
+          "type": "select",
+          "label": "Nivel de andamiaje",
+          "options": ["alto", "medio", "bajo"],
+          "default": "medio"
+        },
+        "feedback_tiempo_real": {
+          "type": "boolean",
+          "label": "Activar feedback en tiempo real",
+          "default": true
+        }
+      },
+      "output_schema": {
+        "titulo": "string",
+        "instrucciones_generales": "string (markdown)",
+        "secciones": [
+          {
+            "titulo": "string",
+            "tipo": "string (reflexion|aplicacion|analisis|sintesis)",
+            "instrucciones": "string (markdown)",
+            "preguntas_guia": ["string"],
+            "ejemplos_respuestas_fuertes": ["string"],
+            "criterios_evaluacion": ["string"],
+            "es_critica": "boolean"
+          }
+        ],
+        "criterios_calidad": {
+          "evidencia": {
+            "peso": "number",
+            "descriptores": ["string"]
+          },
+          "claridad": {
+            "peso": "number",
+            "descriptores": ["string"]
+          },
+          "profundidad": {
+            "peso": "number",
+            "descriptores": ["string"]
+          }
+        }
+      }
+    },
+    {
+      "nombre": "Simulación de Interacción",
+      "categoria": "simulacion_interaccion",
+      "descripcion": "Permitir práctica de habilidades interpersonales o situacionales en entorno seguro donde el aprendiz interactúa con agentes IA que simulan roles específicos con comportamiento realista.",
+      "objetivo_pedagogico": "Desarrollar habilidades de comunicación e interacción mediante práctica en entorno seguro",
+      "rol_ia": "La IA encarna personajes coherentes que mantienen personalidad consistente, ajustan respuestas según calidad de preguntas, simulan señales paraverbales, escalan complejidad, y generan análisis multidimensional post-interacción.",
+      "icono": "💬",
+      "color": "#10b981",
+      "configuracion_schema": {
+        "duracion_minutos": {
+          "type": "number",
+          "label": "Duración estimada (minutos)",
+          "default": 30,
+          "min": 15,
+          "max": 60
+        },
+        "tipo_personaje": {
+          "type": "select",
+          "label": "Tipo de personaje",
+          "options": ["cliente", "usuario", "inversor", "colaborador", "mentor", "custom"],
+          "default": "cliente"
+        },
+        "nivel_dificultad": {
+          "type": "select",
+          "label": "Nivel de dificultad",
+          "options": ["cooperativo", "neutral", "desafiante"],
+          "default": "neutral"
+        },
+        "numero_turnos_minimo": {
+          "type": "number",
+          "label": "Número mínimo de intercambios",
+          "default": 10,
+          "min": 5,
+          "max": 30
+        },
+        "evaluar_tecnicas": {
+          "type": "multiselect",
+          "label": "Técnicas a evaluar",
+          "options": ["escucha_activa", "preguntas_abiertas", "empatia", "validacion", "sintesis"],
+          "default": ["escucha_activa", "preguntas_abiertas"]
+        }
+      },
+      "output_schema": {
+        "titulo": "string",
+        "contexto_simulacion": "string (markdown)",
+        "personaje": {
+          "nombre": "string",
+          "rol": "string",
+          "background": "string",
+          "personalidad": "string",
+          "objetivos_conversacion": ["string"],
+          "estilo_comunicacion": "string"
+        },
+        "escenario_inicial": "string",
+        "mensaje_apertura": "string",
+        "banco_respuestas": [
+          {
+            "contexto": "string",
+            "variantes": ["string"],
+            "senales_paraverbales": "string"
+          }
+        ],
+        "criterios_evaluacion": {
+          "escucha_activa": {
+            "peso": "number",
+            "indicadores": ["string"]
+          },
+          "calidad_preguntas": {
+            "peso": "number",
+            "indicadores": ["string"]
+          },
+          "empatia": {
+            "peso": "number",
+            "indicadores": ["string"]
+          }
+        },
+        "objetivos_aprendizaje": ["string"]
+      }
+    },
+    {
+      "nombre": "Mentor y Asesor IA",
+      "categoria": "mentor_asesor_ia",
+      "descripcion": "Proporcionar guidance especializado desde perspectiva de experto en un rol o dominio específico, simulando relación mentor-mentee con cuestionamiento socrático y enseñanza contextualizada.",
+      "objetivo_pedagogico": "Desarrollar pensamiento crítico mediante cuestionamiento socrático y guidance experto",
+      "rol_ia": "La IA asume identidad de experto que hace preguntas socráticas, identifica trade-offs no considerados, evalúa decisiones con criterios del campo, explica el 'por qué' detrás de mejores prácticas, y contextualiza metodologías.",
+      "icono": "🧑‍🏫",
+      "color": "#f59e0b",
+      "configuracion_schema": {
+        "duracion_minutos": {
+          "type": "number",
+          "label": "Duración estimada (minutos)",
+          "default": 30,
+          "min": 15,
+          "max": 60
+        },
+        "tipo_mentor": {
+          "type": "select",
+          "label": "Tipo de mentor",
+          "options": ["emprendedor_serial", "inversor", "product_manager", "cientifico", "diseñador", "custom"],
+          "default": "emprendedor_serial"
+        },
+        "estilo_mentoria": {
+          "type": "select",
+          "label": "Estilo de mentoría",
+          "options": ["socratico", "directivo", "exploratorio"],
+          "default": "socratico"
+        },
+        "numero_mentores": {
+          "type": "number",
+          "label": "Número de mentores (panel)",
+          "default": 1,
+          "min": 1,
+          "max": 4
+        }
+      },
+      "output_schema": {
+        "titulo": "string",
+        "contexto_mentoria": "string (markdown)",
+        "mentores": [
+          {
+            "nombre": "string",
+            "rol": "string",
+            "expertise": "string",
+            "background": "string",
+            "estilo_mentoria": "string",
+            "preguntas_tipo": ["string"]
+          }
+        ],
+        "situacion_inicial": "string",
+        "objetivos_sesion": ["string"],
+        "temas_a_explorar": ["string"],
+        "preguntas_socraticas_banco": [
+          {
+            "tema": "string",
+            "preguntas": ["string"]
+          }
+        ],
+        "trade_offs_comunes": [
+          {
+            "decision": "string",
+            "trade_off": "string",
+            "contextos": ["string"]
+          }
+        ],
+        "criterios_evaluacion": {
+          "profundidad_analisis": {
+            "peso": "number",
+            "indicadores": ["string"]
+          },
+          "consideracion_trade_offs": {
+            "peso": "number",
+            "indicadores": ["string"]
+          }
+        }
+      }
+    },
+    {
+      "nombre": "Herramienta de Análisis y Evaluación",
+      "categoria": "herramienta_analisis",
+      "descripcion": "Procesar trabajo del aprendiz y generar análisis estructurado con diagnóstico, evaluación contra criterios múltiples, y recomendaciones accionables específicas.",
+      "objetivo_pedagogico": "Proporcionar evaluación rigurosa y feedback accionable sobre trabajo del estudiante",
+      "rol_ia": "La IA funciona como analista riguroso que identifica patrones, evalúa contra múltiples dimensiones con evidencia específica, detecta gaps, valida coherencia, mapea claims a evidencia, y sintetiza evaluación holística.",
+      "icono": "🔍",
+      "color": "#ef4444",
+      "configuracion_schema": {
+        "duracion_minutos": {
+          "type": "number",
+          "label": "Duración estimada (minutos)",
+          "default": 15,
+          "min": 5,
+          "max": 30
+        },
+        "dimensiones_analisis": {
+          "type": "multiselect",
+          "label": "Dimensiones a analizar",
+          "options": ["evidencia", "coherencia", "rigor", "completitud", "viabilidad"],
+          "default": ["evidencia", "coherencia", "completitud"]
+        },
+        "tipo_trabajo": {
+          "type": "select",
+          "label": "Tipo de trabajo a analizar",
+          "options": ["propuesta", "reporte", "plan", "hipotesis", "prototipo"],
+          "default": "propuesta"
+        },
+        "nivel_detalle": {
+          "type": "select",
+          "label": "Nivel de detalle del análisis",
+          "options": ["basico", "detallado", "exhaustivo"],
+          "default": "detallado"
+        }
+      },
+      "output_schema": {
+        "titulo": "string",
+        "instrucciones": "string (markdown)",
+        "tipo_trabajo_esperado": "string",
+        "dimensiones_evaluacion": [
+          {
+            "nombre": "string",
+            "descripcion": "string",
+            "peso": "number",
+            "criterios": ["string"],
+            "escala_evaluacion": {
+              "min": "number",
+              "max": "number",
+              "descriptores": {
+                "bajo": "string",
+                "medio": "string",
+                "alto": "string"
+              }
+            }
+          }
+        ],
+        "preguntas_diagnostico": ["string"],
+        "formato_analisis": {
+          "fortalezas": "string",
+          "areas_mejora": "string",
+          "gaps_criticos": "string",
+          "recomendaciones": "string",
+          "score_por_dimension": "object"
+        }
+      }
+    },
+    {
+      "nombre": "Herramienta de Creación y Generación",
+      "categoria": "herramienta_creacion",
+      "descripcion": "Asistir al aprendiz en crear outputs (documentos, visuales, prototipos) proporcionando andamiaje generativo que acelera producción sin reemplazar su pensamiento crítico.",
+      "objetivo_pedagogico": "Acelerar ciclos de creación manteniendo el pensamiento crítico del estudiante",
+      "rol_ia": "La IA actúa como asistente creativo que traduce información en visualizaciones, genera borradores útiles pero imperfectos, crea múltiples variaciones, y mantiene la voz del aprendiz.",
+      "icono": "✨",
+      "color": "#ec4899",
+      "configuracion_schema": {
+        "duracion_minutos": {
+          "type": "number",
+          "label": "Duración estimada (minutos)",
+          "default": 30,
+          "min": 15,
+          "max": 60
+        },
+        "tipo_output": {
+          "type": "select",
+          "label": "Tipo de output a crear",
+          "options": ["documento", "diagrama", "canvas", "prototipo", "presentacion"],
+          "default": "canvas"
+        },
+        "numero_variaciones": {
+          "type": "number",
+          "label": "Número de variaciones a generar",
+          "default": 3,
+          "min": 1,
+          "max": 5
+        },
+        "nivel_refinamiento": {
+          "type": "select",
+          "label": "Nivel de refinamiento inicial",
+          "options": ["borrador", "intermedio", "pulido"],
+          "default": "borrador"
+        }
+      },
+      "output_schema": {
+        "titulo": "string",
+        "instrucciones": "string (markdown)",
+        "tipo_output": "string",
+        "inputs_requeridos": [
+          {
+            "nombre": "string",
+            "tipo": "string",
+            "descripcion": "string",
+            "es_obligatorio": "boolean"
+          }
+        ],
+        "plantillas_disponibles": [
+          {
+            "nombre": "string",
+            "descripcion": "string",
+            "estructura": "object"
+          }
+        ],
+        "guia_refinamiento": [
+          {
+            "dimension": "string",
+            "preguntas_reflexion": ["string"]
+          }
+        ],
+        "ejemplos_referencia": [
+          {
+            "titulo": "string",
+            "descripcion": "string",
+            "url_o_contenido": "string"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "Sistema de Tracking y Monitoreo",
+      "categoria": "sistema_tracking",
+      "descripcion": "Mantener visibilidad continua del progreso, identificar tendencias longitudinales, y alertar proactivamente cuando atención o intervención es necesaria.",
+      "objetivo_pedagogico": "Mantener accountability y visibilidad del progreso del estudiante",
+      "rol_ia": "La IA opera como sistema de vigilancia inteligente que visualiza estado vs objetivos, solicita updates regulares, detecta patrones problemáticos, y dispara intervenciones proactivas.",
+      "icono": "📊",
+      "color": "#06b6d4",
+      "configuracion_schema": {
+        "duracion_minutos": {
+          "type": "number",
+          "label": "Duración estimada (minutos)",
+          "default": 10,
+          "min": 5,
+          "max": 20
+        },
+        "frecuencia_updates": {
+          "type": "select",
+          "label": "Frecuencia de updates",
+          "options": ["diario", "semanal", "cada_hito"],
+          "default": "semanal"
+        },
+        "metricas_track": {
+          "type": "multiselect",
+          "label": "Métricas a trackear",
+          "options": ["tiempo_invertido", "hitos_completados", "calidad_trabajo", "adherencia_proceso"],
+          "default": ["hitos_completados", "calidad_trabajo"]
+        }
+      },
+      "output_schema": {
+        "titulo": "string",
+        "instrucciones": "string (markdown)",
+        "metricas_configuradas": [
+          {
+            "nombre": "string",
+            "tipo": "string (cuantitativa|cualitativa)",
+            "unidad": "string",
+            "meta": "number|string",
+            "frecuencia_medicion": "string"
+          }
+        ],
+        "visualizaciones": [
+          {
+            "tipo": "string (linea|barra|radar)",
+            "titulo": "string",
+            "metricas_incluidas": ["string"]
+          }
+        ],
+        "triggers_alerta": [
+          {
+            "condicion": "string",
+            "mensaje_alerta": "string",
+            "accion_sugerida": "string"
+          }
+        ],
+        "preguntas_checkin": ["string"]
+      }
+    },
+    {
+      "nombre": "Herramienta de Revisión y Feedback",
+      "categoria": "herramienta_revision",
+      "descripcion": "Proporcionar retroalimentación formativa en tiempo real o post-tarea que sea específica, accionable, balanceada y adaptada al nivel de dominio del aprendiz.",
+      "objetivo_pedagogico": "Proporcionar feedback formativo continuo que acelere aprendizaje",
+      "rol_ia": "La IA funciona como revisor experto que proporciona feedback no-intrusivo priorizando señalamientos, genera análisis post-tarea balanceado, adapta según estado liminal, y conecta feedback con recursos.",
+      "icono": "✏️",
+      "color": "#84cc16",
+      "configuracion_schema": {
+        "duracion_minutos": {
+          "type": "number",
+          "label": "Duración estimada (minutos)",
+          "default": 15,
+          "min": 5,
+          "max": 30
+        },
+        "momento_feedback": {
+          "type": "select",
+          "label": "Momento del feedback",
+          "options": ["tiempo_real", "post_tarea", "ambos"],
+          "default": "ambos"
+        },
+        "estilo_feedback": {
+          "type": "select",
+          "label": "Estilo de feedback",
+          "options": ["constructivo", "socratico", "directivo"],
+          "default": "constructivo"
+        },
+        "nivel_estudiante": {
+          "type": "select",
+          "label": "Nivel del estudiante",
+          "options": ["pre_liminal", "liminal", "post_liminal"],
+          "default": "liminal"
+        }
+      },
+      "output_schema": {
+        "titulo": "string",
+        "instrucciones": "string (markdown)",
+        "tipo_trabajo_a_revisar": "string",
+        "criterios_revision": [
+          {
+            "nombre": "string",
+            "descripcion": "string",
+            "peso": "number",
+            "ejemplos_buenas_practicas": ["string"]
+          }
+        ],
+        "formato_feedback": {
+          "fortalezas_especificas": {
+            "plantilla": "string",
+            "minimo_puntos": "number"
+          },
+          "areas_mejora": {
+            "plantilla": "string",
+            "max_puntos_simultaneos": "number"
+          },
+          "recomendaciones_accionables": {
+            "plantilla": "string",
+            "incluir_recursos": "boolean"
+          }
+        },
+        "adaptaciones_nivel": {
+          "pre_liminal": {
+            "mayor_andamiaje": "boolean",
+            "ejemplos_explicitos": "boolean"
+          },
+          "liminal": {
+            "reconocer_confusion_normal": "boolean",
+            "enfasis_proceso": "boolean"
+          },
+          "post_liminal": {
+            "mayor_desafio": "boolean",
+            "preguntas_extension": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "nombre": "Simulador de Entorno",
+      "categoria": "simulador_entorno",
+      "descripcion": "Crear entornos virtuales donde el aprendiz puede experimentar, construir o practicar sin consecuencias del mundo real, acelerando ciclos de aprendizaje.",
+      "objetivo_pedagogico": "Permitir experimentación segura y rápida sin consecuencias del mundo real",
+      "rol_ia": "La IA construye y gestiona mundos simulados que responden realísticamente, genera datos sintéticos coherentes, permite experimentación controlada, y explica relaciones causales.",
+      "icono": "🌍",
+      "color": "#14b8a6",
+      "configuracion_schema": {
+        "duracion_minutos": {
+          "type": "number",
+          "label": "Duración estimada (minutos)",
+          "default": 40,
+          "min": 20,
+          "max": 90
+        },
+        "tipo_entorno": {
+          "type": "select",
+          "label": "Tipo de entorno a simular",
+          "options": ["mercado", "organizacion", "sistema_tecnico", "ecosistema"],
+          "default": "mercado"
+        },
+        "nivel_complejidad": {
+          "type": "select",
+          "label": "Nivel de complejidad",
+          "options": ["simple", "moderado", "complejo"],
+          "default": "moderado"
+        },
+        "variables_controlables": {
+          "type": "multiselect",
+          "label": "Variables que el estudiante puede controlar",
+          "options": ["precio", "marketing", "producto", "operaciones"],
+          "default": ["precio", "producto"]
+        }
+      },
+      "output_schema": {
+        "titulo": "string",
+        "descripcion_entorno": "string (markdown)",
+        "tipo_entorno": "string",
+        "estado_inicial": {
+          "descripcion": "string",
+          "variables": "object"
+        },
+        "variables_controlables": [
+          {
+            "nombre": "string",
+            "tipo": "string",
+            "rango": "string",
+            "impacto_descripcion": "string"
+          }
+        ],
+        "variables_entorno": [
+          {
+            "nombre": "string",
+            "comportamiento": "string",
+            "relaciones_causales": ["string"]
+          }
+        ],
+        "metricas_exito": [
+          {
+            "nombre": "string",
+            "formula": "string",
+            "meta": "string"
+          }
+        ],
+        "experimentos_sugeridos": [
+          {
+            "nombre": "string",
+            "hipotesis": "string",
+            "variables_manipular": ["string"],
+            "resultado_esperado": "string"
+          }
+        ],
+        "datos_historicos": "string (descripción de datos sintéticos disponibles)"
+      }
+    },
+    {
+      "nombre": "Sistema de Progresión y Desbloqueo",
+      "categoria": "sistema_progresion",
+      "descripcion": "Gestionar flujo del aprendiz a través del programa asegurando dominio suficiente antes de avanzar, personalizando ruta según fortalezas/debilidades, y manteniendo motivación mediante desbloqueos apropiados.",
+      "objetivo_pedagogico": "Asegurar dominio antes de progresión mientras se mantiene motivación",
+      "rol_ia": "La IA opera como guardián pedagógico que evalúa objetivamente, diagnostica dominio, recomienda rutas adaptativas, verifica pre-requisitos, permite reintentos con diagnóstico, y balancea personalización con estructura.",
+      "icono": "🔓",
+      "color": "#a855f7",
+      "configuracion_schema": {
+        "duracion_minutos": {
+          "type": "number",
+          "label": "Duración estimada (minutos)",
+          "default": 20,
+          "min": 10,
+          "max": 45
+        },
+        "tipo_evaluacion": {
+          "type": "select",
+          "label": "Tipo de evaluación",
+          "options": ["quiz", "proyecto", "portafolio", "mixto"],
+          "default": "mixto"
+        },
+        "umbral_progresion": {
+          "type": "number",
+          "label": "Umbral de progresión (%)",
+          "default": 70,
+          "min": 60,
+          "max": 90
+        },
+        "permitir_reintentos": {
+          "type": "boolean",
+          "label": "Permitir reintentos",
+          "default": true
+        },
+        "numero_reintentos_max": {
+          "type": "number",
+          "label": "Número máximo de reintentos",
+          "default": 3,
+          "min": 1,
+          "max": 5
+        }
+      },
+      "output_schema": {
+        "titulo": "string",
+        "descripcion": "string (markdown)",
+        "tipo_evaluacion": "string",
+        "componentes_evaluacion": [
+          {
+            "nombre": "string",
+            "tipo": "string",
+            "peso": "number",
+            "criterios_suficiencia": ["string"]
+          }
+        ],
+        "umbral_progresion": {
+          "score_minimo": "number",
+          "dimensiones_criticas": ["string"],
+          "requisitos_adicionales": ["string"]
+        },
+        "diagnostico_dominio": {
+          "dimensiones": [
+            {
+              "nombre": "string",
+              "indicadores": ["string"],
+              "nivel_esperado": "string"
+            }
+          ]
+        },
+        "rutas_adaptativas": [
+          {
+            "condicion": "string",
+            "recomendacion": "string",
+            "recursos_sugeridos": ["string"]
+          }
+        ],
+        "feedback_reintento": {
+          "plantilla": "string",
+          "incluir_gaps_especificos": "boolean",
+          "sugerir_recursos": "boolean"
+        }
+      }
+    }
+  ]
+}

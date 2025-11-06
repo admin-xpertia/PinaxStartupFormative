@@ -16,6 +16,33 @@ export function Step4Review({ data, onGoToStep }: Step4Props) {
     0,
   )
 
+  // Validaciones
+  const validationIssues: { message: string; step: number }[] = []
+
+  // Validar campos básicos
+  if (!data.nombre_programa?.trim()) {
+    validationIssues.push({ message: "El nombre del programa es requerido", step: 1 })
+  }
+
+  // Validar fases
+  data.fases.forEach((fase, faseIndex) => {
+    if (!fase.nombre_fase?.trim()) {
+      validationIssues.push({ message: `La fase ${faseIndex + 1} necesita un nombre`, step: 2 })
+    }
+
+    // Validar proof points
+    fase.proof_points.forEach((pp, ppIndex) => {
+      if (!pp.nombre_pp?.trim()) {
+        validationIssues.push({ message: `El proof point ${ppIndex + 1} de la fase ${faseIndex + 1} necesita un nombre`, step: 3 })
+      }
+      if (!pp.pregunta_central?.trim()) {
+        validationIssues.push({ message: `El proof point ${ppIndex + 1} de la fase ${faseIndex + 1} necesita una pregunta central`, step: 3 })
+      }
+    })
+  })
+
+  const hasErrors = validationIssues.length > 0
+
   return (
     <div className="space-y-8">
       <div>
@@ -84,7 +111,6 @@ export function Step4Review({ data, onGoToStep }: Step4Props) {
                       <div key={pp.id} className="flex items-center gap-2 text-sm">
                         <Target className="h-3 w-3 text-primary" />
                         <span>{pp.nombre_pp || `Proof Point ${ppIndex + 1}`}</span>
-                        <span className="text-muted-foreground">({pp.numero_niveles} niveles)</span>
                       </div>
                     ))}
                   </div>
@@ -131,12 +157,33 @@ export function Step4Review({ data, onGoToStep }: Step4Props) {
       <div className="rounded-lg border bg-card p-6">
         <h3 className="mb-4 font-semibold">Validaciones</h3>
         <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm text-success">
-            <CheckCircle className="h-4 w-4" />
-            <span>Todos los campos requeridos completados</span>
-          </div>
-          {data.fases.some((f) => f.proof_points.length === 1) && (
-            <div className="flex items-center gap-2 text-sm text-warning">
+          {!hasErrors ? (
+            <div className="flex items-center gap-2 text-sm text-green-600">
+              <CheckCircle className="h-4 w-4" />
+              <span>Todos los campos requeridos completados</span>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {validationIssues.map((issue, index) => (
+                <div key={index} className="flex items-start gap-2 text-sm text-destructive">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                  <div className="flex-1">
+                    <span>{issue.message}</span>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="ml-2 h-auto p-0 text-xs"
+                      onClick={() => onGoToStep(issue.step)}
+                    >
+                      Ir al paso {issue.step}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {data.fases.some((f) => f.proof_points.length === 1) && !hasErrors && (
+            <div className="flex items-center gap-2 text-sm text-yellow-600">
               <AlertTriangle className="h-4 w-4" />
               <span>Algunas fases tienen solo 1 proof point - considera agregar más</span>
             </div>
@@ -150,8 +197,9 @@ export function Step4Review({ data, onGoToStep }: Step4Props) {
         <p className="text-sm text-muted-foreground">Una vez creado el programa, podrás:</p>
         <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
           <li>• Cargar documentación de cada fase</li>
+          <li>• Agregar ejercicios a cada proof point</li>
           <li>• Generar contenido con IA</li>
-          <li>• Configurar niveles y componentes en detalle</li>
+          <li>• Configurar ejercicios en detalle</li>
         </ul>
       </div>
     </div>

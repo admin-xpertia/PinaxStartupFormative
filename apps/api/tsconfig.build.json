@@ -2,13 +2,13 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src",
     "baseUrl": ".",
     "paths": {
       "@xpertia/database": ["../../packages/database"],
-      "@xpertia/types/*": ["../../packages/types/*"]
+      "@xpertia/types/*": ["../../packages/types/*"],
+      "@repo/database/*": ["../../packages/database/*"]
     }
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "../../packages/database/types.ts"],
   "exclude": ["node_modules", "dist", "test", "**/*.spec.ts"]
 }

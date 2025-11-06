@@ -153,22 +153,6 @@ export function Step3ProofPoints({ data, onUpdate }: Step3Props) {
                           </SelectContent>
                         </Select>
                       </div>
-
-                      <div className="space-y-2">
-                        <Label>Número de Niveles</Label>
-                        <Input
-                          type="number"
-                          min={1}
-                          max={6}
-                          placeholder="3"
-                          value={pp.numero_niveles}
-                          onChange={(e) =>
-                            updateProofPoint(faseIndex, ppIndex, {
-                              numero_niveles: Number.parseInt(e.target.value) || 0,
-                            })
-                          }
-                        />
-                      </div>
                     </div>
 
                     <div className="space-y-2">

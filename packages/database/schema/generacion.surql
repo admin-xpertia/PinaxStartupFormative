@@ -36,14 +36,21 @@ DEFINE INDEX IF NOT EXISTS compContenidoEstadoIdx ON componente_contenido FIELDS
 -- ----------------------------------------------------------------------------
 -- TABLA: generacion_request
 -- Descripción: Solicitudes de generación de contenido con IA
+-- NOTA: Ahora soporta tanto 'componente' (legacy) como 'exercise_instance' (nuevo)
 -- ----------------------------------------------------------------------------
 DEFINE TABLE IF NOT EXISTS generacion_request SCHEMAFULL;
 
-DEFINE FIELD IF NOT EXISTS componente ON generacion_request TYPE record<componente>
-    ASSERT $value != NONE;
+-- Legacy: para migración gradual
+DEFINE FIELD IF NOT EXISTS componente ON generacion_request FLEXIBLE TYPE option<record<componente>>;
+
+-- Nuevo: para ejercicios basados en templates
+DEFINE FIELD IF NOT EXISTS exercise_instance ON generacion_request FLEXIBLE TYPE option<record<exercise_instance>>;
 
 DEFINE FIELD IF NOT EXISTS solicitado_por ON generacion_request TYPE record<user>
     ASSERT $value != NONE;
+
+-- Template usado (para nuevo sistema)
+DEFINE FIELD IF NOT EXISTS template ON generacion_request FLEXIBLE TYPE option<record<exercise_template>>;
 
 -- Configuración de la generación (modelo, temperatura, etc.)
 DEFINE FIELD IF NOT EXISTS configuracion ON generacion_request TYPE object
@@ -56,17 +63,18 @@ DEFINE FIELD IF NOT EXISTS estado ON generacion_request TYPE string
     ASSERT $value IN ['pending', 'processing', 'completed', 'failed']
     DEFAULT 'pending';
 
-DEFINE FIELD IF NOT EXISTS error_message ON generacion_request TYPE string;
+DEFINE FIELD IF NOT EXISTS error_message ON generacion_request FLEXIBLE TYPE option<string>;
 
 -- Timestamps
 DEFINE FIELD IF NOT EXISTS created_at ON generacion_request TYPE datetime
     DEFAULT time::now()
     READONLY;
 
-DEFINE FIELD IF NOT EXISTS completed_at ON generacion_request TYPE datetime;
+DEFINE FIELD IF NOT EXISTS completed_at ON generacion_request FLEXIBLE TYPE option<datetime>;
 
 -- Índices
 DEFINE INDEX IF NOT EXISTS genReqComponenteIdx ON generacion_request FIELDS componente;
+DEFINE INDEX IF NOT EXISTS genReqExerciseIdx ON generacion_request FIELDS exercise_instance;
 DEFINE INDEX IF NOT EXISTS genReqSolicitanteIdx ON generacion_request FIELDS solicitado_por;
 DEFINE INDEX IF NOT EXISTS genReqEstadoIdx ON generacion_request FIELDS estado;
 

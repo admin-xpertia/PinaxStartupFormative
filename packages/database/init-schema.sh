@@ -73,22 +73,28 @@ execute_schema "${SCHEMA_DIR}/auth.surql"
 # 2. Contenido y Autoría
 execute_schema "${SCHEMA_DIR}/contenido.surql"
 
-# 3. Generación con IA
+# 3. Ejercicios (nuevo sistema)
+execute_schema "${SCHEMA_DIR}/ejercicios.surql"
+
+# 4. Generación con IA
 execute_schema "${SCHEMA_DIR}/generacion.surql"
 
-# 4. Ejecución y Estudiantes
+# 5. Ejecución y Estudiantes
 execute_schema "${SCHEMA_DIR}/ejecucion.surql"
 
-# 5. Portafolio
+# 6. Cohortes
+execute_schema "${SCHEMA_DIR}/cohortes.surql"
+
+# 7. Portafolio
 execute_schema "${SCHEMA_DIR}/portafolio.surql"
 
-# 6. Analytics
+# 8. Analytics
 execute_schema "${SCHEMA_DIR}/analytics.surql"
 
-# 7. Versionamiento
+# 9. Versionamiento
 execute_schema "${SCHEMA_DIR}/versiones.surql"
 
-# 8. Inicialización y datos semilla
+# 10. Inicialización y datos semilla
 execute_schema "${SCHEMA_DIR}/init.surql"
 
 echo -e "${BLUE}============================================${NC}"

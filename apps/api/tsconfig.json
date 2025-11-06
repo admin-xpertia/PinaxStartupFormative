@@ -19,7 +19,8 @@
     "noFallthroughCasesInSwitch": false,
     "paths": {
       "@xpertia/database": ["../../packages/database"],
-      "@xpertia/types/*": ["../../packages/types/*"]
+      "@xpertia/types/*": ["../../packages/types/*"],
+      "@repo/database/*": ["../../packages/database/*"]
     }
   }
 }

@@ -1,3 +1,18 @@
+/**
+ * @deprecated This hook is part of the legacy component system and will be removed.
+ *
+ * The platform has migrated from a 5-level hierarchy to a simplified 3-level hierarchy
+ * with flexible exercise templates.
+ *
+ * **Replacement:** Use hooks from the new exercise system instead:
+ * - For loading exercise content, use the new exercise instance hooks
+ * - For AI generation, use the exercise generation endpoints
+ *
+ * **Migration Guide:** See /LEGACY_CLEANUP.md for detailed migration instructions.
+ *
+ * **Removal Date:** TBD (after frontend migration is complete)
+ */
+
 import { useState } from 'react';
 import useSWR, { mutate } from 'swr';
 import { toast } from '@/components/ui/use-toast';
@@ -7,6 +22,9 @@ import { apiClient } from '@/lib/api-client';
 // TIPOS
 // ============================================================================
 
+/**
+ * @deprecated Use ExerciseContent from the new exercise system instead
+ */
 export interface ComponenteContenido {
   id: string;
   tipo: 'leccion' | 'cuaderno' | 'simulacion' | 'herramienta';

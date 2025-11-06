@@ -133,9 +133,11 @@ export interface ProofPoint {
   slug: string;
   descripcion?: string;
   pregunta_central?: string;
+  documentacion_contexto?: string; // Nuevo: contexto específico para generación de ejercicios
   orden_en_fase: number;
   duracion_estimada_horas: number;
   tipo_entregable_final?: string;
+  prerequisitos?: RecordId<'proof_point'>[];
   created_at: DateTime;
   updated_at: DateTime;
 }
@@ -147,6 +149,12 @@ export interface PrerequisitosProofPoint {
   created_at: DateTime;
 }
 
+/**
+ * @deprecated This interface represents the legacy 'nivel' table which has been removed.
+ * The platform has migrated to a simplified 3-level hierarchy.
+ * Use ExerciseInstance instead.
+ * See LEGACY_CLEANUP.md for migration details.
+ */
 export interface Nivel {
   id: RecordId<'nivel'>;
   proof_point: RecordId<'proof_point'>;
@@ -161,6 +169,12 @@ export interface Nivel {
   updated_at: DateTime;
 }
 
+/**
+ * @deprecated This interface represents the legacy 'componente' table which has been removed.
+ * The platform has migrated to a simplified 3-level hierarchy.
+ * Use ExerciseInstance instead.
+ * See LEGACY_CLEANUP.md for migration details.
+ */
 export interface Componente {
   id: RecordId<'componente'>;
   nivel: RecordId<'nivel'>;
@@ -174,6 +188,10 @@ export interface Componente {
   updated_at: DateTime;
 }
 
+/**
+ * @deprecated This interface represents the legacy 'prerequisitos_componente' table which has been removed.
+ * See LEGACY_CLEANUP.md for migration details.
+ */
 export interface PrerequisitosComponente {
   id: RecordId<'prerequisitos_componente'>;
   componente: RecordId<'componente'>;
@@ -278,6 +296,11 @@ export interface ProgresoProofPoint {
   updated_at: DateTime;
 }
 
+/**
+ * @deprecated This interface represents the legacy 'progreso_nivel' table which has been removed.
+ * Use ExerciseProgress instead.
+ * See LEGACY_CLEANUP.md for migration details.
+ */
 export interface ProgresoNivel {
   id: RecordId<'progreso_nivel'>;
   progreso_proof_point: RecordId<'progreso_proof_point'>;
@@ -290,6 +313,11 @@ export interface ProgresoNivel {
   updated_at: DateTime;
 }
 
+/**
+ * @deprecated This interface represents the legacy 'progreso_componente' table which has been removed.
+ * Use ExerciseProgress instead.
+ * See LEGACY_CLEANUP.md for migration details.
+ */
 export interface ProgresoComponente {
   id: RecordId<'progreso_componente'>;
   progreso_nivel: RecordId<'progreso_nivel'>;
@@ -306,6 +334,10 @@ export interface ProgresoComponente {
   updated_at: DateTime;
 }
 
+/**
+ * @deprecated This interface represents the legacy 'datos_estudiante' table which has been removed.
+ * See LEGACY_CLEANUP.md for migration details.
+ */
 export interface DatosEstudiante {
   id: RecordId<'datos_estudiante'>;
   progreso_componente: RecordId<'progreso_componente'>;
@@ -315,6 +347,10 @@ export interface DatosEstudiante {
   guardado_at: DateTime;
 }
 
+/**
+ * @deprecated This interface represents the legacy 'evaluacion_resultado' table which has been removed.
+ * See LEGACY_CLEANUP.md for migration details.
+ */
 export interface EvaluacionResultado {
   id: RecordId<'evaluacion_resultado'>;
   progreso_componente: RecordId<'progreso_componente'>;
@@ -326,6 +362,10 @@ export interface EvaluacionResultado {
   evaluado_at: DateTime;
 }
 
+/**
+ * @deprecated This interface represents the legacy 'feedback_generado' table which has been removed.
+ * See LEGACY_CLEANUP.md for migration details.
+ */
 export interface FeedbackGenerado {
   id: RecordId<'feedback_generado'>;
   evaluacion_resultado: RecordId<'evaluacion_resultado'>;
@@ -486,6 +526,12 @@ export interface VersionContenido {
   created_at: DateTime;
 }
 
+/**
+ * @deprecated This interface represents the legacy 'snapshot_programa' table which has been removed.
+ * The snapshot system has been eliminated in favor of direct content storage in exercise_content.
+ * See migrations/002-remove-snapshot-tables.surql for details.
+ * See LEGACY_CLEANUP.md for migration details.
+ */
 export interface SnapshotPrograma {
   id: RecordId<'snapshot_programa'>;
   programa: RecordId<'programa'>;
@@ -496,4 +542,113 @@ export interface SnapshotPrograma {
   creado_por: RecordId<'user'>;
   usado_por_cohortes: number;
   created_at: DateTime;
+}
+
+// ============================================================================
+// EJERCICIOS MEDIADOS POR IA (NUEVO SISTEMA)
+// ============================================================================
+
+export type ExerciseCategory =
+  | 'leccion_interactiva'
+  | 'cuaderno_trabajo'
+  | 'simulacion_interaccion'
+  | 'mentor_asesor_ia'
+  | 'herramienta_analisis'
+  | 'herramienta_creacion'
+  | 'sistema_tracking'
+  | 'herramienta_revision'
+  | 'simulador_entorno'
+  | 'sistema_progresion';
+
+export interface ConfigurationField {
+  type: 'number' | 'string' | 'boolean' | 'select' | 'multiselect';
+  label: string;
+  default?: any;
+  min?: number;
+  max?: number;
+  options?: string[];
+}
+
+export interface ConfigurationSchema {
+  [key: string]: ConfigurationField;
+}
+
+export interface ExerciseTemplate {
+  id: RecordId<'exercise_template'>;
+  nombre: string;
+  categoria: ExerciseCategory;
+  descripcion: string;
+  objetivo_pedagogico: string;
+  rol_ia: string;
+  configuracion_schema: ConfigurationSchema;
+  configuracion_default: JSONObject;
+  prompt_template: string;
+  output_schema: JSONObject;
+  preview_config: JSONObject;
+  icono: string;
+  color: string;
+  es_oficial: boolean;
+  activo: boolean;
+  created_at: DateTime;
+  updated_at: DateTime;
+}
+
+export interface ExerciseInstance {
+  id: RecordId<'exercise_instance'>;
+  template: RecordId<'exercise_template'>;
+  proof_point: RecordId<'proof_point'>;
+  nombre: string;
+  descripcion_breve?: string;
+  consideraciones_contexto: string;
+  configuracion_personalizada: JSONObject;
+  orden: number;
+  duracion_estimada_minutos: number;
+  estado_contenido: 'sin_generar' | 'generando' | 'draft' | 'publicado';
+  contenido_actual?: RecordId<'exercise_content'>;
+  es_obligatorio: boolean;
+  created_at: DateTime;
+  updated_at: DateTime;
+}
+
+export interface ExerciseContent {
+  id: RecordId<'exercise_content'>;
+  exercise_instance: RecordId<'exercise_instance'>;
+  contenido: JSONObject;
+  estado: 'draft' | 'publicado';
+  generacion_request?: RecordId<'generacion_request'>;
+  version: number;
+  created_at: DateTime;
+  updated_at: DateTime;
+}
+
+export interface ExerciseProgress {
+  id: RecordId<'exercise_progress'>;
+  exercise_instance: RecordId<'exercise_instance'>;
+  estudiante: RecordId<'estudiante'>;
+  cohorte: RecordId<'cohorte'>;
+  estado: 'no_iniciado' | 'en_progreso' | 'completado' | 'pendiente_revision';
+  porcentaje_completitud: number;
+  fecha_inicio?: DateTime;
+  fecha_completado?: DateTime;
+  tiempo_invertido_minutos: number;
+  numero_intentos: number;
+  score_final?: number;
+  datos_estudiante?: RecordId<'datos_estudiante'>;
+  created_at: DateTime;
+  updated_at: DateTime;
+}
+
+// Actualización del tipo GeneracionRequest para soportar nuevo sistema
+export interface GeneracionRequestUpdated {
+  id: RecordId<'generacion_request'>;
+  componente?: RecordId<'componente'>; // Legacy
+  exercise_instance?: RecordId<'exercise_instance'>; // Nuevo
+  template?: RecordId<'exercise_template'>; // Nuevo
+  solicitado_por: RecordId<'user'>;
+  configuracion: JSONObject;
+  prompt_usado: string;
+  estado: 'pending' | 'processing' | 'completed' | 'failed';
+  error_message?: string;
+  created_at: DateTime;
+  completed_at?: DateTime;
 }
