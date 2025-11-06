@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Programa } from '../../domain/program-design/entities/Programa';
 import { Fase } from '../../domain/program-design/entities/Fase';
 import { ProofPoint } from '../../domain/program-design/entities/ProofPoint';
+import { FaseDocumentation } from '../../domain/program-design/entities/FaseDocumentation';
 import { RecordId } from '../../domain/shared/value-objects/RecordId';
 import { Timestamp } from '../../domain/shared/value-objects/Timestamp';
 import { ProgramStatus } from '../../domain/program-design/value-objects/ProgramStatus';
@@ -109,5 +110,31 @@ export class ProgramMapper {
    */
   proofPointToPersistence(proofPoint: ProofPoint): any {
     return proofPoint.toPersistence();
+  }
+
+  /**
+   * Maps database record to FaseDocumentation domain entity
+   */
+  faseDocumentationToDomain(raw: any): FaseDocumentation {
+    const id = RecordId.fromString(raw.id);
+    const fase = RecordId.fromString(raw.fase);
+
+    return FaseDocumentation.reconstitute(id, {
+      fase,
+      contextoGeneral: raw.contexto_general,
+      conceptosClave: raw.conceptos_clave || [],
+      casosEjemplo: raw.casos_ejemplo || [],
+      erroresComunes: raw.errores_comunes || [],
+      recursosReferencia: raw.recursos_referencia || [],
+      criteriosEvaluacion: raw.criterios_evaluacion || {},
+      updatedAt: Timestamp.fromISOString(raw.updated_at),
+    });
+  }
+
+  /**
+   * Maps FaseDocumentation domain entity to database record
+   */
+  faseDocumentationToPersistence(documentation: FaseDocumentation): any {
+    return documentation.toPersistence();
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { ICommand } from '../../../shared/interfaces/IUseCase';
 import { Result } from '../../../shared/types/Result';
 import { IProgramRepository } from '../../../../domain/program-design/repositories/IProgramRepository';
@@ -29,7 +29,10 @@ export class CreateProgramUseCase
 {
   private readonly logger = new Logger(CreateProgramUseCase.name);
 
-  constructor(private readonly programRepository: IProgramRepository) {}
+  constructor(
+    @Inject('IProgramRepository')
+    private readonly programRepository: IProgramRepository,
+  ) {}
 
   async execute(
     request: CreateProgramDTO,

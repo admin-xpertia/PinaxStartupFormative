@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { ICommand } from '../../../shared/interfaces/IUseCase';
 import { Result } from '../../../shared/types/Result';
 import { IExerciseInstanceRepository } from '../../../../domain/exercise-instance/repositories/IExerciseInstanceRepository';
@@ -34,8 +34,11 @@ export class AddExerciseToProofPointUseCase
   private readonly logger = new Logger(AddExerciseToProofPointUseCase.name);
 
   constructor(
+    @Inject('IExerciseInstanceRepository')
     private readonly exerciseInstanceRepository: IExerciseInstanceRepository,
+    @Inject('IExerciseTemplateRepository')
     private readonly templateRepository: IExerciseTemplateRepository,
+    @Inject('IProofPointRepository')
     private readonly proofPointRepository: IProofPointRepository,
   ) {}
 
