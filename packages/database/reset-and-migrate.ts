@@ -38,8 +38,8 @@ config({ path: envPath });
 const SURREAL_URL = process.env.SURREAL_URL || process.env.DATABASE_URL || 'ws://127.0.0.1:8000/rpc';
 const SURREAL_USER = process.env.SURREAL_USER || process.env.DATABASE_USER || 'root';
 const SURREAL_PASS = process.env.SURREAL_PASS || process.env.DATABASE_PASSWORD || 'root';
-const SURREAL_NS = process.env.SURREAL_NS || process.env.DATABASE_NAMESPACE || 'xpertia';
-const SURREAL_DB = process.env.SURREAL_DB || process.env.DATABASE_NAME || 'plataforma';
+const SURREAL_NS = process.env.SURREAL_NAMESPACE || process.env.SURREAL_NS || process.env.DATABASE_NAMESPACE || 'xpertia';
+const SURREAL_DB = process.env.SURREAL_DATABASE || process.env.SURREAL_DB || process.env.DATABASE_NAME || 'plataforma';
 
 // Colores para consola
 const colors = {
