@@ -27,13 +27,15 @@ export interface Program {
   createdAt: string
   updatedAt: string
 
-  // UI-only fields (not from API)
+  // Statistics (from API)
   estadisticas?: {
-    fases: string
-    proof_points: string
+    fases: number
+    proof_points: number
     duracion: string
-    estudiantes: string
+    estudiantes: number
   }
+
+  // UI-only fields (not from API)
   progreso_creacion?: number
   alerta?: {
     texto: string

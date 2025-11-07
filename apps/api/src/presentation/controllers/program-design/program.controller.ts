@@ -25,7 +25,11 @@ import {
 import { CreateProgramUseCase } from '../../../application/program-design/use-cases/CreateProgram/CreateProgramUseCase';
 import { PublishProgramUseCase } from '../../../application/program-design/use-cases/PublishProgram/PublishProgramUseCase';
 import { ArchiveProgramUseCase } from '../../../application/program-design/use-cases/ArchiveProgram/ArchiveProgramUseCase';
-import { IProgramRepository } from '../../../domain/program-design/repositories/IProgramRepository';
+import {
+  IProgramRepository,
+  IFaseRepository,
+  IProofPointRepository,
+} from '../../../domain/program-design/repositories/IProgramRepository';
 import { RecordId } from '../../../domain/shared/value-objects/RecordId';
 import { ProgramStatus } from '../../../domain/program-design/value-objects/ProgramStatus';
 import {
@@ -50,6 +54,10 @@ export class ProgramController {
     private readonly archiveProgramUseCase: ArchiveProgramUseCase,
     @Inject('IProgramRepository')
     private readonly programRepository: IProgramRepository,
+    @Inject('IFaseRepository')
+    private readonly faseRepository: IFaseRepository,
+    @Inject('IProofPointRepository')
+    private readonly proofPointRepository: IProofPointRepository,
   ) {}
 
   /**
@@ -88,7 +96,7 @@ export class ProgramController {
         const programa = await this.programRepository.findById(
           RecordId.fromString(response.programaId),
         );
-        return this.mapToResponseDto(programa!);
+        return await this.mapToResponseDto(programa!);
       },
       fail: (error) => {
         throw new BadRequestException(error.message);
@@ -127,7 +135,7 @@ export class ProgramController {
       programs = await this.programRepository.findAll();
     }
 
-    return programs.map((p) => this.mapToResponseDto(p));
+    return Promise.all(programs.map((p) => this.mapToResponseDto(p)));
   }
 
   /**
@@ -156,7 +164,7 @@ export class ProgramController {
       throw new NotFoundException(`Program not found: ${id}`);
     }
 
-    return this.mapToResponseDto(programa);
+    return await this.mapToResponseDto(programa);
   }
 
   /**
@@ -229,7 +237,7 @@ export class ProgramController {
     }
 
     const savedPrograma = await this.programRepository.save(programa);
-    return this.mapToResponseDto(savedPrograma);
+    return await this.mapToResponseDto(savedPrograma);
   }
 
   /**
@@ -266,7 +274,7 @@ export class ProgramController {
         const programa = await this.programRepository.findById(
           RecordId.fromString(id),
         );
-        return this.mapToResponseDto(programa!);
+        return await this.mapToResponseDto(programa!);
       },
       fail: (error) => {
         if (error.message.includes('not found')) {
@@ -307,7 +315,7 @@ export class ProgramController {
         const programa = await this.programRepository.findById(
           RecordId.fromString(id),
         );
-        return this.mapToResponseDto(programa!);
+        return await this.mapToResponseDto(programa!);
       },
       fail: (error) => {
         if (error.message.includes('not found')) {
@@ -343,14 +351,30 @@ export class ProgramController {
   }
 
   /**
-   * Helper method to map domain entity to DTO
+   * Helper method to map domain entity to DTO with statistics
    */
-  private mapToResponseDto(programa: any): ProgramResponseDto {
+  private async mapToResponseDto(programa: any): Promise<ProgramResponseDto> {
+    const programaId = programa.getId();
+
+    // Calculate statistics
+    const fases = await this.faseRepository.findByPrograma(programaId);
+    const numFases = fases.length;
+
+    // Count total proof points across all fases
+    let numProofPoints = 0;
+    for (const fase of fases) {
+      const proofPoints = await this.proofPointRepository.findByFase(fase.getId());
+      numProofPoints += proofPoints.length;
+    }
+
+    const duracionSemanas = programa.getDuracion().toWeeks();
+    const duracionTexto = `${duracionSemanas} semana${duracionSemanas !== 1 ? 's' : ''}`;
+
     return {
-      id: programa.getId().toString(),
+      id: programaId.toString(),
       nombre: programa.getNombre(),
       descripcion: programa.getDescripcion(),
-      duracionSemanas: programa.getDuracion().toWeeks(),
+      duracionSemanas,
       estado: programa.getEstado().getValue(),
       versionActual: programa.getVersionActual(),
       categoria: programa.getCategoria(),
@@ -364,6 +388,12 @@ export class ProgramController {
       creador: programa.getCreador().toString(),
       createdAt: programa.getCreatedAt().toISOString(),
       updatedAt: programa.getUpdatedAt().toISOString(),
+      estadisticas: {
+        fases: numFases,
+        proof_points: numProofPoints,
+        duracion: duracionTexto,
+        estudiantes: 0, // TODO: Calculate when cohort system is implemented
+      },
     };
   }
 }
