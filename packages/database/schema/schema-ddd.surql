@@ -182,7 +182,7 @@ DEFINE INDEX idx_user_rol ON user FIELDS rol;
 -- ============================================================================
 -- Permisos básicos para las tablas
 
--- Permisos para programa
+-- Scope para estudiantes (signup crea estudiantes)
 DEFINE SCOPE user_scope SESSION 24h
   SIGNIN (
     SELECT * FROM user WHERE email = $email AND crypto::argon2::compare(password_hash, $password)
@@ -193,6 +193,20 @@ DEFINE SCOPE user_scope SESSION 24h
       nombre = $nombre,
       password_hash = crypto::argon2::generate($password),
       rol = 'estudiante',
+      activo = true
+  );
+
+-- Scope para instructores (signup crea instructores, signin valida activo)
+DEFINE SCOPE instructor_scope SESSION 24h
+  SIGNIN (
+    SELECT * FROM user WHERE email = $email AND crypto::argon2::compare(password_hash, $password) AND rol = 'instructor' AND activo = true
+  )
+  SIGNUP (
+    CREATE user SET
+      email = $email,
+      nombre = $nombre,
+      password_hash = crypto::argon2::generate($password),
+      rol = 'instructor',
       activo = true
   );
 
