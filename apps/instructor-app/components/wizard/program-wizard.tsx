@@ -139,9 +139,9 @@ export function ProgramWizard({ onClose, onComplete }: ProgramWizardProps) {
 
       onComplete(nuevoPrograma)
 
-      // Redirect to program detail page
+      // Redirect to program structure page to add exercises
       if (nuevoPrograma?.id) {
-        router.push(`/programas/${nuevoPrograma.id}`)
+        router.push(`/programas/${nuevoPrograma.id}/estructura`)
       }
     } catch (err: any) {
       console.error("Error creating program:", err)
