@@ -182,6 +182,7 @@ export class ExerciseContent extends Entity<ExerciseContentProps> {
 
   /**
    * Converts to a plain object for persistence
+   * Note: created_at and updated_at are omitted - SurrealDB handles them automatically with DEFAULT time::now()
    */
   toPersistence(): any {
     return {
@@ -191,8 +192,7 @@ export class ExerciseContent extends Entity<ExerciseContentProps> {
       estado: this.props.estado,
       generacion_request: this.props.generacionRequest?.toString(),
       version: this.props.version,
-      created_at: this.props.createdAt.toISOString(),
-      updated_at: this.props.updatedAt.toISOString(),
+      // created_at and updated_at are handled by SurrealDB DEFAULT time::now()
     };
   }
 }

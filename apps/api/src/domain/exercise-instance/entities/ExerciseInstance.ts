@@ -278,6 +278,7 @@ export class ExerciseInstance extends AggregateRoot<ExerciseInstanceProps> {
 
   /**
    * Converts to a plain object for persistence
+   * Note: created_at and updated_at are omitted - SurrealDB handles them automatically with DEFAULT time::now()
    */
   toPersistence(): any {
     return {
@@ -293,8 +294,7 @@ export class ExerciseInstance extends AggregateRoot<ExerciseInstanceProps> {
       estado_contenido: this.props.estadoContenido.getValue(),
       contenido_actual: this.props.contenidoActual?.toString(),
       es_obligatorio: this.props.esObligatorio,
-      created_at: this.props.createdAt.toISOString(),
-      updated_at: this.props.updatedAt.toISOString(),
+      // created_at and updated_at are handled by SurrealDB DEFAULT time::now()
     };
   }
 }
