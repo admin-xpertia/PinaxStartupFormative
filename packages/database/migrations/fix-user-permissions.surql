@@ -13,6 +13,7 @@ USE DB Roadmap;
 -- Actualizar permisos de la tabla user
 -- SELECT FULL permite que credenciales de base de datos (root) puedan leer usuarios
 -- Las otras operaciones siguen restringidas a usuarios con rol admin vía scope
+
 ALTER TABLE user
   PERMISSIONS
     FOR select FULL
