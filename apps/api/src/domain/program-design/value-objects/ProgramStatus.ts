@@ -3,11 +3,12 @@ import { ValueObject } from '../../shared/types/ValueObject';
 /**
  * ProgramStatus Value Object
  * Represents the lifecycle state of a program
+ *
+ * Values must match the database schema constraint:
+ * ASSERT $value IN ['borrador', 'publicado', 'archivado']
  */
 export type ProgramStatusType =
-  | 'draft'
   | 'borrador'
-  | 'revision'
   | 'publicado'
   | 'archivado';
 
@@ -21,7 +22,7 @@ export class ProgramStatus extends ValueObject<{ value: ProgramStatusType }> {
   }
 
   static draft(): ProgramStatus {
-    return new ProgramStatus('draft');
+    return new ProgramStatus('borrador');
   }
 
   static published(): ProgramStatus {
@@ -37,7 +38,7 @@ export class ProgramStatus extends ValueObject<{ value: ProgramStatusType }> {
   }
 
   isDraft(): boolean {
-    return this.props.value === 'draft' || this.props.value === 'borrador';
+    return this.props.value === 'borrador';
   }
 
   isPublished(): boolean {
@@ -49,11 +50,11 @@ export class ProgramStatus extends ValueObject<{ value: ProgramStatusType }> {
   }
 
   canEdit(): boolean {
-    return this.isDraft() || this.props.value === 'revision';
+    return this.isDraft();
   }
 
   canPublish(): boolean {
-    return this.isDraft() || this.props.value === 'revision';
+    return this.isDraft();
   }
 
   equals(vo?: ValueObject<{ value: ProgramStatusType }>): boolean {
