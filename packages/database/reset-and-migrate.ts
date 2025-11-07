@@ -28,23 +28,18 @@ import * as readline from 'readline';
 import { config } from 'dotenv';
 import { resolve } from 'path';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 // Intentar cargar .env desde apps/api
 const envPath = resolve(__dirname, '../../apps/api/.env');
 config({ path: envPath });
 
-const SURREAL_URL = process.env.SURREAL_URL || process.env.DATABASE_URL || 'http://127.0.0.1:8000/rpc';
+const SURREAL_URL = process.env.SURREAL_URL || process.env.DATABASE_URL || 'ws://127.0.0.1:8000/rpc';
 const SURREAL_USER = process.env.SURREAL_USER || process.env.DATABASE_USER || 'root';
 const SURREAL_PASS = process.env.SURREAL_PASS || process.env.DATABASE_PASSWORD || 'root';
 const SURREAL_NS = process.env.SURREAL_NS || process.env.DATABASE_NAMESPACE || 'xpertia';
 const SURREAL_DB = process.env.SURREAL_DB || process.env.DATABASE_NAME || 'plataforma';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const SURREAL_URL = process.env.SURREAL_URL || 'ws://127.0.0.1:8000/rpc';
-const SURREAL_USER = process.env.SURREAL_USER || 'root';
-const SURREAL_PASS = process.env.SURREAL_PASS || 'root';
-const SURREAL_NS = process.env.SURREAL_NS || 'xpertia';
-const SURREAL_DB = process.env.SURREAL_DB || 'plataforma';
 
 // Colores para consola
 const colors = {
@@ -168,49 +163,57 @@ async function dropAllIndexes(db: Surreal) {
 }
 
 async function applySchema(db: Surreal) {
-  logSection('PASO 3: APLICANDO NUEVO SCHEMA DDD');
+  logSection('PASO 3: APLICANDO NUEVO SCHEMA');
 
-  const schemaPath = join(__dirname, 'schema', 'schema-ddd.surql');
-  log(`Leyendo schema desde: ${schemaPath}`, 'blue');
+  // Aplicar schemas en orden: primero el base DDD, luego el de student execution
+  const schemas = [
+    { name: 'schema-ddd.surql', description: 'Base DDD Schema' },
+    { name: 'student-execution.surql', description: 'Student Execution Schema' },
+  ];
 
-  try {
-    const schemaContent = readFileSync(schemaPath, 'utf-8');
+  for (const schema of schemas) {
+    const schemaPath = join(__dirname, 'schema', schema.name);
+    log(`\nAplicando ${schema.description}: ${schemaPath}`, 'blue');
 
-    // Dividir el schema en statements individuales
-    const statements = schemaContent
-      .split(';')
-      .map(s => s.trim())
-      .filter(s => s.length > 0 && !s.startsWith('--'));
+    try {
+      const schemaContent = readFileSync(schemaPath, 'utf-8');
 
-    log(`Ejecutando ${statements.length} statements...`, 'blue');
+      // Dividir el schema en statements individuales
+      const statements = schemaContent
+        .split(';')
+        .map(s => s.trim())
+        .filter(s => s.length > 0 && !s.startsWith('--'));
 
-    for (let i = 0; i < statements.length; i++) {
-      const statement = statements[i] + ';';
+      log(`Ejecutando ${statements.length} statements...`, 'blue');
 
-      // Mostrar progreso cada 10 statements
-      if ((i + 1) % 10 === 0) {
-        log(`  Progreso: ${i + 1}/${statements.length}`, 'cyan');
-      }
+      for (let i = 0; i < statements.length; i++) {
+        const statement = statements[i] + ';';
 
-      try {
-        await db.query(statement);
-      } catch (error: any) {
-        // Ignorar algunos errores comunes que no son críticos
-        if (
-          error.message.includes('already exists') ||
-          error.message.includes('Unexpected token')
-        ) {
-          // Continuar
-        } else {
-          log(`Advertencia en statement ${i + 1}: ${error.message}`, 'yellow');
+        // Mostrar progreso cada 10 statements
+        if ((i + 1) % 10 === 0) {
+          log(`  Progreso: ${i + 1}/${statements.length}`, 'cyan');
+        }
+
+        try {
+          await db.query(statement);
+        } catch (error: any) {
+          // Ignorar algunos errores comunes que no son críticos
+          if (
+            error.message.includes('already exists') ||
+            error.message.includes('Unexpected token')
+          ) {
+            // Continuar
+          } else {
+            log(`Advertencia en statement ${i + 1}: ${error.message}`, 'yellow');
+          }
         }
       }
-    }
 
-    log('✓ Schema aplicado exitosamente', 'green');
-  } catch (error: any) {
-    log(`✗ Error al aplicar schema: ${error.message}`, 'red');
-    throw error;
+      log(`✓ ${schema.description} aplicado exitosamente`, 'green');
+    } catch (error: any) {
+      log(`✗ Error al aplicar ${schema.description}: ${error.message}`, 'red');
+      throw error;
+    }
   }
 }
 
@@ -306,6 +309,11 @@ async function verifySeed(db: Surreal) {
       });
     }
 
+    // Verificar estudiantes
+    const estudiantes = await db.query('SELECT * FROM estudiante;');
+    const estudianteCount = (estudiantes[0] as any[]).length;
+    log(`\n✓ Perfiles de estudiante creados: ${estudianteCount}`, 'green');
+
     // Verificar exercise templates
     const templates = await db.query('SELECT * FROM exercise_template;');
     const templateCount = (templates[0] as any[]).length;
@@ -346,6 +354,7 @@ async function verifySchema(db: Surreal) {
   logSection('PASO 6: VERIFICANDO SCHEMA');
 
   const expectedTables = [
+    // Base DDD tables
     'programa',
     'fase',
     'proof_point',
@@ -353,6 +362,27 @@ async function verifySchema(db: Surreal) {
     'exercise_instance',
     'exercise_content',
     'user',
+    // Student Execution tables
+    'cohorte',
+    'estudiante',
+    'inscripcion_cohorte',
+    'progreso_proof_point',
+    'progreso_nivel',
+    'progreso_componente',
+    'datos_estudiante',
+    'evaluacion_resultado',
+    'feedback_generado',
+    'metricas_componente',
+    'punto_de_friccion',
+    'analisis_cualitativo',
+    // Snapshot tables
+    'snapshot_programa',
+    'snapshot_fase',
+    'snapshot_proofpoint',
+    'snapshot_nivel',
+    'snapshot_componente',
+    'snapshot_contenido',
+    'snapshot_rubrica',
   ];
 
   const tables = await listTables(db);
@@ -368,9 +398,10 @@ async function verifySchema(db: Surreal) {
   const allTablesExist = expectedTables.every(t => tables.includes(t));
 
   if (allTablesExist) {
-    log('\n✓ Todas las tablas esperadas fueron creadas', 'green');
+    log(`\n✓ Todas las ${expectedTables.length} tablas esperadas fueron creadas`, 'green');
   } else {
-    log('\n✗ Algunas tablas no fueron creadas', 'red');
+    const missingTables = expectedTables.filter(t => !tables.includes(t));
+    log(`\n✗ Faltan ${missingTables.length} tablas: ${missingTables.join(', ')}`, 'red');
     throw new Error('Schema incompleto');
   }
 }
@@ -424,8 +455,8 @@ async function main() {
     logSection('✓ MIGRACIÓN COMPLETADA EXITOSAMENTE');
 
     log('\n📊 Resumen de la migración:', 'cyan');
-    log('  ✓ 7 tablas creadas (programa, fase, proof_point, exercise_template, exercise_instance, exercise_content, user)', 'green');
-    log('  ✓ 2 usuarios de prueba creados', 'green');
+    log('  ✓ 27 tablas creadas (base DDD + student execution + snapshots)', 'green');
+    log('  ✓ 3 usuarios de prueba creados (admin, instructor, estudiante)', 'green');
     log('  ✓ 10 tipos de ejercicios cargados', 'green');
     log('', 'reset');
 
@@ -436,6 +467,9 @@ async function main() {
     log('  Instructor:', 'cyan');
     log('    Email: instructor@xpertia.com', 'green');
     log('    Password: Instructor123!', 'green');
+    log('  Estudiante:', 'cyan');
+    log('    Email: estudiante@xpertia.com', 'green');
+    log('    Password: Estudiante123!', 'green');
     log('', 'reset');
 
     log('\n📝 Exercise Templates disponibles:', 'cyan');

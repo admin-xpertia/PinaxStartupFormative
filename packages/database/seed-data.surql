@@ -24,3 +24,26 @@ CREATE user:instructor SET
   preferencias = {},
   created_at = time::now(),
   updated_at = time::now();
+
+-- Usuario Estudiante Demo
+CREATE user:estudiante_demo SET
+  email = 'estudiante@xpertia.com',
+  nombre = 'Estudiante Demo',
+  password_hash = crypto::argon2::generate('Estudiante123!'),
+  rol = 'estudiante',
+  activo = true,
+  preferencias = {},
+  created_at = time::now(),
+  updated_at = time::now();
+
+-- Perfil del Estudiante Demo
+CREATE estudiante:demo SET
+  user = user:estudiante_demo,
+  metadata = {},
+  pais = 'España',
+  ciudad = 'Madrid',
+  nivel_educativo = 'Universitario',
+  intereses = ['emprendimiento', 'innovación', 'tecnología'],
+  biografia = 'Estudiante demo para testing y desarrollo',
+  created_at = time::now(),
+  updated_at = time::now();
