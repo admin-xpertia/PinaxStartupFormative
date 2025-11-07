@@ -11,7 +11,7 @@ export const proofPointsApi = {
    * Get all proof points for a fase
    */
   getByFase: (faseId: string) =>
-    apiClient.get<ProofPointResponse[]>(`/proof-points/fase/${faseId}`),
+    apiClient.get<ProofPointResponse[]>(`/fases/${faseId}/proof-points`),
 
   /**
    * Get proof point by ID

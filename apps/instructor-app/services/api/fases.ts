@@ -11,7 +11,7 @@ export const fasesApi = {
    * Get all fases for a program
    */
   getByProgram: (programId: string) =>
-    apiClient.get<FaseResponse[]>(`/fases/programa/${programId}`),
+    apiClient.get<FaseResponse[]>(`/programs/${programId}/fases`),
 
   /**
    * Get fase by ID
