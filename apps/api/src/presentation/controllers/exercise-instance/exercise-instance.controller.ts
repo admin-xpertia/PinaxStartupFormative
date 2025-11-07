@@ -20,9 +20,10 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AddExerciseToProofPointUseCase } from '../../../application/exercise-instance/use-cases/AddExerciseToProofPoint/AddExerciseToProofPointUseCase';
+import { GenerateExerciseContentUseCase } from '../../../application/exercise-instance/use-cases/GenerateExerciseContent/GenerateExerciseContentUseCase';
 import { IExerciseInstanceRepository } from '../../../domain/exercise-instance/repositories/IExerciseInstanceRepository';
 import { RecordId } from '../../../domain/shared/value-objects/RecordId';
-import { AddExerciseToProofPointRequestDto, ExerciseInstanceResponseDto } from '../../dtos/exercise-instance';
+import { AddExerciseToProofPointRequestDto, ExerciseInstanceResponseDto, GenerateContentRequestDto, GenerateContentResponseDto } from '../../dtos/exercise-instance';
 
 /**
  * ExerciseInstanceController
@@ -36,6 +37,7 @@ export class ExerciseInstanceController {
 
   constructor(
     private readonly addExerciseUseCase: AddExerciseToProofPointUseCase,
+    private readonly generateContentUseCase: GenerateExerciseContentUseCase,
     @Inject('IExerciseInstanceRepository')
     private readonly exerciseInstanceRepository: IExerciseInstanceRepository,
   ) {}
@@ -143,6 +145,54 @@ export class ExerciseInstanceController {
     }
 
     return this.mapToResponseDto(exercise);
+  }
+
+  /**
+   * Generate AI content for exercise
+   */
+  @Post('exercises/:id/generate')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Generate AI content',
+    description: 'Generates AI-powered content for an exercise instance using GPT',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ExerciseInstance ID',
+    example: 'exercise_instance:abc123',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Content generated successfully',
+    type: GenerateContentResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Exercise not found' })
+  @ApiResponse({ status: 400, description: 'Content generation failed' })
+  async generateContent(
+    @Param('id') id: string,
+    @Body() generateDto: GenerateContentRequestDto,
+  ): Promise<GenerateContentResponseDto> {
+    const result = await this.generateContentUseCase.execute({
+      exerciseInstanceId: id,
+      forceRegenerate: generateDto.forceRegenerate,
+    });
+
+    return result.match({
+      ok: (response) => ({
+        exerciseInstanceId: response.exerciseInstanceId,
+        contentId: response.contentId,
+        status: response.status,
+        contentPreview: response.contentPreview,
+        tokensUsed: response.tokensUsed,
+        generatedAt: response.generatedAt,
+      }),
+      fail: (error) => {
+        if (error.message.includes('not found')) {
+          throw new NotFoundException(error.message);
+        }
+        throw new BadRequestException(error.message);
+      },
+    });
   }
 
   /**
