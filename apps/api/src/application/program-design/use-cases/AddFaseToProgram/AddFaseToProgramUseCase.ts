@@ -82,6 +82,11 @@ export class AddFaseToProgramUseCase
         newOrden,
       );
 
+      // 3.1. Update objetivos de aprendizaje if provided
+      if (request.objetivosAprendizaje && request.objetivosAprendizaje.length > 0) {
+        fase.updateObjetivosAprendizaje(request.objetivosAprendizaje);
+      }
+
       // 4. Save fase
       const savedFase = await this.faseRepository.save(fase);
 
