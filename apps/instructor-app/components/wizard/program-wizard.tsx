@@ -10,7 +10,8 @@ import { Step2Phases } from "./steps/step-2-phases"
 import { Step3ProofPoints } from "./steps/step-3-proof-points"
 import { Step4Review } from "./steps/step-4-review"
 import type { ProgramFormData } from "@/types/wizard"
-import { apiClient } from "@/lib/api-client"
+import { programsApi, fasesApi, proofPointsApi } from "@/services/api"
+import type { CreateProgramRequest } from "@/types/api"
 
 interface ProgramWizardProps {
   onClose: () => void
@@ -86,57 +87,80 @@ export function ProgramWizard({ onClose, onComplete }: ProgramWizardProps) {
     setIsLoading(true)
 
     try {
-      // Asegurar que todos los campos numéricos sean enteros válidos
-      const sanitizedData = {
-        ...formData,
-        duracion_semanas: Number.parseInt(String(formData.duracion_semanas)) || 0,
-        numero_fases: Number.parseInt(String(formData.numero_fases)) || 0,
-        fases: formData.fases.map(fase => ({
-          ...fase,
-          duracion_semanas_fase: Number.parseInt(String(fase.duracion_semanas_fase)) || 0,
-          numero_proof_points: Number.parseInt(String(fase.numero_proof_points)) || 0,
-          proof_points: fase.proof_points.map(pp => ({
-            ...pp,
-            numero_niveles: Number.parseInt(String(pp.numero_niveles)) || 3,
-            duracion_estimada_horas: Number.parseInt(String(pp.duracion_estimada_horas)) || 0,
-          }))
-        }))
+      // TODO: Get real creator ID from auth context
+      const creadorId = "user:admin" // Temporary - should come from auth
+
+      // Step 1: Create program with basic info
+      const programRequest: CreateProgramRequest = {
+        nombre: formData.nombre_programa,
+        descripcion: formData.descripcion || "",
+        duracionSemanas: Number.parseInt(String(formData.duracion_semanas)) || 12,
+        creadorId,
+        categoria: formData.categoria || undefined,
       }
 
-      console.log("Datos a enviar:", JSON.stringify(sanitizedData, null, 2))
+      console.log("Creating program:", programRequest)
+      const nuevoPrograma = await programsApi.create(programRequest)
+      console.log("Program created:", nuevoPrograma)
 
-      const response = await apiClient.post("/programas", sanitizedData)
-      const nuevoPrograma = response.data
+      // Step 2: Add fases to the program
+      for (let i = 0; i < formData.fases.length; i++) {
+        const faseData = formData.fases[i]
+
+        console.log(`Adding fase ${i + 1}:`, faseData)
+        const faseResponse = await fasesApi.create(nuevoPrograma.id, {
+          nombre: faseData.nombre_fase,
+          descripcion: faseData.descripcion_fase || "",
+          objetivosAprendizaje: faseData.objetivos_aprendizaje
+            ? faseData.objetivos_aprendizaje.split('\n').filter(o => o.trim())
+            : [],
+          duracionSemanasEstimada: Number.parseInt(String(faseData.duracion_semanas_fase)) || 1,
+        })
+        console.log(`Fase ${i + 1} created:`, faseResponse)
+
+        // Step 3: Add proof points to each fase
+        for (let j = 0; j < faseData.proof_points.length; j++) {
+          const ppData = faseData.proof_points[j]
+
+          console.log(`Adding proof point ${j + 1} to fase ${i + 1}:`, ppData)
+          await proofPointsApi.create(faseResponse.id, {
+            nombre: ppData.nombre_pp,
+            slug: ppData.slug_pp || proofPointsApi.generateSlug(ppData.nombre_pp),
+            descripcion: ppData.descripcion_pp || "",
+            preguntaCentral: ppData.pregunta_central,
+            duracionEstimadaHoras: Number.parseInt(String(ppData.duracion_estimada_horas)) || 1,
+            tipoEntregableFinal: ppData.tipo_entregable || undefined,
+            prerequisitos: ppData.prerequisitos || [],
+          })
+        }
+      }
+
+      console.log("Program, fases, and proof points created successfully!")
 
       onComplete(nuevoPrograma)
+
+      // Redirect to program detail page
       if (nuevoPrograma?.id) {
-        router.push(`/programas/${nuevoPrograma.id}/arquitectura`)
+        router.push(`/programas/${nuevoPrograma.id}`)
       }
     } catch (err: any) {
-      console.error("Error al crear programa:", err)
-      console.error("Error response:", err.response?.data)
+      console.error("Error creating program:", err)
 
-      // Manejar errores de autenticación
-      if (err.response?.status === 401) {
+      // Handle API client errors
+      if (err.statusCode === 401) {
         setError(
           "Tu sesión ha expirado. Por favor, inicia sesión nuevamente para continuar."
         )
-        // El interceptor de api-client ya redirigirá al login
         return
       }
 
-      // Manejar errores de validación del backend
-      if (err.response?.status === 400 && err.response?.data?.message) {
-        const errorMessage = Array.isArray(err.response.data.message)
-          ? err.response.data.message.join(", ")
-          : err.response.data.message
-        setError(`Error de validación: ${errorMessage}`)
+      if (err.statusCode === 400) {
+        setError(`Error de validación: ${err.message}`)
         return
       }
 
-      // Manejar otros errores
+      // Handle other errors
       const message =
-        err.response?.data?.message ||
         err.message ||
         "Ocurrió un error al crear el programa. Por favor, intenta nuevamente."
       setError(message)

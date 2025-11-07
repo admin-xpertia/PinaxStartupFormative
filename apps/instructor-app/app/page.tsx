@@ -18,6 +18,7 @@ import { LoadingState } from "@/components/shared/loading-state"
 import { EmptyState } from "@/components/shared/empty-state"
 import { ErrorState } from "@/components/shared/error-state"
 import { fetcher } from "@/lib/fetcher"
+import { programsApi } from "@/services/api"
 
 const filters = ["Todos", "Publicados", "Borradores", "Archivados"] as const
 type FilterType = (typeof filters)[number]
@@ -29,8 +30,8 @@ export default function DashboardPage() {
 
   // Fetch programs and stats from API
   const { data: programs, error: programsError, isLoading: loadingPrograms, mutate } = useSWR(
-    '/api/v1/programas',
-    fetcher
+    'programs',
+    programsApi.getAll
   )
   const { data: stats, error: statsError, isLoading: loadingStats } = useSWR(
     '/api/v1/dashboard/stats',

@@ -17,10 +17,11 @@ interface ProgramCardProps {
 export function ProgramCard({ program }: ProgramCardProps) {
   const router = useRouter()
   const isPublished = program.estado === "publicado"
-  const isDraft = program.estado === "draft"
+  const isDraft = program.estado === "borrador"
+  const isArchived = program.estado === "archivado"
 
   const badgeVariant = isPublished ? "default" : "secondary"
-  const badgeText = isPublished ? "Publicado" : "Borrador"
+  const badgeText = isPublished ? "Publicado" : isDraft ? "Borrador" : "Archivado"
   const borderColor = isPublished ? "border-l-success" : isDraft ? "border-l-warning" : "border-l-muted"
 
   const handleOpenProgram = () => {
@@ -61,27 +62,29 @@ export function ProgramCard({ program }: ProgramCardProps) {
 
       <CardContent className="space-y-4">
         {/* Statistics Grid */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex items-center gap-2 text-sm">
-            <Layers className="h-4 w-4 text-muted-foreground" />
-            <span className="text-muted-foreground">{program.estadisticas.fases}</span>
+        {program.estadisticas && (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-center gap-2 text-sm">
+              <Layers className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">{program.estadisticas.fases}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Target className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">{program.estadisticas.proof_points}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">{program.estadisticas.duracion}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">{program.estadisticas.estudiantes}</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <Target className="h-4 w-4 text-muted-foreground" />
-            <span className="text-muted-foreground">{program.estadisticas.proof_points}</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-muted-foreground">{program.estadisticas.duracion}</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <span className="text-muted-foreground">{program.estadisticas.estudiantes}</span>
-          </div>
-        </div>
+        )}
 
         {/* Progress Bar for Drafts */}
-        {isDraft && (
+        {isDraft && program.progreso_creacion !== undefined && (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">Progreso de creación</span>
@@ -101,7 +104,13 @@ export function ProgramCard({ program }: ProgramCardProps) {
       </CardContent>
 
       <CardFooter className="flex items-center justify-between pt-4 border-t">
-        <p className="text-xs text-muted-foreground">{program.ultima_actividad}</p>
+        <p className="text-xs text-muted-foreground">
+          {new Date(program.updatedAt).toLocaleDateString('es-ES', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          })}
+        </p>
         <div className="flex items-center gap-2">
           {isPublished ? (
             <>

@@ -1,40 +1,44 @@
-export type ProgramStatus = "publicado" | "draft" | "archivado" | "borrador" | "revision"
+export type ProgramStatus = "publicado" | "borrador" | "archivado"
 
+/**
+ * Program interface matching backend ProgramResponseDto
+ * Uses camelCase to match API responses
+ */
 export interface Program {
   id: string
   nombre: string
-  descripcion: string
+  descripcion?: string
+  duracionSemanas: number
   estado: ProgramStatus
+  versionActual: string
 
-  // Campos opcionales del editor
+  // Optional fields
   categoria?: string
-  duracion_semanas?: number
-  nivel_dificultad?: "principiante" | "intermedio" | "avanzado"
-  imagen_portada_url?: string
-  objetivos_aprendizaje?: string[]
+  nivelDificultad?: "principiante" | "intermedio" | "avanzado"
+  imagenPortadaUrl?: string
+  objetivosAprendizaje?: string[]
   prerequisitos?: string[]
-  audiencia_objetivo?: string
+  audienciaObjetivo?: string
   tags?: string[]
-  visible?: boolean
+  visible: boolean
+  creador: string
 
-  // Estadísticas y metadata
+  // Timestamps
+  createdAt: string
+  updatedAt: string
+
+  // UI-only fields (not from API)
   estadisticas?: {
     fases: string
     proof_points: string
     duracion: string
     estudiantes: string
   }
-  ultima_actividad?: string
   progreso_creacion?: number
   alerta?: {
     texto: string
     tipo: "warning" | "error" | "info"
   }
-
-  // Timestamps
-  created_at?: string
-  updated_at?: string
-  creador?: string
 }
 
 export interface QuickStat {

@@ -28,6 +28,7 @@ import { LoadingState } from "@/components/shared/loading-state"
 import { ErrorState } from "@/components/shared/error-state"
 import { notFound } from "next/navigation"
 import type { Program } from "@/types/program"
+import { programsApi } from "@/services/api"
 
 export default function ProgramPreviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -36,7 +37,7 @@ export default function ProgramPreviewPage({ params }: { params: Promise<{ id: s
     error,
     isLoading,
     mutate,
-  } = useSWR<Program>(id ? `/api/v1/programas/${id}` : null, fetcher)
+  } = useSWR<Program>(id ? `program-${id}` : null, () => id ? programsApi.getById(id) : null)
 
   if (isLoading) {
     return (
