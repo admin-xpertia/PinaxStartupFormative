@@ -18,6 +18,8 @@ const SCHEMA_EXECUTION_ORDER = [
   'analytics.surql',
   'versiones.surql',
   'init.surql',
+  'schema-ddd.surql', // Base schema - debe ejecutarse primero
+  'student-execution.surql', // Execution schema - depende de schema-ddd
 ];
 
 async function pathExists(targetPath: string): Promise<boolean> {
