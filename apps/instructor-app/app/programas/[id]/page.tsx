@@ -93,9 +93,9 @@ export default function ProgramDetailPage({ params }: { params: Promise<{ id: st
                     </Link>
                   </Button>
                   <Button size="sm" asChild>
-                    <Link href={`/programas/${programId}/editar`}>
+                    <Link href={`/programas/${programId}/estructura`}>
                       <Edit className="mr-2 h-4 w-4" />
-                      Editar
+                      Editar Estructura
                     </Link>
                   </Button>
                 </div>
