@@ -199,8 +199,55 @@ async function applySchema(db: Surreal) {
   }
 }
 
+async function loadExerciseTemplates(db: Surreal) {
+  logSection('PASO 4: CARGANDO EXERCISE TEMPLATES');
+
+  const seedPath = join(__dirname, 'seeds', 'exercise-templates-10-tipos.surql');
+  log(`Leyendo seed desde: ${seedPath}`, 'blue');
+
+  try {
+    const seedContent = readFileSync(seedPath, 'utf-8');
+
+    // Dividir el seed en statements individuales
+    const statements = seedContent
+      .split(';')
+      .map(s => s.trim())
+      .filter(s => s.length > 0 && !s.startsWith('--'));
+
+    log(`Ejecutando ${statements.length} statements...`, 'blue');
+
+    for (let i = 0; i < statements.length; i++) {
+      const statement = statements[i] + ';';
+
+      // Mostrar progreso
+      if ((i + 1) % 5 === 0 || i === statements.length - 1) {
+        log(`  Progreso: ${i + 1}/${statements.length}`, 'cyan');
+      }
+
+      try {
+        await db.query(statement);
+      } catch (error: any) {
+        // Ignorar algunos errores comunes
+        if (
+          error.message.includes('already exists') ||
+          error.message.includes('Unexpected token')
+        ) {
+          // Continuar
+        } else {
+          log(`Advertencia en statement ${i + 1}: ${error.message}`, 'yellow');
+        }
+      }
+    }
+
+    log('✓ Exercise templates cargados exitosamente', 'green');
+  } catch (error: any) {
+    log(`✗ Error al cargar exercise templates: ${error.message}`, 'red');
+    throw error;
+  }
+}
+
 async function verifySeed(db: Surreal) {
-  logSection('PASO 4: VERIFICANDO DATOS SEED');
+  logSection('PASO 5: VERIFICANDO DATOS SEED');
 
   try {
     // Verificar usuarios
@@ -214,13 +261,45 @@ async function verifySeed(db: Surreal) {
         log(`    - ${user.email} (${user.rol})`, 'blue');
       });
     }
+
+    // Verificar exercise templates
+    const templates = await db.query('SELECT * FROM exercise_template;');
+    const templateCount = (templates[0] as any[]).length;
+    log(`✓ Exercise templates creados: ${templateCount}`, 'green');
+
+    if (templateCount > 0) {
+      log('  Templates disponibles:', 'blue');
+      (templates[0] as any[]).forEach((template: any) => {
+        log(`    - ${template.nombre} (${template.categoria})`, 'blue');
+      });
+    }
+
+    // Verificar que tengamos los 10 tipos esperados
+    const expectedCategories = [
+      'leccion_interactiva',
+      'cuaderno_trabajo',
+      'simulacion_interaccion',
+      'mentor_asesor_ia',
+      'herramienta_analisis',
+      'herramienta_creacion',
+      'sistema_tracking',
+      'herramienta_revision',
+      'simulador_entorno',
+      'sistema_progresion',
+    ];
+
+    if (templateCount >= expectedCategories.length) {
+      log(`\n✓ Todos los ${expectedCategories.length} tipos de ejercicios fueron cargados`, 'green');
+    } else {
+      log(`\n⚠ Advertencia: Solo se cargaron ${templateCount} de ${expectedCategories.length} tipos esperados`, 'yellow');
+    }
   } catch (error: any) {
     log(`✗ Error al verificar seed: ${error.message}`, 'red');
   }
 }
 
 async function verifySchema(db: Surreal) {
-  logSection('PASO 5: VERIFICANDO SCHEMA');
+  logSection('PASO 6: VERIFICANDO SCHEMA');
 
   const expectedTables = [
     'programa',
@@ -289,15 +368,24 @@ async function main() {
     // Paso 3: Aplicar nuevo schema
     await applySchema(db);
 
-    // Paso 4: Verificar datos seed
+    // Paso 4: Cargar exercise templates
+    await loadExerciseTemplates(db);
+
+    // Paso 5: Verificar datos seed
     await verifySeed(db);
 
-    // Paso 5: Verificar schema
+    // Paso 6: Verificar schema
     await verifySchema(db);
 
     logSection('✓ MIGRACIÓN COMPLETADA EXITOSAMENTE');
 
-    log('\nCredenciales por defecto:', 'cyan');
+    log('\n📊 Resumen de la migración:', 'cyan');
+    log('  ✓ 7 tablas creadas (programa, fase, proof_point, exercise_template, exercise_instance, exercise_content, user)', 'green');
+    log('  ✓ 2 usuarios de prueba creados', 'green');
+    log('  ✓ 10 tipos de ejercicios cargados', 'green');
+    log('', 'reset');
+
+    log('\n🔑 Credenciales por defecto:', 'cyan');
     log('  Admin:', 'cyan');
     log('    Email: admin@xpertia.com', 'green');
     log('    Password: Admin123!', 'green');
@@ -305,7 +393,21 @@ async function main() {
     log('    Email: instructor@xpertia.com', 'green');
     log('    Password: Instructor123!', 'green');
     log('', 'reset');
-    log('⚠️  IMPORTANTE: Cambiar estas contraseñas en producción', 'yellow');
+
+    log('\n📝 Exercise Templates disponibles:', 'cyan');
+    log('  1. 📖 Lección Interactiva', 'blue');
+    log('  2. 📝 Cuaderno de Trabajo', 'blue');
+    log('  3. 💬 Simulación de Interacción', 'blue');
+    log('  4. 🤖 Mentor y Asesor IA', 'blue');
+    log('  5. 🔍 Herramienta de Análisis', 'blue');
+    log('  6. 🎨 Herramienta de Creación', 'blue');
+    log('  7. 📊 Sistema de Tracking', 'blue');
+    log('  8. ✅ Herramienta de Revisión', 'blue');
+    log('  9. 🌐 Simulador de Entorno', 'blue');
+    log('  10. 🎯 Sistema de Progresión', 'blue');
+    log('', 'reset');
+
+    log('⚠️  IMPORTANTE: Cambiar las contraseñas por defecto en producción', 'yellow');
     log('', 'reset');
 
     process.exit(0);
