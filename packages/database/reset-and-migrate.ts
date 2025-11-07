@@ -28,23 +28,19 @@ import * as readline from 'readline';
 import { config } from 'dotenv';
 import { resolve } from 'path';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 // Intentar cargar .env desde apps/api
 const envPath = resolve(__dirname, '../../apps/api/.env');
 config({ path: envPath });
 
-const SURREAL_URL = process.env.SURREAL_URL || process.env.DATABASE_URL || 'http://127.0.0.1:8000/rpc';
+// Variables de configuración con soporte para múltiples nombres
+const SURREAL_URL = process.env.SURREAL_URL || process.env.DATABASE_URL || 'ws://127.0.0.1:8000/rpc';
 const SURREAL_USER = process.env.SURREAL_USER || process.env.DATABASE_USER || 'root';
 const SURREAL_PASS = process.env.SURREAL_PASS || process.env.DATABASE_PASSWORD || 'root';
-const SURREAL_NS = process.env.SURREAL_NS || process.env.DATABASE_NAMESPACE || 'xpertia';
-const SURREAL_DB = process.env.SURREAL_DB || process.env.DATABASE_NAME || 'plataforma';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const SURREAL_URL = process.env.SURREAL_URL || 'ws://127.0.0.1:8000/rpc';
-const SURREAL_USER = process.env.SURREAL_USER || 'root';
-const SURREAL_PASS = process.env.SURREAL_PASS || 'root';
-const SURREAL_NS = process.env.SURREAL_NS || 'xpertia';
-const SURREAL_DB = process.env.SURREAL_DB || 'plataforma';
+const SURREAL_NS = process.env.SURREAL_NS || process.env.SURREAL_NAMESPACE || process.env.DATABASE_NAMESPACE || 'xpertia';
+const SURREAL_DB = process.env.SURREAL_DB || process.env.SURREAL_DATABASE || process.env.DATABASE_NAME || 'plataforma';
 
 // Colores para consola
 const colors = {
