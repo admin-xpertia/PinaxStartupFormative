@@ -1,0 +1,415 @@
+import type { Cohorte, CohorteStudent, ProgramVersion } from "@/types/cohort"
+import type { Communication, MessageTemplate } from "@/types/communication"
+import type { CalendarEvent } from "@/types/calendar"
+
+export const mockProgramVersions: ProgramVersion[] = [
+  {
+    version: "3.0",
+    estado: "actual",
+    fecha: "2024-09-01",
+    cambios: [
+      "Actualizadas 5 lecciones con casos recientes",
+      "Nueva simulación: Pitch a Inversionista",
+      "Mejoradas rúbricas de cuadernos",
+    ],
+    cohortes_usando: 2,
+    recomendada: true,
+  },
+  {
+    version: "2.5",
+    estado: "anterior",
+    fecha: "2024-03-15",
+    cambios: ["Versión previa estable"],
+    cohortes_usando: 5,
+  },
+  {
+    version: "3.1-beta",
+    estado: "beta",
+    fecha: "2024-10-20",
+    cambios: ["Nuevo módulo de fundraising", "En pruebas, puede tener cambios"],
+    cohortes_usando: 0,
+    advertencia: "Versión en prueba, no recomendada para producción",
+  },
+]
+
+export const mockCohortes: Cohorte[] = [
+  {
+    id: "coh_001",
+    nombre: "Cohorte Otoño 2024",
+    descripcion: "Programa completo de emprendimiento para startups early-stage",
+    programa: {
+      id: "prog_001",
+      nombre: "Xpertia Emprendedor",
+      version: "3.0",
+    },
+    estado: "activa",
+    fecha_inicio: "2024-09-15",
+    fecha_fin_estimada: "2024-12-15",
+    configuracion: {
+      modo_acceso: "secuencial",
+      permitir_saltar_niveles: false,
+      reintentos_ilimitados: true,
+      notificaciones: {
+        recordatorio_inactividad: {
+          activo: true,
+          dias: 7,
+        },
+        recordatorio_deadline: true,
+        celebracion_completacion: true,
+      },
+    },
+    metricas: {
+      total_estudiantes: 15,
+      estudiantes_activos: 13,
+      progreso_promedio: 68,
+      score_promedio: 8.2,
+      tasa_completacion: 87,
+      dias_restantes: 41,
+    },
+    alertas: [
+      {
+        tipo: "warning",
+        texto: "2 estudiantes en riesgo",
+        count: 2,
+        link: "/cohortes/coh_001?filter=en_riesgo",
+      },
+      {
+        tipo: "info",
+        texto: "3 puntos de fricción detectados",
+        count: 3,
+        link: "/cohortes/coh_001/analytics",
+      },
+    ],
+  },
+  {
+    id: "coh_002",
+    nombre: "Corporate Innovation Sprint",
+    descripcion: "Programa acelerado para equipos corporativos",
+    programa: {
+      id: "prog_002",
+      nombre: "Corporate Innovation Sprint",
+      version: "2.0",
+    },
+    estado: "activa",
+    fecha_inicio: "2024-10-01",
+    fecha_fin_estimada: "2024-11-30",
+    configuracion: {
+      modo_acceso: "abierto",
+      permitir_saltar_niveles: true,
+      reintentos_ilimitados: true,
+      notificaciones: {
+        recordatorio_inactividad: {
+          activo: true,
+          dias: 3,
+        },
+        recordatorio_deadline: true,
+        celebracion_completacion: true,
+      },
+    },
+    metricas: {
+      total_estudiantes: 8,
+      estudiantes_activos: 8,
+      progreso_promedio: 45,
+      score_promedio: 7.8,
+      tasa_completacion: 100,
+      dias_restantes: 26,
+    },
+  },
+  {
+    id: "coh_003",
+    nombre: "Batch Primavera 2024",
+    programa: {
+      id: "prog_001",
+      nombre: "Xpertia Emprendedor",
+      version: "2.5",
+    },
+    estado: "finalizada",
+    fecha_inicio: "2024-03-01",
+    fecha_fin_estimada: "2024-06-01",
+    configuracion: {
+      modo_acceso: "secuencial",
+      permitir_saltar_niveles: false,
+      reintentos_ilimitados: true,
+      notificaciones: {
+        recordatorio_inactividad: {
+          activo: true,
+          dias: 7,
+        },
+        recordatorio_deadline: true,
+        celebracion_completacion: true,
+      },
+    },
+    metricas: {
+      total_estudiantes: 20,
+      estudiantes_activos: 0,
+      progreso_promedio: 95,
+      score_promedio: 8.5,
+      tasa_completacion: 90,
+    },
+  },
+  {
+    id: "coh_004",
+    nombre: "Cohorte Verano 2025",
+    descripcion: "Próxima cohorte de verano",
+    programa: {
+      id: "prog_001",
+      nombre: "Xpertia Emprendedor",
+      version: "3.0",
+    },
+    estado: "proxima",
+    fecha_inicio: "2025-01-15",
+    fecha_fin_estimada: "2025-04-15",
+    configuracion: {
+      modo_acceso: "secuencial",
+      permitir_saltar_niveles: false,
+      reintentos_ilimitados: true,
+      notificaciones: {
+        recordatorio_inactividad: {
+          activo: true,
+          dias: 7,
+        },
+        recordatorio_deadline: true,
+        celebracion_completacion: true,
+      },
+    },
+    metricas: {
+      total_estudiantes: 12,
+      estudiantes_activos: 0,
+      progreso_promedio: 0,
+      score_promedio: 0,
+      tasa_completacion: 0,
+    },
+  },
+]
+
+export const mockCohorteStudents: CohorteStudent[] = [
+  {
+    id: "est_001",
+    nombre: "Ana García",
+    email: "ana.garcia@example.com",
+    avatar: "/avatar-woman-1.png",
+    estado: "activo",
+    fecha_invitacion: "2024-09-01",
+    fecha_primer_acceso: "2024-09-15",
+    ultima_actividad: "2024-11-04T14:30:00",
+    progreso_general: 85,
+    componentes_completados: 29,
+    componentes_totales: 34,
+    score_promedio: 8.7,
+    alertas: [],
+  },
+  {
+    id: "est_002",
+    nombre: "Carlos Ruiz",
+    email: "carlos.ruiz@example.com",
+    avatar: "/avatar-man-1.png",
+    estado: "en_riesgo",
+    fecha_invitacion: "2024-09-01",
+    fecha_primer_acceso: "2024-09-16",
+    ultima_actividad: "2024-10-25T10:20:00",
+    progreso_general: 45,
+    componentes_completados: 15,
+    componentes_totales: 34,
+    score_promedio: 6.8,
+    alertas: [
+      {
+        tipo: "inactividad",
+        mensaje: "Inactivo por 10 días",
+        severidad: "high",
+      },
+      {
+        tipo: "score_bajo",
+        mensaje: "Score bajo en simulaciones",
+        severidad: "medium",
+      },
+    ],
+    extensiones_activas: [
+      {
+        componente_id: "comp_012",
+        componente_nombre: "CSF Report",
+        deadline_original: "2024-10-20",
+        nueva_deadline: "2024-11-10",
+        razon: "Solicitó extensión por viaje de trabajo",
+        fecha_otorgada: "2024-10-18",
+      },
+    ],
+  },
+  {
+    id: "est_003",
+    nombre: "María López",
+    email: "maria.lopez@example.com",
+    avatar: "/avatar-woman-2.png",
+    estado: "activo",
+    fecha_invitacion: "2024-09-01",
+    fecha_primer_acceso: "2024-09-15",
+    ultima_actividad: "2024-11-03T16:45:00",
+    progreso_general: 72,
+    componentes_completados: 24,
+    componentes_totales: 34,
+    score_promedio: 9.1,
+    alertas: [],
+  },
+  {
+    id: "est_004",
+    nombre: "Diego Fernández",
+    email: "diego.fernandez@example.com",
+    avatar: "/avatar-man-2.png",
+    estado: "activo",
+    fecha_invitacion: "2024-09-01",
+    fecha_primer_acceso: "2024-09-17",
+    ultima_actividad: "2024-11-04T09:15:00",
+    progreso_general: 68,
+    componentes_completados: 23,
+    componentes_totales: 34,
+    score_promedio: 7.9,
+    alertas: [],
+  },
+  {
+    id: "est_005",
+    nombre: "Laura Martínez",
+    email: "laura.martinez@example.com",
+    avatar: "/avatar-woman-3.png",
+    estado: "inactivo",
+    fecha_invitacion: "2024-09-01",
+    fecha_primer_acceso: "2024-09-15",
+    ultima_actividad: "2024-10-15T11:30:00",
+    progreso_general: 35,
+    componentes_completados: 12,
+    componentes_totales: 34,
+    score_promedio: 7.2,
+    alertas: [
+      {
+        tipo: "inactividad",
+        mensaje: "Inactivo por 20 días",
+        severidad: "high",
+      },
+    ],
+  },
+]
+
+export const mockCommunications: Communication[] = [
+  {
+    id: "comm_001",
+    tipo: "anuncio",
+    asunto: "Bienvenidos a Xpertia Emprendedor",
+    contenido:
+      "Hola equipo, les doy la bienvenida a este programa transformacional. Durante las próximas 12 semanas trabajaremos juntos en validar sus ideas de negocio...",
+    fecha_envio: "2024-09-15T09:00:00",
+    remitente: "María González",
+    destinatarios: 15,
+    abierto_por: 14,
+    respondido_por: 3,
+  },
+  {
+    id: "comm_002",
+    tipo: "recordatorio_automatico",
+    asunto: "Te extrañamos en Xpertia",
+    contenido: "Hola Carlos, notamos que llevas 7 días sin actividad en la plataforma...",
+    fecha_envio: "2024-11-01T10:00:00",
+    remitente: "Sistema Xpertia",
+    destinatarios: 1,
+    destinatario_especifico: "Carlos Ruiz",
+    abierto_por: 0,
+  },
+  {
+    id: "comm_003",
+    tipo: "anuncio",
+    asunto: "Nueva sesión Q&A programada",
+    contenido:
+      "Equipo, hemos programado una sesión de preguntas y respuestas en vivo para el próximo viernes 8 de noviembre a las 15:00...",
+    fecha_envio: "2024-11-02T14:00:00",
+    remitente: "María González",
+    destinatarios: 15,
+    abierto_por: 12,
+    respondido_por: 5,
+  },
+]
+
+export const mockMessageTemplates: MessageTemplate[] = [
+  {
+    id: "tmpl_001",
+    titulo: "Recordatorio de Inactividad",
+    asunto: "Te extrañamos en Xpertia",
+    contenido:
+      "Hola {{nombre_estudiante}}, notamos que llevas {{dias_inactivo}} días sin actividad en la plataforma. Tu próximo componente es {{proximo_componente}}. ¿Hay algo en lo que podamos ayudarte?",
+    categoria: "recordatorio",
+    variables: ["nombre_estudiante", "dias_inactivo", "proximo_componente"],
+  },
+  {
+    id: "tmpl_002",
+    titulo: "Felicitación por Proof Point",
+    asunto: "¡Felicitaciones por completar {{proof_point}}!",
+    contenido:
+      "¡Excelente trabajo {{nombre_estudiante}}! Completaste {{proof_point}} con un score de {{score}}/10. Sigue así, estás haciendo un gran progreso.",
+    categoria: "felicitacion",
+    variables: ["nombre_estudiante", "proof_point", "score"],
+  },
+  {
+    id: "tmpl_003",
+    titulo: "Anuncio de Nuevo Contenido",
+    asunto: "Nuevo contenido disponible",
+    contenido:
+      "Hola equipo, hemos agregado nuevo contenido al programa. Ahora tienen acceso a {{nuevo_contenido}}. ¡Espero que lo disfruten!",
+    categoria: "anuncio",
+    variables: ["nuevo_contenido"],
+  },
+  {
+    id: "tmpl_004",
+    titulo: "Bienvenida a Cohorte",
+    asunto: "Bienvenido/a a {{nombre_cohorte}}",
+    contenido:
+      "Hola {{nombre_estudiante}}, te damos la bienvenida a {{nombre_cohorte}}. El programa inicia el {{fecha_inicio}}. Prepárate para una experiencia transformacional.",
+    categoria: "bienvenida",
+    variables: ["nombre_estudiante", "nombre_cohorte", "fecha_inicio"],
+  },
+]
+
+export const mockCalendarEvents: CalendarEvent[] = [
+  {
+    id: "evt_001",
+    tipo: "desbloqueo_fase",
+    titulo: "Fase 2 se desbloquea",
+    descripcion: "Estudiantes pueden acceder a Fase 2: Validación de Mercado",
+    fecha: "2024-10-06",
+  },
+  {
+    id: "evt_002",
+    tipo: "deadline_proof_point",
+    titulo: "Deadline: CSF Report",
+    descripcion: "Fecha sugerida para completar Customer-Solution Fit Report",
+    fecha: "2024-10-20",
+    estudiantes_completados: 12,
+    estudiantes_totales: 15,
+  },
+  {
+    id: "evt_003",
+    tipo: "sesion_sincronica",
+    titulo: "Q&A Session en vivo",
+    descripcion: "Sesión de preguntas y respuestas con la instructora",
+    fecha: "2024-11-08",
+    hora: "15:00",
+    duracion_minutos: 60,
+    plataforma: "Zoom",
+    link: "https://zoom.us/j/123456",
+  },
+  {
+    id: "evt_004",
+    tipo: "deadline_proof_point",
+    titulo: "Deadline: Pitch Deck",
+    descripcion: "Fecha sugerida para completar Pitch Deck",
+    fecha: "2024-11-15",
+    estudiantes_completados: 8,
+    estudiantes_totales: 15,
+  },
+  {
+    id: "evt_005",
+    tipo: "sesion_sincronica",
+    titulo: "Demo Day Final",
+    descripcion: "Presentación final de proyectos",
+    fecha: "2024-12-10",
+    hora: "14:00",
+    duracion_minutos: 180,
+    plataforma: "Zoom",
+    link: "https://zoom.us/j/789012",
+  },
+]
