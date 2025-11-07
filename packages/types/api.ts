@@ -35,6 +35,7 @@ export interface UpdateProgramRequest {
 }
 
 export interface AddFaseRequest {
+  numeroFase?: number  // Optional, auto-calculated if not provided
   nombre: string
   descripcion: string
   objetivosAprendizaje?: string[]

@@ -2,14 +2,15 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsNumber, IsOptional, MinLength, Min, IsArray } from 'class-validator';
 
 export class AddFaseRequestDto {
-  @ApiProperty({
-    description: 'Número de la fase',
-    example: 1,
-    minimum: 1,
+  @ApiPropertyOptional({
+    description: 'Número de la fase (opcional, se auto-calcula si no se provee)',
+    example: 0,
+    minimum: 0,
   })
+  @IsOptional()
   @IsNumber()
-  @Min(1)
-  numeroFase: number;
+  @Min(0)
+  numeroFase?: number;
 
   @ApiProperty({
     description: 'Nombre de la fase',

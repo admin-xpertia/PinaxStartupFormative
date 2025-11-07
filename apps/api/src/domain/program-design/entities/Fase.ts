@@ -43,8 +43,8 @@ export class Fase extends Entity<FaseProps> {
       throw new Error('Fase name must be at least 3 characters');
     }
 
-    if (numeroFase <= 0) {
-      throw new Error('Fase number must be positive');
+    if (numeroFase < 0) {
+      throw new Error('Fase number cannot be negative');
     }
 
     if (orden < 0) {
@@ -183,8 +183,8 @@ export class Fase extends Entity<FaseProps> {
    * Updates the fase number
    */
   updateNumeroFase(numeroFase: number): void {
-    if (numeroFase <= 0) {
-      throw new Error('Fase number must be positive');
+    if (numeroFase < 0) {
+      throw new Error('Fase number cannot be negative');
     }
 
     this.props.numeroFase = numeroFase;

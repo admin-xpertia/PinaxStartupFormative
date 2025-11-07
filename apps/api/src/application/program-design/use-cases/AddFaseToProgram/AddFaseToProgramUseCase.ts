@@ -19,7 +19,7 @@ import { RecordId } from '../../../../domain/shared/value-objects/RecordId';
 
 export interface AddFaseToProgramRequest {
   programaId: string;
-  numeroFase: number;
+  numeroFase?: number; // Optional, will be auto-calculated if not provided
   nombre: string;
   descripcion: string;
   objetivosAprendizaje?: string[];
@@ -58,17 +58,24 @@ export class AddFaseToProgramUseCase
         return Result.fail(new Error(`Program not found: ${request.programaId}`));
       }
 
-      // 2. Calculate orden (get existing fases and find max orden)
+      // 2. Calculate orden and numeroFase (get existing fases)
       const existingFases = await this.faseRepository.findByPrograma(programaId);
       const maxOrden = existingFases.length > 0
         ? Math.max(...existingFases.map(f => f.getOrden()))
-        : 0;
+        : -1;
       const newOrden = maxOrden + 1;
+
+      // Auto-calculate numeroFase if not provided
+      const numeroFase = request.numeroFase !== undefined
+        ? request.numeroFase
+        : existingFases.length > 0
+          ? Math.max(...existingFases.map(f => f.getNumeroFase())) + 1
+          : 0;
 
       // 3. Create Fase entity
       const fase = Fase.create(
         programaId,
-        request.numeroFase,
+        numeroFase,
         request.nombre,
         request.descripcion,
         request.duracionSemanasEstimada,
