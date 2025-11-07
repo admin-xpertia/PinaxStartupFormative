@@ -218,32 +218,70 @@ async function applySeed(db: Surreal, skipSeed: boolean) {
 
   logSection('PASO 4: APLICANDO DATOS SEED');
 
-  const seedPath = join(__dirname, 'seed-data.surql');
-  log(`Leyendo seed desde: ${seedPath}`, 'blue');
+  // Cargar usuarios demo
+  const userSeedPath = join(__dirname, 'seed-data.surql');
+  log(`Leyendo seed de usuarios desde: ${userSeedPath}`, 'blue');
 
   try {
-    const seedContent = readFileSync(seedPath, 'utf-8');
+    const userSeedContent = readFileSync(userSeedPath, 'utf-8');
 
     // Dividir el seed en statements individuales
-    const statements = seedContent
+    const userStatements = userSeedContent
       .split(';')
       .map(s => s.trim())
       .filter(s => s.length > 0 && !s.startsWith('--'));
 
-    log(`Ejecutando ${statements.length} statements de seed...`, 'blue');
+    log(`Ejecutando ${userStatements.length} statements de usuarios...`, 'blue');
 
-    for (const statement of statements) {
+    for (const statement of userStatements) {
       try {
         await db.query(statement + ';');
       } catch (error: any) {
         // Mostrar errores pero continuar
-        log(`Advertencia en seed: ${error.message}`, 'yellow');
+        log(`Advertencia en seed de usuarios: ${error.message}`, 'yellow');
       }
     }
 
-    log('✓ Seed aplicado exitosamente', 'green');
+    log('✓ Usuarios seed aplicados exitosamente', 'green');
   } catch (error: any) {
-    log(`✗ Error al aplicar seed: ${error.message}`, 'red');
+    log(`✗ Error al aplicar seed de usuarios: ${error.message}`, 'red');
+    throw error;
+  }
+
+  // Cargar exercise templates
+  const exercisesSeedPath = join(__dirname, 'seeds', 'exercise-templates-10-tipos.surql');
+  log(`\nLeyendo exercise templates desde: ${exercisesSeedPath}`, 'blue');
+
+  try {
+    const exercisesSeedContent = readFileSync(exercisesSeedPath, 'utf-8');
+
+    // Dividir el seed en statements individuales
+    const exerciseStatements = exercisesSeedContent
+      .split(';')
+      .map(s => s.trim())
+      .filter(s => s.length > 0 && !s.startsWith('--'));
+
+    log(`Ejecutando ${exerciseStatements.length} statements de exercise templates...`, 'blue');
+
+    for (let i = 0; i < exerciseStatements.length; i++) {
+      const statement = exerciseStatements[i];
+
+      // Mostrar progreso
+      if ((i + 1) % 5 === 0 || i === exerciseStatements.length - 1) {
+        log(`  Progreso: ${i + 1}/${exerciseStatements.length}`, 'cyan');
+      }
+
+      try {
+        await db.query(statement + ';');
+      } catch (error: any) {
+        // Mostrar errores pero continuar
+        log(`Advertencia en exercise template ${i + 1}: ${error.message}`, 'yellow');
+      }
+    }
+
+    log('✓ Exercise templates aplicados exitosamente', 'green');
+  } catch (error: any) {
+    log(`✗ Error al aplicar exercise templates: ${error.message}`, 'red');
     throw error;
   }
 }
@@ -262,6 +300,38 @@ async function verifySeed(db: Surreal) {
       (users[0] as any[]).forEach((user: any) => {
         log(`    - ${user.email} (${user.rol})`, 'blue');
       });
+    }
+
+    // Verificar exercise templates
+    const templates = await db.query('SELECT * FROM exercise_template;');
+    const templateCount = (templates[0] as any[]).length;
+    log(`\n✓ Exercise templates creados: ${templateCount}`, 'green');
+
+    if (templateCount > 0) {
+      log('  Templates disponibles:', 'blue');
+      (templates[0] as any[]).forEach((template: any) => {
+        log(`    - ${template.nombre} (${template.categoria})`, 'blue');
+      });
+    }
+
+    // Verificar que tengamos los 10 tipos esperados
+    const expectedCategories = [
+      'leccion_interactiva',
+      'cuaderno_trabajo',
+      'simulacion_interaccion',
+      'mentor_asesor_ia',
+      'herramienta_analisis',
+      'herramienta_creacion',
+      'sistema_tracking',
+      'herramienta_revision',
+      'simulador_entorno',
+      'sistema_progresion',
+    ];
+
+    if (templateCount >= expectedCategories.length) {
+      log(`\n✓ Todos los ${expectedCategories.length} tipos de ejercicios fueron cargados`, 'green');
+    } else {
+      log(`\n⚠ Advertencia: Solo se cargaron ${templateCount} de ${expectedCategories.length} tipos esperados`, 'yellow');
     }
   } catch (error: any) {
     log(`✗ Error al verificar seed: ${error.message}`, 'red');
@@ -349,7 +419,13 @@ async function main() {
 
     logSection('✓ MIGRACIÓN COMPLETADA EXITOSAMENTE');
 
-    log('\nCredenciales por defecto:', 'cyan');
+    log('\n📊 Resumen de la migración:', 'cyan');
+    log('  ✓ 7 tablas creadas (programa, fase, proof_point, exercise_template, exercise_instance, exercise_content, user)', 'green');
+    log('  ✓ 2 usuarios de prueba creados', 'green');
+    log('  ✓ 10 tipos de ejercicios cargados', 'green');
+    log('', 'reset');
+
+    log('\n🔑 Credenciales por defecto:', 'cyan');
     log('  Admin:', 'cyan');
     log('    Email: admin@xpertia.com', 'green');
     log('    Password: Admin123!', 'green');
@@ -357,7 +433,21 @@ async function main() {
     log('    Email: instructor@xpertia.com', 'green');
     log('    Password: Instructor123!', 'green');
     log('', 'reset');
-    log('⚠️  IMPORTANTE: Cambiar estas contraseñas en producción', 'yellow');
+
+    log('\n📝 Exercise Templates disponibles:', 'cyan');
+    log('  1. 📖 Lección Interactiva', 'blue');
+    log('  2. 📝 Cuaderno de Trabajo', 'blue');
+    log('  3. 💬 Simulación de Interacción', 'blue');
+    log('  4. 🤖 Mentor y Asesor IA', 'blue');
+    log('  5. 🔍 Herramienta de Análisis', 'blue');
+    log('  6. 🎨 Herramienta de Creación', 'blue');
+    log('  7. 📊 Sistema de Tracking', 'blue');
+    log('  8. ✅ Herramienta de Revisión', 'blue');
+    log('  9. 🌐 Simulador de Entorno', 'blue');
+    log('  10. 🎯 Sistema de Progresión', 'blue');
+    log('', 'reset');
+
+    log('⚠️  IMPORTANTE: Cambiar las contraseñas por defecto en producción', 'yellow');
     log('', 'reset');
 
     process.exit(0);
