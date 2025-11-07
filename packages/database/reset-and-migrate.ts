@@ -20,7 +20,8 @@
 
 import Surreal from 'surrealdb.js';
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import * as readline from 'readline';
 
 // Leer variables de entorno desde apps/api/.env si existe
@@ -36,6 +37,14 @@ const SURREAL_USER = process.env.SURREAL_USER || process.env.DATABASE_USER || 'r
 const SURREAL_PASS = process.env.SURREAL_PASS || process.env.DATABASE_PASSWORD || 'root';
 const SURREAL_NS = process.env.SURREAL_NS || process.env.DATABASE_NAMESPACE || 'xpertia';
 const SURREAL_DB = process.env.SURREAL_DB || process.env.DATABASE_NAME || 'plataforma';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const SURREAL_URL = process.env.SURREAL_URL || 'ws://127.0.0.1:8000/rpc';
+const SURREAL_USER = process.env.SURREAL_USER || 'root';
+const SURREAL_PASS = process.env.SURREAL_PASS || 'root';
+const SURREAL_NS = process.env.SURREAL_NS || 'xpertia';
+const SURREAL_DB = process.env.SURREAL_DB || 'plataforma';
 
 // Colores para consola
 const colors = {
@@ -81,8 +90,8 @@ async function connectDB(): Promise<Surreal> {
 
   const db = new Surreal();
   await db.connect(SURREAL_URL);
-  await db.signin({ user: SURREAL_USER, pass: SURREAL_PASS });
-  await db.use({ ns: SURREAL_NS, db: SURREAL_DB });
+  await db.signin({ username: SURREAL_USER, password: SURREAL_PASS });
+  await db.use({ namespace: SURREAL_NS, database: SURREAL_DB });
 
   log('✓ Conectado exitosamente', 'green');
   return db;
@@ -93,6 +102,10 @@ async function listTables(db: Surreal): Promise<string[]> {
     const result = await db.query('INFO FOR DB;');
     const dbInfo = result[0] as any;
 
+    if (dbInfo && dbInfo.tables) {
+      return Object.keys(dbInfo.tables);
+    }
+    // Fallback para versiones antiguas
     if (dbInfo && dbInfo.tb) {
       return Object.keys(dbInfo.tb);
     }
@@ -134,9 +147,11 @@ async function dropAllIndexes(db: Surreal) {
     const dbInfo = result[0] as any;
 
     // Eliminar scopes
-    if (dbInfo && dbInfo.sc) {
-      const scopes = Object.keys(dbInfo.sc);
-      for (const scope of scopes) {
+    const scopes = dbInfo?.scopes || dbInfo?.sc || {};
+    const scopeKeys = Object.keys(scopes);
+
+    if (scopeKeys.length > 0) {
+      for (const scope of scopeKeys) {
         try {
           await db.query(`REMOVE SCOPE ${scope};`);
           log(`✓ Scope eliminado: ${scope}`, 'green');
@@ -199,49 +214,78 @@ async function applySchema(db: Surreal) {
   }
 }
 
-async function loadExerciseTemplates(db: Surreal) {
-  logSection('PASO 4: CARGANDO EXERCISE TEMPLATES');
+async function applySeed(db: Surreal, skipSeed: boolean) {
+  if (skipSeed) {
+    log('Saltando aplicación de seed (--skip-seed)', 'yellow');
+    return;
+  }
 
-  const seedPath = join(__dirname, 'seeds', 'exercise-templates-10-tipos.surql');
-  log(`Leyendo seed desde: ${seedPath}`, 'blue');
+  logSection('PASO 4: APLICANDO DATOS SEED');
+
+  // Cargar usuarios demo
+  const userSeedPath = join(__dirname, 'seed-data.surql');
+  log(`Leyendo seed de usuarios desde: ${userSeedPath}`, 'blue');
 
   try {
-    const seedContent = readFileSync(seedPath, 'utf-8');
+    const userSeedContent = readFileSync(userSeedPath, 'utf-8');
 
     // Dividir el seed en statements individuales
-    const statements = seedContent
+    const userStatements = userSeedContent
       .split(';')
       .map(s => s.trim())
       .filter(s => s.length > 0 && !s.startsWith('--'));
 
-    log(`Ejecutando ${statements.length} statements...`, 'blue');
+    log(`Ejecutando ${userStatements.length} statements de usuarios...`, 'blue');
 
-    for (let i = 0; i < statements.length; i++) {
-      const statement = statements[i] + ';';
-
-      // Mostrar progreso
-      if ((i + 1) % 5 === 0 || i === statements.length - 1) {
-        log(`  Progreso: ${i + 1}/${statements.length}`, 'cyan');
-      }
-
+    for (const statement of userStatements) {
       try {
-        await db.query(statement);
+        await db.query(statement + ';');
       } catch (error: any) {
-        // Ignorar algunos errores comunes
-        if (
-          error.message.includes('already exists') ||
-          error.message.includes('Unexpected token')
-        ) {
-          // Continuar
-        } else {
-          log(`Advertencia en statement ${i + 1}: ${error.message}`, 'yellow');
-        }
+        // Mostrar errores pero continuar
+        log(`Advertencia en seed de usuarios: ${error.message}`, 'yellow');
       }
     }
 
-    log('✓ Exercise templates cargados exitosamente', 'green');
+    log('✓ Usuarios seed aplicados exitosamente', 'green');
   } catch (error: any) {
-    log(`✗ Error al cargar exercise templates: ${error.message}`, 'red');
+    log(`✗ Error al aplicar seed de usuarios: ${error.message}`, 'red');
+    throw error;
+  }
+
+  // Cargar exercise templates
+  const exercisesSeedPath = join(__dirname, 'seeds', 'exercise-templates-10-tipos.surql');
+  log(`\nLeyendo exercise templates desde: ${exercisesSeedPath}`, 'blue');
+
+  try {
+    const exercisesSeedContent = readFileSync(exercisesSeedPath, 'utf-8');
+
+    // Dividir el seed en statements individuales
+    const exerciseStatements = exercisesSeedContent
+      .split(';')
+      .map(s => s.trim())
+      .filter(s => s.length > 0 && !s.startsWith('--'));
+
+    log(`Ejecutando ${exerciseStatements.length} statements de exercise templates...`, 'blue');
+
+    for (let i = 0; i < exerciseStatements.length; i++) {
+      const statement = exerciseStatements[i];
+
+      // Mostrar progreso
+      if ((i + 1) % 5 === 0 || i === exerciseStatements.length - 1) {
+        log(`  Progreso: ${i + 1}/${exerciseStatements.length}`, 'cyan');
+      }
+
+      try {
+        await db.query(statement + ';');
+      } catch (error: any) {
+        // Mostrar errores pero continuar
+        log(`Advertencia en exercise template ${i + 1}: ${error.message}`, 'yellow');
+      }
+    }
+
+    log('✓ Exercise templates aplicados exitosamente', 'green');
+  } catch (error: any) {
+    log(`✗ Error al aplicar exercise templates: ${error.message}`, 'red');
     throw error;
   }
 }
@@ -265,7 +309,7 @@ async function verifySeed(db: Surreal) {
     // Verificar exercise templates
     const templates = await db.query('SELECT * FROM exercise_template;');
     const templateCount = (templates[0] as any[]).length;
-    log(`✓ Exercise templates creados: ${templateCount}`, 'green');
+    log(`\n✓ Exercise templates creados: ${templateCount}`, 'green');
 
     if (templateCount > 0) {
       log('  Templates disponibles:', 'blue');
@@ -368,8 +412,8 @@ async function main() {
     // Paso 3: Aplicar nuevo schema
     await applySchema(db);
 
-    // Paso 4: Cargar exercise templates
-    await loadExerciseTemplates(db);
+    // Paso 4: Aplicar datos seed
+    await applySeed(db, skipSeed);
 
     // Paso 5: Verificar datos seed
     await verifySeed(db);
