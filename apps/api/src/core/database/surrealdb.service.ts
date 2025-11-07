@@ -43,6 +43,12 @@ export class SurrealDbService implements OnModuleInit, OnModuleDestroy {
       const user = this.configService.get<string>("SURREAL_USER");
       const pass = this.configService.get<string>("SURREAL_PASS");
 
+      this.logger.log(`🔧 Configuration:`);
+      this.logger.log(`   URL: ${url}`);
+      this.logger.log(`   Namespace: ${namespace}`);
+      this.logger.log(`   Database: ${database}`);
+      this.logger.log(`   User: ${user}`);
+
       // Conectar al servidor
       await this.db.connect(url);
 
@@ -56,10 +62,10 @@ export class SurrealDbService implements OnModuleInit, OnModuleDestroy {
       await this.db.use({ namespace, database });
 
       this.logger.log(
-        `Conectado a SurrealDB: ${url} (${namespace}/${database})`,
+        `✅ Conectado a SurrealDB: ${url} (${namespace}/${database})`,
       );
     } catch (error) {
-      this.logger.error("Error al conectar con SurrealDB", error);
+      this.logger.error("❌ Error al conectar con SurrealDB", error);
       throw error;
     }
   }
@@ -148,10 +154,13 @@ export class SurrealDbService implements OnModuleInit, OnModuleDestroy {
    */
   async select<T = any>(thing: string): Promise<T[]> {
     try {
+      this.logger.debug(`📄 SELECT: ${thing}`);
       const result = await this.db.select(thing);
+      this.logger.debug(`📄 SELECT result type: ${typeof result}, isArray: ${Array.isArray(result)}`);
+      this.logger.debug(`📄 SELECT result: ${JSON.stringify(result, null, 2)}`);
       return result as T[];
     } catch (error) {
-      this.logger.error(`Error en select: ${thing}`, error);
+      this.logger.error(`❌ Error en select: ${thing}`, error);
       throw error;
     }
   }
