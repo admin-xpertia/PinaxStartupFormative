@@ -82,6 +82,14 @@ export class ExerciseContent extends Entity<ExerciseContentProps> {
     return this.props.version;
   }
 
+  getCreatedAt(): Timestamp {
+    return this.props.createdAt;
+  }
+
+  getUpdatedAt(): Timestamp {
+    return this.props.updatedAt;
+  }
+
   isDraft(): boolean {
     return this.props.estado === 'draft';
   }
