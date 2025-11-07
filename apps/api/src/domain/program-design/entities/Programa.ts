@@ -91,6 +91,38 @@ export class Programa extends AggregateRoot<ProgramaProps> {
     return this.props.creador;
   }
 
+  getVersionActual(): number {
+    return this.props.versionActual;
+  }
+
+  getCategoria(): string | undefined {
+    return this.props.categoria;
+  }
+
+  getNivelDificultad(): 'principiante' | 'intermedio' | 'avanzado' | undefined {
+    return this.props.nivelDificultad;
+  }
+
+  getImagenPortadaUrl(): string | undefined {
+    return this.props.imagenPortadaUrl;
+  }
+
+  getObjetivosAprendizaje(): string[] | undefined {
+    return this.props.objetivosAprendizaje;
+  }
+
+  getPrerequisitos(): string[] | undefined {
+    return this.props.prerequisitos;
+  }
+
+  getAudienciaObjetivo(): string | undefined {
+    return this.props.audienciaObjetivo;
+  }
+
+  getTags(): string[] | undefined {
+    return this.props.tags;
+  }
+
   isVisible(): boolean {
     return this.props.visible;
   }
