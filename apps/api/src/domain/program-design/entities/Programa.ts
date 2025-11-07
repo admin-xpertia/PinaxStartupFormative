@@ -127,6 +127,14 @@ export class Programa extends AggregateRoot<ProgramaProps> {
     return this.props.visible;
   }
 
+  getCreatedAt(): Timestamp {
+    return this.props.createdAt;
+  }
+
+  getUpdatedAt(): Timestamp {
+    return this.props.updatedAt;
+  }
+
   isDraft(): boolean {
     return this.props.estado.isDraft();
   }
