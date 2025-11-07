@@ -16,7 +16,11 @@
     "seed:dev": "SURREAL_URL=http://localhost:8000 node --loader ts-node/esm seed.ts",
     "query": "surreal sql --endpoint http://localhost:8000 --username root --password root --namespace xpertia --database plataforma",
     "import": "surreal import --endpoint http://localhost:8000 --username root --password root --namespace xpertia --database plataforma",
-    "export": "surreal export --endpoint http://localhost:8000 --username root --password root --namespace xpertia --database plataforma"
+    "export": "surreal export --endpoint http://localhost:8000 --username root --password root --namespace xpertia --database plataforma",
+    "reset": "./reset-db.sh",
+    "reset:confirm": "./reset-db.sh --confirm",
+    "migrate": "tsx reset-and-migrate.ts",
+    "migrate:confirm": "tsx reset-and-migrate.ts --confirm"
   },
   "keywords": [
     "surrealdb",
