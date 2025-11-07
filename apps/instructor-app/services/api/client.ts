@@ -3,8 +3,10 @@
  * Base configuration for all API calls
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
-const API_PREFIX = '/api/v1'
+// Si NEXT_PUBLIC_API_URL ya incluye /api/v1, no agregar prefix
+// Si es solo la URL base, agregar /api/v1
+const configuredUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+const API_BASE_URL = configuredUrl.endsWith('/api/v1') ? configuredUrl : `${configuredUrl}/api/v1`
 
 export interface ApiError {
   message: string
@@ -51,7 +53,7 @@ async function apiFetch<T>(
     headers['Authorization'] = `Bearer ${token}`
   }
 
-  const url = `${API_BASE_URL}${API_PREFIX}${endpoint}`
+  const url = `${API_BASE_URL}${endpoint}`
 
   const response = await fetch(url, {
     ...options,
