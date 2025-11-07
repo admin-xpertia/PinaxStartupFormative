@@ -1,0 +1,313 @@
+"use client"
+
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { DialogFooter } from "@/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { exerciseInstancesApi } from "@/services/api"
+import type { ExerciseTemplateResponse, AddExerciseToProofPointRequest } from "@/types/api"
+import { toast } from "sonner"
+import { Info } from "lucide-react"
+
+interface ExerciseConfigFormProps {
+  template: ExerciseTemplateResponse
+  proofPointId: string
+  onClose: () => void
+  onSuccess: () => void
+}
+
+export function ExerciseConfigForm({ template, proofPointId, onClose, onSuccess }: ExerciseConfigFormProps) {
+  const [formData, setFormData] = useState<AddExerciseToProofPointRequest>({
+    templateId: template.id,
+    nombre: "",
+    descripcionBreve: "",
+    consideracionesContexto: "",
+    configuracionPersonalizada: template.configuracionDefault || {},
+    duracionEstimadaMinutos: 30,
+    esObligatorio: true,
+  })
+  const [isSaving, setIsSaving] = useState(false)
+
+  const handleSave = async () => {
+    // Validation
+    if (!formData.nombre.trim()) {
+      toast.error("El nombre del ejercicio es requerido")
+      return
+    }
+
+    if (!formData.consideracionesContexto.trim()) {
+      toast.error("Las consideraciones de contexto son requeridas")
+      return
+    }
+
+    if (formData.duracionEstimadaMinutos < 1) {
+      toast.error("La duración debe ser al menos 1 minuto")
+      return
+    }
+
+    setIsSaving(true)
+
+    try {
+      await exerciseInstancesApi.create(proofPointId, formData)
+      toast.success("Ejercicio creado exitosamente")
+      onSuccess()
+    } catch (error: any) {
+      console.error("Error creating exercise:", error)
+      toast.error(error.message || "Error al crear el ejercicio")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleConfigChange = (key: string, value: any) => {
+    setFormData({
+      ...formData,
+      configuracionPersonalizada: {
+        ...formData.configuracionPersonalizada,
+        [key]: value,
+      },
+    })
+  }
+
+  // Parse schema to render form fields
+  const renderConfigFields = () => {
+    const schema = template.configuracionSchema
+    if (!schema || !schema.properties) {
+      return <p className="text-sm text-muted-foreground">No hay configuración adicional disponible.</p>
+    }
+
+    return Object.entries(schema.properties).map(([key, fieldSchema]: [string, any]) => {
+      const value = formData.configuracionPersonalizada[key] ?? fieldSchema.default ?? ""
+
+      // Text input
+      if (fieldSchema.type === "string" && !fieldSchema.enum) {
+        return (
+          <div key={key} className="space-y-2">
+            <Label htmlFor={key}>
+              {fieldSchema.description || key}
+              {schema.required?.includes(key) && <span className="text-destructive ml-1">*</span>}
+            </Label>
+            <Input
+              id={key}
+              value={value}
+              onChange={e => handleConfigChange(key, e.target.value)}
+              placeholder={fieldSchema.default}
+            />
+          </div>
+        )
+      }
+
+      // Select/Enum
+      if (fieldSchema.enum) {
+        return (
+          <div key={key} className="space-y-2">
+            <Label htmlFor={key}>
+              {fieldSchema.description || key}
+              {schema.required?.includes(key) && <span className="text-destructive ml-1">*</span>}
+            </Label>
+            <select
+              id={key}
+              value={value}
+              onChange={e => handleConfigChange(key, e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {fieldSchema.enum.map((option: string) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+        )
+      }
+
+      // Number input
+      if (fieldSchema.type === "number") {
+        return (
+          <div key={key} className="space-y-2">
+            <Label htmlFor={key}>
+              {fieldSchema.description || key}
+              {schema.required?.includes(key) && <span className="text-destructive ml-1">*</span>}
+            </Label>
+            <Input
+              id={key}
+              type="number"
+              min={fieldSchema.minimum}
+              max={fieldSchema.maximum}
+              value={value}
+              onChange={e => handleConfigChange(key, parseInt(e.target.value) || 0)}
+            />
+          </div>
+        )
+      }
+
+      // Boolean checkbox
+      if (fieldSchema.type === "boolean") {
+        return (
+          <div key={key} className="flex items-center space-x-2">
+            <input
+              id={key}
+              type="checkbox"
+              checked={value}
+              onChange={e => handleConfigChange(key, e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300"
+            />
+            <Label htmlFor={key} className="font-normal">
+              {fieldSchema.description || key}
+            </Label>
+          </div>
+        )
+      }
+
+      return null
+    })
+  }
+
+  return (
+    <div className="space-y-6 py-4">
+      <Tabs defaultValue="basic" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="basic">Información Básica</TabsTrigger>
+          <TabsTrigger value="config">Configuración</TabsTrigger>
+          <TabsTrigger value="info">Info del Template</TabsTrigger>
+        </TabsList>
+
+        {/* Basic Info Tab */}
+        <TabsContent value="basic" className="space-y-4 mt-4">
+          <div className="space-y-2">
+            <Label htmlFor="nombre">
+              Nombre del Ejercicio <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="nombre"
+              placeholder="Ej: Introducción a Variables en Python"
+              value={formData.nombre}
+              onChange={e => setFormData({ ...formData, nombre: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="descripcionBreve">Descripción Breve</Label>
+            <Textarea
+              id="descripcionBreve"
+              placeholder="Una breve descripción de lo que cubrirá este ejercicio..."
+              rows={2}
+              value={formData.descripcionBreve || ""}
+              onChange={e => setFormData({ ...formData, descripcionBreve: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="consideraciones">
+              Consideraciones de Contexto <span className="text-destructive">*</span>
+            </Label>
+            <Textarea
+              id="consideraciones"
+              placeholder="Información importante para el instructor: objetivos específicos, puntos de atención, contexto pedagógico..."
+              rows={4}
+              value={formData.consideracionesContexto}
+              onChange={e => setFormData({ ...formData, consideracionesContexto: e.target.value })}
+            />
+            <p className="text-xs text-muted-foreground">
+              Esta información ayuda al sistema de IA a generar contenido más relevante
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="duracion">
+                Duración Estimada (minutos) <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="duracion"
+                type="number"
+                min="1"
+                max="480"
+                value={formData.duracionEstimadaMinutos}
+                onChange={e =>
+                  setFormData({ ...formData, duracionEstimadaMinutos: parseInt(e.target.value) || 1 })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="obligatorio">Tipo de Ejercicio</Label>
+              <select
+                id="obligatorio"
+                value={formData.esObligatorio ? "obligatorio" : "opcional"}
+                onChange={e =>
+                  setFormData({ ...formData, esObligatorio: e.target.value === "obligatorio" })
+                }
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="obligatorio">Obligatorio</option>
+                <option value="opcional">Opcional</option>
+              </select>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Configuration Tab */}
+        <TabsContent value="config" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Configuración Específica del Template</CardTitle>
+              <CardDescription>
+                Personaliza los parámetros de este tipo de ejercicio
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">{renderConfigFields()}</CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Template Info Tab */}
+        <TabsContent value="info" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Objetivo Pedagógico</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm">{template.objetivoPedagogico}</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Rol del Asistente IA</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm">{template.rolIA}</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Info className="h-4 w-4" />
+                Template del Prompt
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <pre className="text-xs bg-muted p-3 rounded-md overflow-x-auto whitespace-pre-wrap">
+                {template.promptTemplate}
+              </pre>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>
+          Cancelar
+        </Button>
+        <Button onClick={handleSave} disabled={isSaving}>
+          {isSaving ? "Creando..." : "Crear Ejercicio"}
+        </Button>
+      </DialogFooter>
+    </div>
+  )
+}
