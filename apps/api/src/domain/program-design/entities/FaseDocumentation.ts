@@ -297,6 +297,7 @@ export class FaseDocumentation extends Entity<FaseDocumentationProps> {
 
   /**
    * Converts to a plain object for persistence
+   * Note: updated_at is omitted - SurrealDB handles it automatically with DEFAULT time::now()
    */
   toPersistence(): any {
     return {
@@ -308,7 +309,7 @@ export class FaseDocumentation extends Entity<FaseDocumentationProps> {
       errores_comunes: this.props.erroresComunes,
       recursos_referencia: this.props.recursosReferencia,
       criterios_evaluacion: this.props.criteriosEvaluacion,
-      updated_at: this.props.updatedAt.toISOString(),
+      // updated_at is handled by SurrealDB DEFAULT time::now()
     };
   }
 }

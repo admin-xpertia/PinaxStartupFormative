@@ -315,8 +315,7 @@ export class ExerciseTemplate extends AggregateRoot<ExerciseTemplateProps> {
       color: this.props.color,
       es_oficial: this.props.esOficial,
       activo: this.props.activo,
-      created_at: this.props.createdAt.toISOString(),
-      updated_at: this.props.updatedAt.toISOString(),
+      // created_at and updated_at are handled by SurrealDB DEFAULT time::now()
     };
   }
 }

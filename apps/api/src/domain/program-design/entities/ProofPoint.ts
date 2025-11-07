@@ -234,6 +234,7 @@ export class ProofPoint extends Entity<ProofPointProps> {
 
   /**
    * Converts to a plain object for persistence
+   * Note: created_at and updated_at are omitted - SurrealDB handles them automatically with DEFAULT time::now()
    */
   toPersistence(): any {
     return {
@@ -248,8 +249,7 @@ export class ProofPoint extends Entity<ProofPointProps> {
       tipo_entregable_final: this.props.tipoEntregableFinal,
       documentacion_contexto: this.props.documentacionContexto,
       prerequisitos: this.props.prerequisitos.map(p => p.toString()),
-      created_at: this.props.createdAt.toISOString(),
-      updated_at: this.props.updatedAt.toISOString(),
+      // created_at and updated_at are handled by SurrealDB DEFAULT time::now()
     };
   }
 }
