@@ -115,7 +115,7 @@ export class FaseRepository implements IFaseRepository {
     try {
       const query = `
         SELECT * FROM fase
-        WHERE programa = $programaId
+        WHERE programa = type::thing($programaId)
         ORDER BY orden ASC
       `;
 
@@ -123,7 +123,11 @@ export class FaseRepository implements IFaseRepository {
         programaId: programaId.toString(),
       });
 
-      return result.map((raw) => this.mapper.faseToDomain(raw));
+      // SurrealDB query() returns array of result sets: [[fase1, fase2, ...]]
+      // Extract the first result set
+      const fases = Array.isArray(result[0]) ? result[0] : result;
+
+      return fases.map((raw) => this.mapper.faseToDomain(raw));
     } catch (error) {
       this.logger.error(`Error finding fases by programa: ${programaId.toString()}`, error);
       throw error;
