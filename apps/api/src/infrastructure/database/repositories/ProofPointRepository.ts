@@ -115,7 +115,7 @@ export class ProofPointRepository implements IProofPointRepository {
     try {
       const query = `
         SELECT * FROM proof_point
-        WHERE fase = $faseId
+        WHERE fase = type::thing($faseId)
         ORDER BY orden_en_fase ASC
       `;
 
@@ -123,7 +123,11 @@ export class ProofPointRepository implements IProofPointRepository {
         faseId: faseId.toString(),
       });
 
-      return result.map((raw) => this.mapper.proofPointToDomain(raw));
+      // SurrealDB query() returns array of result sets: [[pp1, pp2, ...]]
+      // Extract the first result set
+      const proofPoints = Array.isArray(result[0]) ? result[0] : result;
+
+      return proofPoints.map((raw) => this.mapper.proofPointToDomain(raw));
     } catch (error) {
       this.logger.error(`Error finding proof points by fase: ${faseId.toString()}`, error);
       throw error;
