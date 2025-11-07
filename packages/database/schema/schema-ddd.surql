@@ -241,8 +241,10 @@ PERMISSIONS ON exercise_content
   FOR create, update, delete WHERE $auth.rol IN ['admin', 'instructor'];
 
 -- Permisos tabla user
+-- NOTE: SELECT is FULL to allow backend (using root credentials) to read users for token validation
+-- TODO: Consider implementing scope-based admin authentication for better security
 PERMISSIONS ON user
-  FOR select WHERE id = $auth.id OR $auth.rol = 'admin'
+  FOR select FULL
   FOR create WHERE $auth.rol = 'admin'
   FOR update WHERE id = $auth.id OR $auth.rol = 'admin'
   FOR delete WHERE $auth.rol = 'admin';
