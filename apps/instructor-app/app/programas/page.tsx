@@ -15,15 +15,9 @@ import { useUIStore } from "@/stores/ui-store"
 import { cn } from "@/lib/utils"
 import { Breadcrumbs } from "@/components/shared/breadcrumbs"
 import { PageHeader } from "@/components/shared/page-header"
+import { programsApi } from "@/services/api"
 
-const fetcher = async (url: string) => {
-  const response = await fetch(url)
-  if (!response.ok) {
-    const errData = await response.json().catch(() => ({}))
-    throw new Error(errData.message || "Error al cargar los programas")
-  }
-  return response.json()
-}
+const fetcher = () => programsApi.getAll()
 
 const filters = ["Todos", "Publicados", "Borradores", "Archivados"] as const
 type FilterType = (typeof filters)[number]
@@ -39,7 +33,7 @@ export default function ProgramasPage() {
     error,
     isLoading,
     mutate,
-  } = useSWR<Program[]>("/api/v1/programas", fetcher, { revalidateOnFocus: false })
+  } = useSWR<Program[]>("programs", fetcher, { revalidateOnFocus: false })
 
   const programasList = programas ?? []
 
@@ -47,7 +41,7 @@ export default function ProgramasPage() {
     return programasList.filter((program) => {
       if (activeFilter === "Todos") return true
       if (activeFilter === "Publicados") return program.estado === "publicado"
-      if (activeFilter === "Borradores") return program.estado === "draft"
+      if (activeFilter === "Borradores") return program.estado === "borrador"
       if (activeFilter === "Archivados") return program.estado === "archivado"
       return true
     })

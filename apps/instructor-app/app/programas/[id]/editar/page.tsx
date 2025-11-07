@@ -10,6 +10,7 @@ import { notFound } from "next/navigation"
 import type { Program } from "@/types/program"
 import { ProgramEditor } from "@/components/fase2/ProgramEditor"
 import { toast } from "sonner"
+import { programsApi } from "@/services/api"
 
 export default function EditProgramPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -19,7 +20,7 @@ export default function EditProgramPage({ params }: { params: Promise<{ id: stri
     error,
     isLoading,
     mutate,
-  } = useSWR<Program>(id ? `/api/v1/programas/${id}` : null, fetcher)
+  } = useSWR<Program>(id ? `program-${id}` : null, () => id ? programsApi.getById(id) : null)
 
   if (isLoading) {
     return <LoadingState text="Cargando programa..." />
@@ -39,29 +40,11 @@ export default function EditProgramPage({ params }: { params: Promise<{ id: stri
 
   const handleSave = async (updatedProgram: any) => {
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
-
-      console.log("Sending PUT request to:", `/api/v1/programas/${id}`)
+      console.log("Updating program:", id)
       console.log("Request body:", updatedProgram)
 
-      const response = await fetch(`/api/v1/programas/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify(updatedProgram),
-      })
+      const result = await programsApi.update(id, updatedProgram)
 
-      console.log("Response status:", response.status)
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        console.error("Error response:", errorData)
-        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`)
-      }
-
-      const result = await response.json()
       console.log("Save successful:", result)
 
       // Revalidar datos
@@ -71,6 +54,7 @@ export default function EditProgramPage({ params }: { params: Promise<{ id: stri
       router.push(`/programas/${id}`)
     } catch (error) {
       console.error("Error saving program:", error)
+      toast.error(error instanceof Error ? error.message : "Error al guardar el programa")
       throw error
     }
   }
