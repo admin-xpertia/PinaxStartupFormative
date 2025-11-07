@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { IExerciseContentRepository } from '../../../domain/exercise-instance/repositories/IExerciseInstanceRepository';
+import { IExerciseContentRepository } from '../../../domain/exercise-instance/repositories/IExerciseContentRepository';
 import { ExerciseContent } from '../../../domain/exercise-instance/entities/ExerciseContent';
 import { RecordId } from '../../../domain/shared/value-objects/RecordId';
 import { SurrealDbService } from '../../../core/database/surrealdb.service';
@@ -175,6 +175,71 @@ export class ExerciseContentRepository implements IExerciseContentRepository {
       return result.map((raw) => this.mapper.contentToDomain(raw));
     } catch (error) {
       this.logger.error(`Error finding content by generation request: ${requestId.toString()}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Finds all published content
+   */
+  async findPublished(): Promise<ExerciseContent[]> {
+    try {
+      const query = `
+        SELECT * FROM exercise_content
+        WHERE estado = 'publicado'
+        ORDER BY created_at DESC
+      `;
+
+      const result = await this.db.query<any[]>(query);
+
+      return result.map((raw) => this.mapper.contentToDomain(raw));
+    } catch (error) {
+      this.logger.error('Error finding published content', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Finds all draft content
+   */
+  async findDrafts(): Promise<ExerciseContent[]> {
+    try {
+      const query = `
+        SELECT * FROM exercise_content
+        WHERE estado = 'draft'
+        ORDER BY created_at DESC
+      `;
+
+      const result = await this.db.query<any[]>(query);
+
+      return result.map((raw) => this.mapper.contentToDomain(raw));
+    } catch (error) {
+      this.logger.error('Error finding draft content', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Counts versions for an exercise instance
+   */
+  async countVersionsByInstance(instanceId: RecordId): Promise<number> {
+    try {
+      const query = `
+        SELECT count() as total FROM exercise_content
+        WHERE exercise_instance = $instanceId
+        GROUP ALL
+      `;
+
+      const result = await this.db.query<any[]>(query, {
+        instanceId: instanceId.toString(),
+      });
+
+      return result[0]?.total || 0;
+    } catch (error) {
+      this.logger.error(
+        `Error counting content versions by instance: ${instanceId.toString()}`,
+        error,
+      );
       throw error;
     }
   }
