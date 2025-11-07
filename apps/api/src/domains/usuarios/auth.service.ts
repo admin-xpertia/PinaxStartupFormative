@@ -74,46 +74,38 @@ export class AuthService {
 
   /**
    * Obtiene información del usuario desde el token
+   *
+   * IMPORTANTE: NO cambiar la autenticación de la conexión global del backend.
+   * El backend debe mantener sus credenciales root/admin para poder realizar
+   * operaciones administrativas. En su lugar, decodificamos el JWT y consultamos
+   * el usuario usando las credenciales root.
    */
   private async getUserFromToken(token: string): Promise<any> {
     try {
-      // Autenticarse con el token para habilitar $auth
-      await this.surrealDb.authenticateWithToken(token);
-
-      // Intentar obtener el usuario desde $auth
-      const authInfo = await this.surrealDb.getAuthInfo<any>();
-
-      let user = authInfo?.auth ?? authInfo;
-
-      if (Array.isArray(user)) {
-        if (user.length === 0) {
-          throw new UnauthorizedException("Usuario no encontrado");
-        }
-        user = user[0]?.result ?? user[0];
+      // Decodificar JWT para obtener el ID del usuario
+      const payload = this.decodeJWT(token);
+      if (!payload?.ID) {
+        throw new UnauthorizedException("Token no contiene ID de usuario");
       }
 
-      if (!user) {
-        // Fallback: decodificar JWT y obtener el usuario manualmente
-        const payload = this.decodeJWT(token);
-        if (!payload?.ID) {
-          throw new UnauthorizedException("Usuario no encontrado");
-        }
+      this.logger.debug(`Consultando usuario con ID: ${payload.ID}`);
 
-        const result = await this.surrealDb.select<any>(payload.ID);
-        if (!result || (Array.isArray(result) && result.length === 0)) {
-          throw new UnauthorizedException("Usuario no encontrado");
-        }
+      // Consultar el usuario usando las credenciales root del backend
+      // NO usar authenticateWithToken() porque cambiaría la autenticación global
+      const result = await this.surrealDb.select<any>(payload.ID);
 
-        user = Array.isArray(result) ? result[0] : result;
+      if (!result || (Array.isArray(result) && result.length === 0)) {
+        throw new UnauthorizedException("Usuario no encontrado");
       }
 
-      if (user?.result) {
-        user = user.result;
-      }
+      let user = Array.isArray(result) ? result[0] : result;
 
+      // Limpiar campos sensibles
       if (user?.password_hash) {
         delete user.password_hash;
       }
+
+      this.logger.debug(`Usuario encontrado: ${user.email}`);
 
       return user;
     } catch (error) {
@@ -181,10 +173,12 @@ export class AuthService {
 
   /**
    * Valida un token JWT
+   *
+   * IMPORTANTE: NO usar authenticateWithToken() porque cambiaría la autenticación
+   * global del backend. En su lugar, decodificamos el JWT y validamos el usuario.
    */
   async validateToken(token: string): Promise<any> {
     try {
-      await this.surrealDb.authenticateWithToken(token);
       const user = await this.getUserFromToken(token);
       return user;
     } catch (error) {

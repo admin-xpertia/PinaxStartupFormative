@@ -85,6 +85,29 @@ export class SurrealDbService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Restaura la autenticación root del backend
+   *
+   * Este método debe llamarse después de cualquier operación que cambie
+   * la autenticación de la conexión (como signin/signup con scopes).
+   */
+  async restoreRootAuth(): Promise<void> {
+    try {
+      const user = this.configService.get<string>("SURREAL_USER");
+      const pass = this.configService.get<string>("SURREAL_PASS");
+
+      await this.db.signin({
+        username: user,
+        password: pass,
+      });
+
+      this.logger.debug("✅ Autenticación root restaurada");
+    } catch (error) {
+      this.logger.error("❌ Error al restaurar autenticación root", error);
+      throw error;
+    }
+  }
+
+  /**
    * Obtiene la instancia de SurrealDB
    */
   getDb(): Surreal {
@@ -205,6 +228,10 @@ export class SurrealDbService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Autentica usando un scope (para signup/signin)
+   *
+   * IMPORTANTE: Este método cambia temporalmente la autenticación de la conexión.
+   * Debe ser seguido inmediatamente por restoreRootAuth() para restaurar
+   * las credenciales root del backend.
    */
   async authenticate(
     scope: string,
@@ -225,6 +252,10 @@ export class SurrealDbService implements OnModuleInit, OnModuleDestroy {
         SC: scope,
         ...credentials,
       });
+
+      // Restaurar inmediatamente la autenticación root
+      await this.restoreRootAuth();
+
       return token;
     } catch (error) {
       this.logger.error(`Error en authenticate (scope: ${scope})`, error);
@@ -234,6 +265,10 @@ export class SurrealDbService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Registra un nuevo usuario usando un scope
+   *
+   * IMPORTANTE: Este método cambia temporalmente la autenticación de la conexión.
+   * Debe ser seguido inmediatamente por restoreRootAuth() para restaurar
+   * las credenciales root del backend.
    */
   async signup(
     scope: string,
@@ -254,6 +289,10 @@ export class SurrealDbService implements OnModuleInit, OnModuleDestroy {
         SC: scope,
         ...credentials,
       });
+
+      // Restaurar inmediatamente la autenticación root
+      await this.restoreRootAuth();
+
       return token;
     } catch (error) {
       this.logger.error(`Error en signup (scope: ${scope})`, error);
