@@ -108,6 +108,11 @@ export class ExerciseInstance extends AggregateRoot<ExerciseInstanceProps> {
     return { ...this.props.configuracionPersonalizada };
   }
 
+  // Alias for convenience
+  getConfiguracion(): Record<string, any> {
+    return this.getConfiguracionPersonalizada();
+  }
+
   getOrden(): number {
     return this.props.orden;
   }
@@ -271,6 +276,24 @@ export class ExerciseInstance extends AggregateRoot<ExerciseInstanceProps> {
   regenerateContent(): void {
     this.props.estadoContenido = ContentStatus.sinGenerar();
     this.props.contenidoActual = undefined;
+    this.props.updatedAt = Timestamp.now();
+  }
+
+  /**
+   * Updates the content status directly
+   * Use with caution - prefer specific methods like startGeneration(), setContentDraft(), etc.
+   */
+  updateEstadoContenido(status: ContentStatus): void {
+    this.props.estadoContenido = status;
+    this.props.updatedAt = Timestamp.now();
+  }
+
+  /**
+   * Sets the current content ID directly
+   * Use with caution - prefer setContentDraft() for proper state management
+   */
+  setContenidoActual(contenidoId: RecordId): void {
+    this.props.contenidoActual = contenidoId;
     this.props.updatedAt = Timestamp.now();
   }
 

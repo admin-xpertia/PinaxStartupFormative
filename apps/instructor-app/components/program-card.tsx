@@ -29,15 +29,11 @@ export function ProgramCard({ program }: ProgramCardProps) {
   }
 
   const handleContinueEditing = () => {
-    router.push(`/programas/${program.id}/editar`)
+    router.push(`/programas/${program.id}/estructura`)
   }
 
   const handleViewAnalytics = () => {
     router.push(`/programas/${program.id}/analytics`)
-  }
-
-  const handlePreview = () => {
-    router.push(`/programas/${program.id}/preview`)
   }
 
   return (
@@ -123,15 +119,10 @@ export function ProgramCard({ program }: ProgramCardProps) {
               </Button>
             </>
           ) : (
-            <>
-              <Button size="sm" onClick={handleContinueEditing}>
-                <Edit className="mr-2 h-4 w-4" />
-                Continuar Editando
-              </Button>
-              <Button size="sm" variant="outline" onClick={handlePreview}>
-                <Eye className="h-4 w-4" />
-              </Button>
-            </>
+            <Button size="sm" onClick={handleContinueEditing}>
+              <Edit className="mr-2 h-4 w-4" />
+              Continuar Editando
+            </Button>
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

@@ -1,4 +1,4 @@
-import { IRepository } from '../../shared/types/IRepository';
+import { IRepository } from '../../shared/repositories/IRepository';
 import { ExerciseContent } from '../entities/ExerciseContent';
 import { RecordId } from '../../shared/value-objects/RecordId';
 

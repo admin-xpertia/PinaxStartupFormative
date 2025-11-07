@@ -4,9 +4,11 @@ import { Result } from '../../../shared/types/Result';
 import { IExerciseInstanceRepository } from '../../../../domain/exercise-instance/repositories/IExerciseInstanceRepository';
 import { IExerciseContentRepository } from '../../../../domain/exercise-instance/repositories/IExerciseContentRepository';
 import { IExerciseTemplateRepository } from '../../../../domain/exercise-catalog/repositories/IExerciseTemplateRepository';
-import { IProofPointRepository } from '../../../../domain/program-design/repositories/IProgramRepository';
-import { IFaseRepository } from '../../../../domain/program-design/repositories/IFaseRepository';
-import { IProgramRepository } from '../../../../domain/program-design/repositories/IProgramRepository';
+import {
+  IProofPointRepository,
+  IFaseRepository,
+  IProgramRepository,
+} from '../../../../domain/program-design/repositories/IProgramRepository';
 import { ExerciseContent } from '../../../../domain/exercise-instance/entities/ExerciseContent';
 import { RecordId } from '../../../../domain/shared/value-objects/RecordId';
 import { ContentStatus } from '../../../../domain/exercise-instance/value-objects/ContentStatus';

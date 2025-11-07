@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Layers, Target, Sparkles, Eye, Check } from "lucide-react"
+import { ArrowLeft, Layers, Target, Sparkles, Check } from "lucide-react"
 import Link from "next/link"
 import { notFound, useRouter } from "next/navigation"
 import { programsApi, fasesApi } from "@/services/api"
@@ -119,12 +119,6 @@ export default function ProgramEstructuraPage({ params }: { params: Promise<{ id
               />
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" asChild>
-                <Link href={`/programas/${id}/preview`}>
-                  <Eye className="mr-2 h-4 w-4" />
-                  Vista Previa
-                </Link>
-              </Button>
               {program.estado === "borrador" && (
                 <Button onClick={() => {
                   // TODO: Implement publish

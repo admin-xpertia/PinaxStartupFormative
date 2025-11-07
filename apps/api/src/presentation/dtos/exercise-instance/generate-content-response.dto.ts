@@ -25,7 +25,7 @@ export class GenerateContentResponseDto {
 
   @ApiProperty({
     description: 'Preview of generated content',
-    example: { titulo: 'Mi lección', secciones: [...] },
+    example: { titulo: 'Mi lección', secciones: [] },
     required: false,
   })
   contentPreview?: any;
