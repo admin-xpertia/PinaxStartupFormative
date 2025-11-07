@@ -62,9 +62,17 @@ async function main() {
 
     // Aplicar migración
     log('⚙️  Aplicando migración...\n', 'cyan');
-    const result = await db.query(migration);
 
-    log('✓ Migración aplicada exitosamente\n', 'green');
+    try {
+      const result = await db.query(migration);
+      log('✓ Migración aplicada exitosamente\n', 'green');
+    } catch (migrationError: any) {
+      if (migrationError.message.includes('already exists')) {
+        log('⚠️  El instructor_scope ya existe (migración previamente aplicada)\n', 'yellow');
+      } else {
+        throw migrationError;
+      }
+    }
 
     // Verificar que el scope existe
     log('🔍 Verificando que instructor_scope existe...', 'cyan');
