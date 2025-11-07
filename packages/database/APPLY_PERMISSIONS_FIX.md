@@ -20,10 +20,7 @@ Cambiar los permisos de SELECT en la tabla `user` a FULL, permitiendo que el bac
 4. Ejecuta el siguiente comando:
 
 ```surql
--- Remover permisos actuales
-REMOVE PERMISSIONS ON user;
-
--- Aplicar nuevos permisos
+-- Aplicar nuevos permisos (sobrescribe los anteriores automáticamente)
 DEFINE PERMISSIONS FOR TABLE user
   FOR select FULL
   FOR create WHERE $auth.rol = 'admin'
