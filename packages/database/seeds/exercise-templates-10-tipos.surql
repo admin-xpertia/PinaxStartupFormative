@@ -9,7 +9,7 @@ USE NS xpertia;
 USE DB plataforma;
 
 -- 1. LECCIONES INTERACTIVAS
-UPDATE exercise_template:leccion_interactiva SET
+CREATE exercise_template:leccion_interactiva SET
   nombre = 'Lección Interactiva',
   categoria = 'leccion_interactiva',
   descripcion = 'Transmitir conocimiento conceptual de manera activa donde el aprendiz interactúa con el contenido',
@@ -52,7 +52,7 @@ UPDATE exercise_template:leccion_interactiva SET
   updated_at = time::now();
 
 -- 2. CUADERNOS DE TRABAJO
-UPDATE exercise_template:cuaderno_trabajo SET
+CREATE exercise_template:cuaderno_trabajo SET
   nombre = 'Cuaderno de Trabajo',
   categoria = 'cuaderno_trabajo',
   descripcion = 'Guiar al aprendiz a documentar, estructurar y reflexionar sobre su propio trabajo',
@@ -93,7 +93,7 @@ UPDATE exercise_template:cuaderno_trabajo SET
   updated_at = time::now();
 
 -- 3. SIMULACIONES DE INTERACCIÓN
-UPDATE exercise_template:simulacion_interaccion SET
+CREATE exercise_template:simulacion_interaccion SET
   nombre = 'Simulación de Interacción',
   categoria = 'simulacion_interaccion',
   descripcion = 'Práctica de habilidades interpersonales en entorno seguro con agentes IA que simulan roles específicos',
@@ -116,7 +116,7 @@ UPDATE exercise_template:simulacion_interaccion SET
   prompt_template = 'Simula una interacción con {{rol_simulado}} en contexto: {{contexto_situacion}}. Nivel de dificultad: {{nivel_dificultad}}. Mantén coherencia de personalidad{{#if personalidad}} con rasgos: {{personalidad}}{{/if}}. Incluye señales paraverbales y genera análisis de técnica al finalizar.',
   output_schema = {
     conversacion: 'array',
-    señales_paraverbales: 'array',
+    senales_paraverbales: 'array',
     analisis_tecnica: 'object'
   },
   preview_config = {
@@ -131,7 +131,7 @@ UPDATE exercise_template:simulacion_interaccion SET
   updated_at = time::now();
 
 -- 4. MENTORES Y ASESORES IA
-UPDATE exercise_template:mentor_asesor_ia SET
+CREATE exercise_template:mentor_asesor_ia SET
   nombre = 'Mentor/Asesor IA',
   categoria = 'mentor_asesor_ia',
   descripcion = 'Guidance especializado desde perspectiva de experto con cuestionamiento socrático',
@@ -171,7 +171,7 @@ UPDATE exercise_template:mentor_asesor_ia SET
   updated_at = time::now();
 
 -- 5. HERRAMIENTAS DE ANÁLISIS Y EVALUACIÓN
-UPDATE exercise_template:herramienta_analisis SET
+CREATE exercise_template:herramienta_analisis SET
   nombre = 'Herramienta de Análisis',
   categoria = 'herramienta_analisis',
   descripcion = 'Procesar trabajo del aprendiz y generar análisis estructurado con diagnóstico y recomendaciones',
@@ -213,7 +213,7 @@ UPDATE exercise_template:herramienta_analisis SET
   updated_at = time::now();
 
 -- 6. HERRAMIENTAS DE CREACIÓN Y GENERACIÓN
-UPDATE exercise_template:herramienta_creacion SET
+CREATE exercise_template:herramienta_creacion SET
   nombre = 'Herramienta de Creación',
   categoria = 'herramienta_creacion',
   descripcion = 'Asistir en crear outputs proporcionando andamiaje generativo que acelera producción',
@@ -254,7 +254,7 @@ UPDATE exercise_template:herramienta_creacion SET
   updated_at = time::now();
 
 -- 7. SISTEMAS DE TRACKING Y MONITOREO
-UPDATE exercise_template:sistema_tracking SET
+CREATE exercise_template:sistema_tracking SET
   nombre = 'Sistema de Tracking',
   categoria = 'sistema_tracking',
   descripcion = 'Mantener visibilidad continua del progreso e identificar tendencias longitudinales',
@@ -298,7 +298,7 @@ UPDATE exercise_template:sistema_tracking SET
   updated_at = time::now();
 
 -- 8. HERRAMIENTAS DE REVISIÓN Y FEEDBACK
-UPDATE exercise_template:herramienta_revision SET
+CREATE exercise_template:herramienta_revision SET
   nombre = 'Herramienta de Revisión',
   categoria = 'herramienta_revision',
   descripcion = 'Proporcionar retroalimentación formativa específica, accionable y balanceada',
@@ -308,7 +308,7 @@ UPDATE exercise_template:herramienta_revision SET
     type: 'object',
     properties: {
       momento_feedback: { type: 'string', enum: ['tiempo_real', 'post_tarea', 'ambos'], default: 'ambos' },
-      priorizar_señalamientos: { type: 'boolean', default: true, description: 'No abrumar con 20 cosas' },
+      priorizar_senalamientos: { type: 'boolean', default: true, description: 'No abrumar con 20 cosas' },
       comenzar_con_fortalezas: { type: 'boolean', default: true },
       comparar_con_ejemplares: { type: 'boolean', default: true },
       adaptar_a_nivel_dominio: { type: 'boolean', default: true },
@@ -317,13 +317,13 @@ UPDATE exercise_template:herramienta_revision SET
   },
   configuracion_default = {
     momento_feedback: 'ambos',
-    priorizar_señalamientos: true,
+    priorizar_senalamientos: true,
     comenzar_con_fortalezas: true,
     comparar_con_ejemplares: true,
     adaptar_a_nivel_dominio: true,
     incluir_recursos_mejora: true
   },
-  prompt_template = 'Proporciona feedback {{momento_feedback}}{{#if priorizar_señalamientos}}, priorizando 3-5 señalamientos clave (no abrumar){{/if}}{{#if comenzar_con_fortalezas}}. Comienza con fortalezas específicas{{/if}}{{#if comparar_con_ejemplares}}. Compara con ejemplares para hacer gaps accionables{{/if}}{{#if adaptar_a_nivel_dominio}}. Adapta profundidad según nivel de dominio{{/if}}{{#if incluir_recursos_mejora}}. Conecta feedback con recursos para mejorar{{/if}}. Balancea honestidad con motivación.',
+  prompt_template = 'Proporciona feedback {{momento_feedback}}{{#if priorizar_senalamientos}}, priorizando 3-5 señalamientos clave (no abrumar){{/if}}{{#if comenzar_con_fortalezas}}. Comienza con fortalezas específicas{{/if}}{{#if comparar_con_ejemplares}}. Compara con ejemplares para hacer gaps accionables{{/if}}{{#if adaptar_a_nivel_dominio}}. Adapta profundidad según nivel de dominio{{/if}}{{#if incluir_recursos_mejora}}. Conecta feedback con recursos para mejorar{{/if}}. Balancea honestidad con motivación.',
   output_schema = {
     fortalezas_especificas: 'array',
     areas_mejora_priorizadas: 'array',
@@ -343,7 +343,7 @@ UPDATE exercise_template:herramienta_revision SET
   updated_at = time::now();
 
 -- 9. SIMULADORES DE ENTORNO
-UPDATE exercise_template:simulador_entorno SET
+CREATE exercise_template:simulador_entorno SET
   nombre = 'Simulador de Entorno',
   categoria = 'simulador_entorno',
   descripcion = 'Crear entornos virtuales donde experimentar sin consecuencias del mundo real',
@@ -388,7 +388,7 @@ UPDATE exercise_template:simulador_entorno SET
   updated_at = time::now();
 
 -- 10. SISTEMAS DE PROGRESIÓN Y DESBLOQUEO
-UPDATE exercise_template:sistema_progresion SET
+CREATE exercise_template:sistema_progresion SET
   nombre = 'Sistema de Progresión',
   categoria = 'sistema_progresion',
   descripcion = 'Gestionar flujo del aprendiz asegurando dominio suficiente antes de avanzar',

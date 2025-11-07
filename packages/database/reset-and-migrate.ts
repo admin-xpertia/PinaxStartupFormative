@@ -233,10 +233,16 @@ async function applySeed(db: Surreal, skipSeed: boolean) {
     const userSeedContent = readFileSync(userSeedPath, 'utf-8');
 
     // Dividir el seed en statements individuales
-    const userStatements = userSeedContent
+    // Primero remover líneas de comentarios
+    const cleanedContent = userSeedContent
+      .split('\n')
+      .filter(line => !line.trim().startsWith('--'))
+      .join('\n');
+
+    const userStatements = cleanedContent
       .split(';')
       .map(s => s.trim())
-      .filter(s => s.length > 0 && !s.startsWith('--'));
+      .filter(s => s.length > 0);
 
     log(`Ejecutando ${userStatements.length} statements de usuarios...`, 'blue');
 
@@ -263,10 +269,16 @@ async function applySeed(db: Surreal, skipSeed: boolean) {
     const exercisesSeedContent = readFileSync(exercisesSeedPath, 'utf-8');
 
     // Dividir el seed en statements individuales
-    const exerciseStatements = exercisesSeedContent
+    // Primero remover líneas de comentarios
+    const cleanedExercisesContent = exercisesSeedContent
+      .split('\n')
+      .filter(line => !line.trim().startsWith('--'))
+      .join('\n');
+
+    const exerciseStatements = cleanedExercisesContent
       .split(';')
       .map(s => s.trim())
-      .filter(s => s.length > 0 && !s.startsWith('--'));
+      .filter(s => s.length > 0);
 
     log(`Ejecutando ${exerciseStatements.length} statements de exercise templates...`, 'blue');
 

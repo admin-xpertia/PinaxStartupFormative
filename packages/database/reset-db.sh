@@ -31,13 +31,6 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-# Configuración por defecto
-SURREAL_URL="${SURREAL_URL:-http://127.0.0.1:8000/rpc}"
-SURREAL_USER="${SURREAL_USER:-root}"
-SURREAL_PASS="${SURREAL_PASS:-root}"
-SURREAL_NS="${SURREAL_NS:-xpertia}"
-SURREAL_DB="${SURREAL_DB:-plataforma}"
-
 # Funciones auxiliares
 log() {
   echo -e "${2}${1}${NC}"
@@ -50,6 +43,21 @@ log_section() {
   echo "================================================================================"
   echo ""
 }
+
+# Cargar variables de entorno desde apps/api/.env si existe
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENV_FILE="${SCRIPT_DIR}/../../apps/api/.env"
+
+if [ -f "$ENV_FILE" ]; then
+  export $(grep -v '^#' "$ENV_FILE" | xargs)
+fi
+
+# Configuración por defecto
+SURREAL_URL="${SURREAL_URL:-http://127.0.0.1:8000/rpc}"
+SURREAL_USER="${SURREAL_USER:-root}"
+SURREAL_PASS="${SURREAL_PASS:-root}"
+SURREAL_NS="${SURREAL_NS:-${SURREAL_NAMESPACE:-xpertia}}"
+SURREAL_DB="${SURREAL_DB:-${SURREAL_DATABASE:-plataforma}}"
 
 # Verificar argumentos
 if [[ "$1" == "--help" ]]; then
@@ -109,17 +117,12 @@ if [ ! -f "$SCHEMA_FILE" ]; then
   exit 1
 fi
 
-# Verificar conexión a SurrealDB
-log "Verificando conexión a SurrealDB..." "$BLUE"
-
-if ! curl -s -o /dev/null -w "%{http_code}" "${SURREAL_URL}" | grep -q "200\|405"; then
-  log "✗ Error: No se puede conectar a SurrealDB en ${SURREAL_URL}" "$RED"
-  log "  Asegúrate de que SurrealDB está corriendo" "$YELLOW"
-  log "  Puedes iniciarlo con: surreal start --log trace --user root --pass root memory" "$YELLOW"
-  exit 1
-fi
-
-log "✓ Conexión a SurrealDB exitosa" "$GREEN"
+# Nota: La verificación de conexión se realiza en el script TypeScript
+# porque soporta tanto HTTP como WebSocket (ws:// y wss://)
+log "Configuración de SurrealDB:" "$BLUE"
+log "  URL: ${SURREAL_URL}" "$CYAN"
+log "  Namespace: ${SURREAL_NS}" "$CYAN"
+log "  Database: ${SURREAL_DB}" "$CYAN"
 
 # Ejecutar el script de migración
 log_section "EJECUTANDO MIGRACIÓN"
