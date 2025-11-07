@@ -15,7 +15,7 @@ export interface ProgramaProps {
   descripcion?: string;
   duracion: Duration;
   estado: ProgramStatus;
-  versionActual: string;
+  versionActual: number;
   categoria?: string;
   nivelDificultad?: 'principiante' | 'intermedio' | 'avanzado';
   imagenPortadaUrl?: string;
@@ -52,7 +52,7 @@ export class Programa extends AggregateRoot<ProgramaProps> {
       descripcion,
       duracion: Duration.weeks(duracionSemanas),
       estado: ProgramStatus.draft(),
-      versionActual: '1.0.0',
+      versionActual: 1,
       visible: true,
       creador: creadorId,
       createdAt: Timestamp.now(),
@@ -198,7 +198,7 @@ export class Programa extends AggregateRoot<ProgramaProps> {
   /**
    * Updates the version
    */
-  updateVersion(newVersion: string): void {
+  updateVersion(newVersion: number): void {
     this.props.versionActual = newVersion;
     this.props.updatedAt = Timestamp.now();
   }
