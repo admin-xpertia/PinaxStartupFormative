@@ -7,12 +7,11 @@ import { Sidebar } from "@/components/sidebar"
 import { StatsCard } from "@/components/stats-card"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, BookOpen, Users, BarChart3, Sparkles, Layers, Target, CheckCircle2, Clock } from "lucide-react"
+import { Plus, BookOpen, Users, BarChart3, Sparkles, Layers } from "lucide-react"
 import { ProgramWizard } from "@/components/wizard/program-wizard"
 import { useUIStore } from "@/stores/ui-store"
 import { cn } from "@/lib/utils"
 import { Breadcrumbs } from "@/components/shared/breadcrumbs"
-import { PageHeader } from "@/components/shared/page-header"
 import { programsApi } from "@/services/api"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -71,30 +70,34 @@ export default function DashboardPage() {
           {/* Stats Grid */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <StatsCard
-              title="Programas Totales"
-              value={stats.totalPrograms.toString()}
-              description="Todos los programas creados"
-              icon={<BookOpen className="h-4 w-4 text-muted-foreground" />}
-              trend={stats.totalPrograms > 0 ? "+100%" : undefined}
+              stat={{
+                metrica: stats.totalPrograms.toString(),
+                label: "Programas Totales",
+                icono: "BookOpen",
+                tendencia: stats.totalPrograms > 0 ? `${stats.totalPrograms} activos` : undefined,
+              }}
             />
             <StatsCard
-              title="Borradores"
-              value={stats.draftPrograms.toString()}
-              description="En proceso de creación"
-              icon={<Clock className="h-4 w-4 text-muted-foreground" />}
+              stat={{
+                metrica: stats.draftPrograms.toString(),
+                label: "Borradores",
+                icono: "BookOpen",
+              }}
             />
             <StatsCard
-              title="Publicados"
-              value={stats.publishedPrograms.toString()}
-              description="Disponibles para estudiantes"
-              icon={<CheckCircle2 className="h-4 w-4 text-muted-foreground" />}
-              trend={stats.publishedPrograms > 0 ? "Activos" : undefined}
+              stat={{
+                metrica: stats.publishedPrograms.toString(),
+                label: "Publicados",
+                icono: "BookOpen",
+                tendencia: stats.publishedPrograms > 0 ? "Disponibles" : undefined,
+              }}
             />
             <StatsCard
-              title="Estudiantes"
-              value={stats.totalStudents.toString()}
-              description="Usuarios activos"
-              icon={<Users className="h-4 w-4 text-muted-foreground" />}
+              stat={{
+                metrica: stats.totalStudents.toString(),
+                label: "Estudiantes",
+                icono: "Users",
+              }}
             />
           </div>
 
