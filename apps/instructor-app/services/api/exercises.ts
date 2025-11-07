@@ -55,14 +55,14 @@ export const exerciseInstancesApi = {
    */
   getByProofPoint: (proofPointId: string) =>
     apiClient.get<ExerciseInstanceResponse[]>(
-      `/exercise-instances/proof-point/${proofPointId}`
+      `/proof-points/${proofPointId}/exercises`
     ),
 
   /**
    * Get exercise instance by ID
    */
   getById: (id: string) =>
-    apiClient.get<ExerciseInstanceResponse>(`/exercise-instances/${id}`),
+    apiClient.get<ExerciseInstanceResponse>(`/exercises/${id}`),
 
   /**
    * Add exercise to proof point
@@ -77,12 +77,12 @@ export const exerciseInstancesApi = {
    * Update exercise instance
    */
   update: (id: string, data: Partial<AddExerciseToProofPointRequest>) =>
-    apiClient.put<ExerciseInstanceResponse>(`/exercise-instances/${id}`, data),
+    apiClient.put<ExerciseInstanceResponse>(`/exercises/${id}`, data),
 
   /**
    * Delete exercise instance
    */
-  delete: (id: string) => apiClient.delete<void>(`/exercise-instances/${id}`),
+  delete: (id: string) => apiClient.delete<void>(`/exercises/${id}`),
 
   /**
    * Reorder exercises in a proof point
@@ -96,9 +96,10 @@ export const exerciseInstancesApi = {
   /**
    * Generate content for exercise
    */
-  generateContent: (id: string) =>
+  generateContent: (id: string, forceRegenerate?: boolean) =>
     apiClient.post<ExerciseInstanceResponse>(
-      `/exercise-instances/${id}/generate`
+      `/exercises/${id}/generate`,
+      { forceRegenerate }
     ),
 }
 
