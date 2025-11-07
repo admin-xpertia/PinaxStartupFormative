@@ -107,4 +107,20 @@ export class ProgramResponseDto {
     example: '2025-11-06T12:30:00Z',
   })
   updatedAt: string;
+
+  @ApiPropertyOptional({
+    description: 'Estadísticas del programa (número de fases, proof points, etc.)',
+    example: {
+      fases: 3,
+      proof_points: 8,
+      duracion: '12 semanas',
+      estudiantes: 0,
+    },
+  })
+  estadisticas?: {
+    fases: number;
+    proof_points: number;
+    duracion: string;
+    estudiantes: number;
+  };
 }
