@@ -294,6 +294,7 @@ DEFINE FIELD nombre ON snapshot_fase TYPE string;
 DEFINE FIELD numero_fase ON snapshot_fase TYPE number;
 DEFINE FIELD orden ON snapshot_fase TYPE number;
 DEFINE FIELD descripcion ON snapshot_fase TYPE option<string>;
+DEFINE FIELD duracion_semanas_estimada ON snapshot_fase TYPE option<number>;
 DEFINE FIELD objetivos_aprendizaje ON snapshot_fase TYPE array DEFAULT [];
 DEFINE FIELD created_at ON snapshot_fase TYPE datetime DEFAULT time::now();
 
@@ -309,7 +310,7 @@ DEFINE FIELD nombre ON snapshot_proofpoint TYPE string;
 DEFINE FIELD pregunta_central ON snapshot_proofpoint TYPE option<string>;
 DEFINE FIELD orden_en_fase ON snapshot_proofpoint TYPE number;
 DEFINE FIELD descripcion ON snapshot_proofpoint TYPE option<string>;
-DEFINE FIELD duracion_horas ON snapshot_proofpoint TYPE option<number>;
+DEFINE FIELD duracion_estimada_horas ON snapshot_proofpoint TYPE option<number>;
 DEFINE FIELD documentacion_contexto ON snapshot_proofpoint TYPE string DEFAULT '';
 DEFINE FIELD created_at ON snapshot_proofpoint TYPE datetime DEFAULT time::now();
 
