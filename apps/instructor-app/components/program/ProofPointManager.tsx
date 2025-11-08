@@ -8,12 +8,14 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Plus, Edit, Trash2, GripVertical, Clock, HelpCircle, Package } from "lucide-react"
+import { Plus, Edit, Trash2, GripVertical, Clock, HelpCircle, Package, BookOpen } from "lucide-react"
 import { proofPointsApi } from "@/services/api"
 import type { ProofPointResponse, AddProofPointRequest } from "@/types/api"
 import { toast } from "sonner"
+import Link from "next/link"
 
 interface ProofPointManagerProps {
+  programId: string
   faseId: string
   faseName: string
   onProofPointCreated?: (proofPoint: ProofPointResponse) => void
@@ -26,6 +28,7 @@ interface ProofPointFormData extends AddProofPointRequest {
 }
 
 export function ProofPointManager({
+  programId,
   faseId,
   faseName,
   onProofPointCreated,
@@ -261,6 +264,17 @@ export function ProofPointManager({
                     </div>
                   </div>
                   <div className="flex gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8"
+                      asChild
+                    >
+                      <Link href={`/programas/${encodeURIComponent(programId)}/proof-points/${encodeURIComponent(pp.id)}/ejercicios`}>
+                        <BookOpen className="h-3 w-3 mr-1" />
+                        Ejercicios
+                      </Link>
+                    </Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenDialog(pp)}>
                       <Edit className="h-3 w-3" />
                     </Button>

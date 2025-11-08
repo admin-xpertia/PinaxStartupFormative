@@ -203,6 +203,7 @@ export default function ProgramEstructuraPage({ params }: { params: Promise<{ id
                         </CardHeader>
                         <CardContent>
                           <ProofPointManager
+                            programId={id}
                             faseId={fase.id}
                             faseName={fase.nombre}
                           />

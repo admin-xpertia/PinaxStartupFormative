@@ -120,11 +120,8 @@ export class FaseController {
   async listFasesByProgram(
     @Param('programId') programId: string,
   ): Promise<FaseResponseDto[]> {
-    this.logger.log(`[listFasesByProgram] Received programId: ${programId}`);
-
     // Decode URL-encoded characters
     const decodedProgramId = decodeURIComponent(programId);
-    this.logger.log(`[listFasesByProgram] Decoded programId: ${decodedProgramId}`);
 
     // Query database directly to get plain objects
     const query = `
@@ -133,15 +130,9 @@ export class FaseController {
       ORDER BY orden ASC
     `;
 
-    this.logger.log(`[listFasesByProgram] Executing query with programaId: ${decodedProgramId}`);
-
     const result = await this.db.query(query, {
       programaId: decodedProgramId,
     });
-
-    this.logger.log(`[listFasesByProgram] Query result:`, JSON.stringify(result, null, 2));
-    this.logger.log(`[listFasesByProgram] result type:`, typeof result, 'isArray:', Array.isArray(result));
-    this.logger.log(`[listFasesByProgram] result[0] type:`, typeof result[0], 'isArray:', Array.isArray(result[0]));
 
     // Extract fases - SurrealDB might return [[fases]] or [fases] depending on query
     let fases: any[];
@@ -157,10 +148,8 @@ export class FaseController {
       fases = [];
     }
 
-    this.logger.log(`[listFasesByProgram] Found ${fases.length} fases`);
-
     // Map plain objects to DTOs directly
-    const mappedFases = fases.map((f: any) => ({
+    return fases.map((f: any) => ({
       id: f.id,
       programa: f.programa,
       numeroFase: f.numero_fase,
@@ -172,9 +161,6 @@ export class FaseController {
       createdAt: f.created_at,
       updatedAt: f.updated_at,
     }));
-
-    this.logger.log(`[listFasesByProgram] Returning fases:`, JSON.stringify(mappedFases, null, 2));
-    return mappedFases;
   }
 
   /**
