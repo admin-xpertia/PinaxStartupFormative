@@ -37,8 +37,8 @@ interface ExerciseTemplate {
   rol_ia: string
   icono: string
   color: string
-  configuracion_schema: Record<string, ConfigField>
-  configuracion_default: Record<string, any>
+  configuracion_schema?: Record<string, ConfigField> | null
+  configuracion_default?: Record<string, any> | null
 }
 
 interface ConfigField {
@@ -364,11 +364,11 @@ export function ExerciseWizardDialog({
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {Object.entries(template.configuracion_schema).map(([key, field]) =>
+                  {template.configuracion_schema && Object.entries(template.configuracion_schema).map(([key, field]) =>
                     renderConfigField(key, field)
                   )}
 
-                  {Object.keys(template.configuracion_schema).length === 0 && (
+                  {(!template.configuracion_schema || Object.keys(template.configuracion_schema).length === 0) && (
                     <p className="text-sm text-muted-foreground text-center py-4">
                       Este tipo de ejercicio no tiene configuración adicional
                     </p>
