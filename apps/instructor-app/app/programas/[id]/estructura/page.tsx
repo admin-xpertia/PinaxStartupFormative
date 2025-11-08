@@ -26,7 +26,9 @@ import { ExerciseSelector } from "@/components/exercises"
 import { toast } from "sonner"
 
 export default function ProgramEstructuraPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+  const { id: rawId } = use(params)
+  // Decode the URL parameter to get the actual program ID
+  const id = decodeURIComponent(rawId)
   const router = useRouter()
   const { sidebarCollapsed } = useUIStore()
   const [selectedFaseId, setSelectedFaseId] = useState<string | null>(null)
