@@ -140,9 +140,23 @@ export class FaseController {
     });
 
     this.logger.log(`[listFasesByProgram] Query result:`, JSON.stringify(result, null, 2));
+    this.logger.log(`[listFasesByProgram] result type:`, typeof result, 'isArray:', Array.isArray(result));
+    this.logger.log(`[listFasesByProgram] result[0] type:`, typeof result[0], 'isArray:', Array.isArray(result[0]));
 
-    // Extract first result set (SurrealDB returns array of result sets)
-    const fases = Array.isArray(result[0]) ? result[0] : [];
+    // Extract fases - SurrealDB might return [[fases]] or [fases] depending on query
+    let fases: any[];
+    if (Array.isArray(result) && result.length > 0) {
+      // If first element is an array, it's nested [[fases]]
+      if (Array.isArray(result[0])) {
+        fases = result[0];
+      } else {
+        // Otherwise it's already flat [fases]
+        fases = result;
+      }
+    } else {
+      fases = [];
+    }
+
     this.logger.log(`[listFasesByProgram] Found ${fases.length} fases`);
 
     // Map plain objects to DTOs directly
