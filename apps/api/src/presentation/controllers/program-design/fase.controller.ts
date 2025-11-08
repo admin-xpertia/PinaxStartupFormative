@@ -74,10 +74,19 @@ export class FaseController {
 
     return result.match({
       ok: async (response) => {
-        const fase = await this.faseRepository.findById(
-          RecordId.fromString(response.faseId),
-        );
-        return this.mapToResponseDto(fase!);
+        // Return DTO directly from use case response without additional query
+        return {
+          id: response.faseId,
+          programa: programId,
+          numeroFase: response.numeroFase,
+          nombre: response.nombre,
+          descripcion: addFaseDto.descripcion,
+          objetivosAprendizaje: addFaseDto.objetivosAprendizaje || [],
+          duracionSemanasEstimada: addFaseDto.duracionSemanasEstimada,
+          orden: response.orden,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
       },
       fail: (error) => {
         if (error.message.includes('not found')) {

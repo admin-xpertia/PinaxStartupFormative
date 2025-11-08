@@ -78,10 +78,22 @@ export class ProofPointController {
 
     return result.match({
       ok: async (response) => {
-        const proofPoint = await this.proofPointRepository.findById(
-          RecordId.fromString(response.proofPointId),
-        );
-        return this.mapToResponseDto(proofPoint!);
+        // Return DTO directly from use case response without additional query
+        return {
+          id: response.proofPointId,
+          fase: faseId,
+          nombre: response.nombre,
+          slug: response.slug,
+          descripcion: addProofPointDto.descripcion,
+          preguntaCentral: addProofPointDto.preguntaCentral,
+          ordenEnFase: response.ordenEnFase,
+          duracionEstimadaHoras: addProofPointDto.duracionEstimadaHoras,
+          tipoEntregableFinal: addProofPointDto.tipoEntregableFinal,
+          documentacionContexto: addProofPointDto.documentacionContexto || '',
+          prerequisitos: addProofPointDto.prerequisitos || [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
       },
       fail: (error) => {
         if (error.message.includes('not found')) {
