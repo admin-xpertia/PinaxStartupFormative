@@ -52,6 +52,35 @@ export class ExerciseTemplateController {
   }
 
   /**
+   * Get exercise templates grouped by category
+   */
+  @Get('grouped')
+  @ApiOperation({
+    summary: 'Get templates grouped by category',
+    description: 'Get all exercise templates organized by category',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Templates grouped by category',
+  })
+  async getTemplatesGrouped(): Promise<{ data: Record<string, ExerciseTemplateResponseDto[]> }> {
+    const templates = await this.templateRepository.findAll();
+    const grouped: Record<string, ExerciseTemplateResponseDto[]> = {};
+
+    for (const template of templates) {
+      const dto = this.mapToResponseDto(template);
+      const category = dto.categoria;
+
+      if (!grouped[category]) {
+        grouped[category] = [];
+      }
+      grouped[category].push(dto);
+    }
+
+    return { data: grouped };
+  }
+
+  /**
    * Get exercise template by ID
    */
   @Get(':id')
