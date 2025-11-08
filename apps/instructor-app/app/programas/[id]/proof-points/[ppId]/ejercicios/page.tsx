@@ -138,11 +138,11 @@ export default function ExerciseLibraryPage({
 
   // Fetch exercise instances for this proof point
   const {
-    data: instancesResponse,
+    data: instances,
     mutate: mutateInstances,
     isLoading: instancesLoading,
-  } = useSWR<{ data: ExerciseInstance[] }>(
-    `/api/v1/exercise-instances/proof-point/${ppId}`,
+  } = useSWR<ExerciseInstance[]>(
+    `/api/v1/proof-points/${ppId}/exercises`,
     fetcher
   )
 
@@ -151,7 +151,7 @@ export default function ExerciseLibraryPage({
     data: Record<string, ExerciseTemplate[]>
   }>(`/api/v1/exercise-templates/grouped`, fetcher)
 
-  const instances = instancesResponse?.data || []
+  const exerciseInstances = instances || []
   const templatesGrouped = templatesResponse?.data || {}
 
   // Handle generate single exercise
@@ -159,8 +159,14 @@ export default function ExerciseLibraryPage({
     setGeneratingIds((prev) => new Set(prev).add(instanceId))
 
     try {
-      const response = await fetch(`/api/v1/exercise-generation/${instanceId}`, {
+      const response = await fetch(`/api/v1/exercises/${instanceId}/generate`, {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          forceRegenerate: false,
+        }),
       })
 
       if (!response.ok) {
@@ -233,7 +239,7 @@ export default function ExerciseLibraryPage({
     if (!instanceToDelete) return
 
     try {
-      const response = await fetch(`/api/v1/exercise-instances/${instanceToDelete}`, {
+      const response = await fetch(`/api/v1/exercises/${instanceToDelete}`, {
         method: "DELETE",
       })
 
@@ -302,7 +308,7 @@ export default function ExerciseLibraryPage({
     )
   }
 
-  const pendingGeneration = instances.filter((i) => i.estado_contenido === "sin_generar")
+  const pendingGeneration = exerciseInstances.filter((i) => i.estado_contenido === "sin_generar")
 
   return (
     <>
@@ -359,14 +365,14 @@ export default function ExerciseLibraryPage({
               <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
                 <TabsList>
                   <TabsTrigger value="agregados">
-                    Ejercicios Agregados ({instances.length})
+                    Ejercicios Agregados ({exerciseInstances.length})
                   </TabsTrigger>
                   <TabsTrigger value="biblioteca">Biblioteca de Ejercicios</TabsTrigger>
                 </TabsList>
 
                 {/* Tab: Ejercicios Agregados */}
                 <TabsContent value="agregados" className="space-y-4">
-                  {instances.length === 0 ? (
+                  {exerciseInstances.length === 0 ? (
                     <Card>
                       <CardContent className="flex flex-col items-center justify-center py-12">
                         <div className="rounded-full bg-muted p-4 mb-4">
@@ -387,7 +393,7 @@ export default function ExerciseLibraryPage({
                     </Card>
                   ) : (
                     <div className="space-y-3">
-                      {instances
+                      {exerciseInstances
                         .sort((a, b) => a.orden - b.orden)
                         .map((instance, index) => (
                           <ExerciseInstanceCard
@@ -403,7 +409,7 @@ export default function ExerciseLibraryPage({
                     </div>
                   )}
 
-                  {instances.length > 0 && (
+                  {exerciseInstances.length > 0 && (
                     <div className="flex justify-between items-center pt-4">
                       <Button variant="outline" onClick={() => setActiveTab("biblioteca")}>
                         <Plus className="mr-2 h-4 w-4" />
