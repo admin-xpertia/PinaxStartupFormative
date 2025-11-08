@@ -114,7 +114,10 @@ export default function ExerciseLibraryPage({
 }: {
   params: Promise<{ id: string; ppId: string }>
 }) {
-  const { id: programId, ppId } = use(params)
+  const { id: rawProgramId, ppId: rawPpId } = use(params)
+  // Decode URL parameters to get actual IDs
+  const programId = decodeURIComponent(rawProgramId)
+  const ppId = decodeURIComponent(rawPpId)
   const { toast } = useToast()
 
   const [selectedTemplate, setSelectedTemplate] = useState<ExerciseTemplate | null>(null)

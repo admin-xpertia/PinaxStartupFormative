@@ -19,7 +19,9 @@ import type { Program } from "@/types/program"
 import { programsApi } from "@/services/api"
 
 export default function ProgramDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+  const { id: rawId } = use(params)
+  // Decode the URL parameter to get the actual program ID
+  const id = decodeURIComponent(rawId)
   const {
     data: program,
     error,
