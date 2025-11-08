@@ -17,6 +17,7 @@ import { IExerciseTemplateRepository } from '../../../domain/exercise-catalog/re
 import { RecordId } from '../../../domain/shared/value-objects/RecordId';
 import { ExerciseCategory } from '../../../domain/exercise-catalog/value-objects/ExerciseCategory';
 import { ExerciseTemplateResponseDto } from '../../dtos/exercise-catalog';
+import { SurrealDbService } from '../../../core/database/surrealdb.service';
 
 /**
  * ExerciseTemplateController
@@ -31,6 +32,7 @@ export class ExerciseTemplateController {
   constructor(
     @Inject('IExerciseTemplateRepository')
     private readonly templateRepository: IExerciseTemplateRepository,
+    private readonly db: SurrealDbService,
   ) {}
 
   /**
@@ -64,13 +66,47 @@ export class ExerciseTemplateController {
     description: 'Templates grouped by category',
   })
   async getTemplatesGrouped(): Promise<{ data: Record<string, ExerciseTemplateResponseDto[]> }> {
-    const templates = await this.templateRepository.findAll();
+    // Query database directly to avoid mapper issues
+    const query = 'SELECT * FROM exercise_template WHERE activo = true ORDER BY categoria, nombre';
+    const result = await this.db.query(query);
+
+    // Extract templates
+    let templates: any[];
+    if (Array.isArray(result) && result.length > 0) {
+      if (Array.isArray(result[0])) {
+        templates = result[0];
+      } else {
+        templates = result;
+      }
+    } else {
+      templates = [];
+    }
+
+    // Group by category
     const grouped: Record<string, ExerciseTemplateResponseDto[]> = {};
 
     for (const template of templates) {
-      const dto = this.mapToResponseDto(template);
-      const category = dto.categoria;
+      const dto: ExerciseTemplateResponseDto = {
+        id: template.id,
+        nombre: template.nombre,
+        categoria: template.categoria,
+        descripcion: template.descripcion,
+        objetivoPedagogico: template.objetivo_pedagogico,
+        rolIA: template.rol_ia,
+        configuracionSchema: template.configuracion_schema || {},
+        configuracionDefault: template.configuracion_default || {},
+        promptTemplate: template.prompt_template || '',
+        outputSchema: template.output_schema || {},
+        previewConfig: template.preview_config || {},
+        icono: template.icono || '',
+        color: template.color || '#000000',
+        esOficial: template.es_oficial || false,
+        activo: template.activo || false,
+        createdAt: template.created_at,
+        updatedAt: template.updated_at,
+      };
 
+      const category = dto.categoria;
       if (!grouped[category]) {
         grouped[category] = [];
       }
