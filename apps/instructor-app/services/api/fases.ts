@@ -10,11 +10,8 @@ export const fasesApi = {
   /**
    * Get all fases for a program
    */
-  getByProgram: (programId: string) => {
-    console.log('[fasesApi] getByProgram called with programId:', programId)
-    console.log('[fasesApi] Calling endpoint:', `/programs/${programId}/fases`)
-    return apiClient.get<FaseResponse[]>(`/programs/${programId}/fases`)
-  },
+  getByProgram: (programId: string) =>
+    apiClient.get<FaseResponse[]>(`/programs/${programId}/fases`),
 
   /**
    * Get fase by ID

@@ -252,11 +252,8 @@ export class ProofPointController {
     @Param('id') id: string,
     @Body() updateDto: AddProofPointRequestDto,
   ): Promise<ProofPointResponseDto> {
-    this.logger.log(`[updateProofPoint] Updating proof point: ${id}`);
-
     // Decode URL-encoded characters
     const decodedId = decodeURIComponent(id);
-    this.logger.log(`[updateProofPoint] Decoded ID: ${decodedId}`);
 
     // Update using direct database query
     const query = `
@@ -282,8 +279,6 @@ export class ProofPointController {
       documentacionContexto: updateDto.documentacionContexto || '',
       prerequisitos: updateDto.prerequisitos || [],
     });
-
-    this.logger.log(`[updateProofPoint] Update result:`, JSON.stringify(result, null, 2));
 
     // Extract updated proof point
     let updated: any;
