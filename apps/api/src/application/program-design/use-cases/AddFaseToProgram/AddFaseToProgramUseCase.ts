@@ -70,7 +70,7 @@ export class AddFaseToProgramUseCase
         ? request.numeroFase
         : existingFases.length > 0
           ? Math.max(...existingFases.map(f => f.getNumeroFase())) + 1
-          : 0;
+          : 1;
 
       // 3. Create Fase entity
       const fase = Fase.create(
