@@ -191,13 +191,44 @@ export class ProofPointController {
   })
   @ApiResponse({ status: 404, description: 'ProofPoint not found' })
   async getProofPoint(@Param('id') id: string): Promise<ProofPointResponseDto> {
-    const proofPoint = await this.proofPointRepository.findById(RecordId.fromString(id));
+    // Decode URL-encoded characters
+    const decodedId = decodeURIComponent(id);
+
+    // Query database directly
+    const result = await this.db.query(
+      'SELECT * FROM type::thing($id)',
+      { id: decodedId }
+    );
+
+    // Extract proof point
+    let proofPoint: any;
+    if (Array.isArray(result) && result.length > 0) {
+      if (Array.isArray(result[0]) && result[0].length > 0) {
+        proofPoint = result[0][0];
+      } else if (!Array.isArray(result[0])) {
+        proofPoint = result[0];
+      }
+    }
 
     if (!proofPoint) {
       throw new NotFoundException(`ProofPoint not found: ${id}`);
     }
 
-    return this.mapToResponseDto(proofPoint);
+    return {
+      id: proofPoint.id,
+      fase: proofPoint.fase,
+      nombre: proofPoint.nombre,
+      slug: proofPoint.slug,
+      descripcion: proofPoint.descripcion,
+      preguntaCentral: proofPoint.pregunta_central,
+      ordenEnFase: proofPoint.orden_en_fase,
+      duracionEstimadaHoras: proofPoint.duracion_estimada_horas,
+      tipoEntregableFinal: proofPoint.tipo_entregable_final,
+      documentacionContexto: proofPoint.documentacion_contexto || '',
+      prerequisitos: proofPoint.prerequisitos || [],
+      createdAt: proofPoint.created_at,
+      updatedAt: proofPoint.updated_at,
+    };
   }
 
   /**
