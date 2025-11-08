@@ -40,16 +40,20 @@ export function FaseManager({ programId, onFaseCreated, onFaseUpdated, onFaseDel
 
   // Load fases
   useEffect(() => {
+    console.log("[FaseManager] useEffect triggered, programId:", programId)
     loadFases()
   }, [programId])
 
   const loadFases = async () => {
     try {
+      console.log("[FaseManager] loadFases called with programId:", programId)
       setIsLoading(true)
       const data = await fasesApi.getByProgram(programId)
+      console.log("[FaseManager] Received fases data:", data)
+      console.log("[FaseManager] Number of fases:", data?.length || 0)
       setFases(data)
     } catch (error) {
-      console.error("Error loading fases:", error)
+      console.error("[FaseManager] Error loading fases:", error)
       toast.error("Error al cargar las fases")
     } finally {
       setIsLoading(false)
@@ -151,6 +155,8 @@ export function FaseManager({ programId, onFaseCreated, onFaseUpdated, onFaseDel
       toast.error(error.message || "Error al eliminar la fase")
     }
   }
+
+  console.log("[FaseManager] Render - isLoading:", isLoading, "fases.length:", fases.length)
 
   if (isLoading) {
     return (
