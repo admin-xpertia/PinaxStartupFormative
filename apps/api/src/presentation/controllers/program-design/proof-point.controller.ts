@@ -138,8 +138,19 @@ export class ProofPointController {
       faseId: faseId,
     });
 
-    // Extract first result set (SurrealDB returns array of result sets)
-    const proofPoints = Array.isArray(result[0]) ? result[0] : [];
+    // Extract proof points - SurrealDB might return [[pps]] or [pps] depending on query
+    let proofPoints: any[];
+    if (Array.isArray(result) && result.length > 0) {
+      // If first element is an array, it's nested [[pps]]
+      if (Array.isArray(result[0])) {
+        proofPoints = result[0];
+      } else {
+        // Otherwise it's already flat [pps]
+        proofPoints = result;
+      }
+    } else {
+      proofPoints = [];
+    }
 
     // Map plain objects to DTOs directly
     return proofPoints.map((pp: any) => ({
