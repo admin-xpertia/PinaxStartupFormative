@@ -23,6 +23,7 @@ import { AddProofPointToFaseUseCase } from '../../../application/program-design/
 import { IProofPointRepository } from '../../../domain/program-design/repositories/IProgramRepository';
 import { RecordId } from '../../../domain/shared/value-objects/RecordId';
 import { AddProofPointRequestDto, ProofPointResponseDto } from '../../dtos/program-design';
+import { SurrealDbService } from '../../../core/database/surrealdb.service';
 
 /**
  * ProofPointController
@@ -38,6 +39,7 @@ export class ProofPointController {
     private readonly addProofPointUseCase: AddProofPointToFaseUseCase,
     @Inject('IProofPointRepository')
     private readonly proofPointRepository: IProofPointRepository,
+    private readonly db: SurrealDbService,
   ) {}
 
   /**
@@ -125,10 +127,36 @@ export class ProofPointController {
   async listProofPointsByFase(
     @Param('faseId') faseId: string,
   ): Promise<ProofPointResponseDto[]> {
-    const proofPoints = await this.proofPointRepository.findByFase(
-      RecordId.fromString(faseId),
-    );
-    return proofPoints.map(pp => this.mapToResponseDto(pp));
+    // Query database directly to get plain objects
+    const query = `
+      SELECT * FROM proof_point
+      WHERE fase = type::thing($faseId)
+      ORDER BY orden_en_fase ASC
+    `;
+
+    const result = await this.db.query(query, {
+      faseId: faseId,
+    });
+
+    // Extract first result set (SurrealDB returns array of result sets)
+    const proofPoints = Array.isArray(result[0]) ? result[0] : [];
+
+    // Map plain objects to DTOs directly
+    return proofPoints.map((pp: any) => ({
+      id: pp.id,
+      fase: pp.fase,
+      nombre: pp.nombre,
+      slug: pp.slug,
+      descripcion: pp.descripcion,
+      preguntaCentral: pp.pregunta_central,
+      ordenEnFase: pp.orden_en_fase,
+      duracionEstimadaHoras: pp.duracion_estimada_horas,
+      tipoEntregableFinal: pp.tipo_entregable_final,
+      documentacionContexto: pp.documentacion_contexto || '',
+      prerequisitos: pp.prerequisitos || [],
+      createdAt: pp.created_at,
+      updatedAt: pp.updated_at,
+    }));
   }
 
   /**

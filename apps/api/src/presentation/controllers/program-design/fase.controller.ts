@@ -23,6 +23,7 @@ import { AddFaseToProgramUseCase } from '../../../application/program-design/use
 import { IFaseRepository } from '../../../domain/program-design/repositories/IProgramRepository';
 import { RecordId } from '../../../domain/shared/value-objects/RecordId';
 import { AddFaseRequestDto, FaseResponseDto } from '../../dtos/program-design';
+import { SurrealDbService } from '../../../core/database/surrealdb.service';
 
 /**
  * FaseController
@@ -38,6 +39,7 @@ export class FaseController {
     private readonly addFaseUseCase: AddFaseToProgramUseCase,
     @Inject('IFaseRepository')
     private readonly faseRepository: IFaseRepository,
+    private readonly db: SurrealDbService,
   ) {}
 
   /**
@@ -118,10 +120,33 @@ export class FaseController {
   async listFasesByProgram(
     @Param('programId') programId: string,
   ): Promise<FaseResponseDto[]> {
-    const fases = await this.faseRepository.findByPrograma(
-      RecordId.fromString(programId),
-    );
-    return fases.map(f => this.mapToResponseDto(f));
+    // Query database directly to get plain objects
+    const query = `
+      SELECT * FROM fase
+      WHERE programa = type::thing($programaId)
+      ORDER BY orden ASC
+    `;
+
+    const result = await this.db.query(query, {
+      programaId: programId,
+    });
+
+    // Extract first result set (SurrealDB returns array of result sets)
+    const fases = Array.isArray(result[0]) ? result[0] : [];
+
+    // Map plain objects to DTOs directly
+    return fases.map((f: any) => ({
+      id: f.id,
+      programa: f.programa,
+      numeroFase: f.numero_fase,
+      nombre: f.nombre,
+      descripcion: f.descripcion,
+      objetivosAprendizaje: f.objetivos_aprendizaje || [],
+      duracionSemanasEstimada: f.duracion_semanas_estimada,
+      orden: f.orden,
+      createdAt: f.created_at,
+      updatedAt: f.updated_at,
+    }));
   }
 
   /**
