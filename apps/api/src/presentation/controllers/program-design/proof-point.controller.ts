@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Delete,
   Body,
   Param,
@@ -226,6 +227,93 @@ export class ProofPointController {
     }
 
     return this.mapToResponseDto(proofPoint);
+  }
+
+  /**
+   * Update proof point
+   */
+  @Put('proof-points/:id')
+  @ApiOperation({
+    summary: 'Update proof point',
+    description: 'Update an existing proof point',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ProofPoint ID',
+    example: 'proof_point:abc123',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'ProofPoint updated successfully',
+    type: ProofPointResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'ProofPoint not found' })
+  async updateProofPoint(
+    @Param('id') id: string,
+    @Body() updateDto: AddProofPointRequestDto,
+  ): Promise<ProofPointResponseDto> {
+    this.logger.log(`[updateProofPoint] Updating proof point: ${id}`);
+
+    // Decode URL-encoded characters
+    const decodedId = decodeURIComponent(id);
+    this.logger.log(`[updateProofPoint] Decoded ID: ${decodedId}`);
+
+    // Update using direct database query
+    const query = `
+      UPDATE type::thing($id) SET
+        nombre = $nombre,
+        descripcion = $descripcion,
+        pregunta_central = $preguntaCentral,
+        duracion_estimada_horas = $duracionEstimadaHoras,
+        tipo_entregable_final = $tipoEntregableFinal,
+        documentacion_contexto = $documentacionContexto,
+        prerequisitos = $prerequisitos,
+        updated_at = time::now()
+      RETURN AFTER
+    `;
+
+    const result = await this.db.query(query, {
+      id: decodedId,
+      nombre: updateDto.nombre,
+      descripcion: updateDto.descripcion,
+      preguntaCentral: updateDto.preguntaCentral,
+      duracionEstimadaHoras: updateDto.duracionEstimadaHoras,
+      tipoEntregableFinal: updateDto.tipoEntregableFinal || null,
+      documentacionContexto: updateDto.documentacionContexto || '',
+      prerequisitos: updateDto.prerequisitos || [],
+    });
+
+    this.logger.log(`[updateProofPoint] Update result:`, JSON.stringify(result, null, 2));
+
+    // Extract updated proof point
+    let updated: any;
+    if (Array.isArray(result) && result.length > 0) {
+      if (Array.isArray(result[0]) && result[0].length > 0) {
+        updated = result[0][0];
+      } else if (!Array.isArray(result[0])) {
+        updated = result[0];
+      }
+    }
+
+    if (!updated) {
+      throw new NotFoundException(`ProofPoint not found: ${id}`);
+    }
+
+    return {
+      id: updated.id,
+      fase: updated.fase,
+      nombre: updated.nombre,
+      slug: updated.slug,
+      descripcion: updated.descripcion,
+      preguntaCentral: updated.pregunta_central,
+      ordenEnFase: updated.orden_en_fase,
+      duracionEstimadaHoras: updated.duracion_estimada_horas,
+      tipoEntregableFinal: updated.tipo_entregable_final,
+      documentacionContexto: updated.documentacion_contexto || '',
+      prerequisitos: updated.prerequisitos || [],
+      createdAt: updated.created_at,
+      updatedAt: updated.updated_at,
+    };
   }
 
   /**
