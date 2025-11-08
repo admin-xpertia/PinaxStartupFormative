@@ -91,6 +91,21 @@ export class AddProofPointToFaseUseCase
         request.preguntaCentral,
       );
 
+      // 4.1. Update additional fields if provided
+      if (request.tipoEntregableFinal) {
+        proofPoint.setTipoEntregableFinal(request.tipoEntregableFinal);
+      }
+
+      if (request.documentacionContexto) {
+        proofPoint.updateDocumentacionContexto(request.documentacionContexto);
+      }
+
+      if (request.prerequisitos && request.prerequisitos.length > 0) {
+        for (const prereqId of request.prerequisitos) {
+          proofPoint.addPrerequisite(RecordId.fromString(prereqId));
+        }
+      }
+
       // 5. Save proof point
       const savedProofPoint = await this.proofPointRepository.save(proofPoint);
 
