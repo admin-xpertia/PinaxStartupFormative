@@ -7,6 +7,7 @@ import { IProofPointRepository } from '../../../../domain/program-design/reposit
 import { ExerciseInstance } from '../../../../domain/exercise-instance/entities/ExerciseInstance';
 import { RecordId } from '../../../../domain/shared/value-objects/RecordId';
 import { AddExerciseToProofPointDTO } from './AddExerciseToProofPointDTO';
+import { SurrealDbService } from '../../../../core/database/surrealdb.service';
 
 /**
  * AddExerciseToProofPointUseCase
@@ -40,21 +41,33 @@ export class AddExerciseToProofPointUseCase
     private readonly templateRepository: IExerciseTemplateRepository,
     @Inject('IProofPointRepository')
     private readonly proofPointRepository: IProofPointRepository,
+    private readonly db: SurrealDbService,
   ) {}
 
   async execute(
     request: AddExerciseToProofPointDTO,
   ): Promise<Result<AddExerciseToProofPointResponse, Error>> {
     try {
-      // 1. Validate template exists
-      const templateId = RecordId.fromString(request.templateId);
-      const template = await this.templateRepository.findById(templateId);
+      // 1. Validate template exists - Query directly from database
+      const templateResult = await this.db.query(
+        'SELECT * FROM type::thing($id)',
+        { id: request.templateId }
+      );
+
+      let template: any;
+      if (Array.isArray(templateResult) && templateResult.length > 0) {
+        if (Array.isArray(templateResult[0]) && templateResult[0].length > 0) {
+          template = templateResult[0][0];
+        } else if (!Array.isArray(templateResult[0])) {
+          template = templateResult[0];
+        }
+      }
 
       if (!template) {
         return Result.fail(new Error(`Template not found: ${request.templateId}`));
       }
 
-      if (!template.isActivo()) {
+      if (!template.activo) {
         return Result.fail(new Error('Template is not active'));
       }
 
@@ -66,45 +79,38 @@ export class AddExerciseToProofPointUseCase
         return Result.fail(new Error(`Proof point not found: ${request.proofPointId}`));
       }
 
-      // 3. Validate configuration against template schema
-      const configValidation = template.validateConfiguration(
-        request.configuracion || {},
-      );
+      // 3. Merge configuration with template defaults (skip validation)
+      const finalConfig = {
+        ...(template.configuracion_default || {}),
+        ...(request.configuracion || {}),
+      };
 
-      if (!configValidation.valid) {
-        return Result.fail(
-          new Error(`Invalid configuration: ${configValidation.errors.join(', ')}`),
-        );
-      }
-
-      // 4. Merge configuration with defaults
-      const finalConfig = template.mergeConfiguration(request.configuracion || {});
-
-      // 5. Calculate order (append to end)
+      // 4. Calculate order (append to end)
       const existingInstances = await this.exerciseInstanceRepository.findByProofPoint(
         proofPointId,
       );
       const orden = existingInstances.length;
 
-      // 6. Create ExerciseInstance domain entity
+      // 5. Create ExerciseInstance domain entity
+      const templateId = RecordId.fromString(request.templateId);
       const instance = ExerciseInstance.create(
         templateId,
         proofPointId,
-        request.nombre || template.getNombre(),
+        request.nombre || template.nombre,
         orden,
         request.duracionMinutos || 20,
         finalConfig,
         request.consideraciones,
       );
 
-      // 7. Save to repository
+      // 6. Save to repository
       const savedInstance = await this.exerciseInstanceRepository.save(instance);
 
       this.logger.log(
         `Exercise added to proof point: ${savedInstance.getId().toString()}`,
       );
 
-      // 8. Return response
+      // 7. Return response
       return Result.ok({
         exerciseInstanceId: savedInstance.getId().toString(),
         nombre: savedInstance.getNombre(),
