@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, Sparkles, Eye, Plus } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
+import { apiClient } from "@/services/api/client"
 
 interface ExerciseTemplate {
   id: string
@@ -108,26 +109,15 @@ export function ExerciseWizardDialog({
     setIsSubmitting(true)
 
     try {
-      const response = await fetch(`/api/v1/proof-points/${proofPointId}/exercises`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          templateId: template.id,
-          nombre: nombre.trim(),
-          descripcionBreve: descripcionBreve.trim() || undefined,
-          consideracionesContexto: consideraciones.trim() || undefined,
-          configuracionPersonalizada: configuracion,
-          duracionEstimadaMinutos: duracion,
-          esObligatorio,
-        }),
+      await apiClient.post(`/proof-points/${encodeURIComponent(proofPointId)}/exercises`, {
+        templateId: template.id,
+        nombre: nombre.trim(),
+        descripcionBreve: descripcionBreve.trim() || undefined,
+        consideracionesContexto: consideraciones.trim() || undefined,
+        configuracionPersonalizada: configuracion,
+        duracionEstimadaMinutos: duracion,
+        esObligatorio,
       })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || "Error al crear el ejercicio")
-      }
 
       toast({
         title: "Ejercicio agregado",
