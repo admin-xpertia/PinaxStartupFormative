@@ -25,7 +25,7 @@ import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, Sparkles, Eye, Plus } from "lucide-react"
+import { Loader2, Sparkles, Eye, Plus, Edit3 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { apiClient } from "@/services/api/client"
 
@@ -51,11 +51,23 @@ interface ConfigField {
   options?: string[]
 }
 
+interface ExerciseInstance {
+  id: string
+  template: string
+  nombre: string
+  descripcionBreve?: string
+  consideracionesContexto: string
+  configuracionPersonalizada: Record<string, any>
+  duracionEstimadaMinutos: number
+  esObligatorio: boolean
+}
+
 interface ExerciseWizardDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   template: ExerciseTemplate | null
   proofPointId: string
+  existingInstance?: ExerciseInstance | null
   onSuccess: () => void
 }
 
@@ -64,8 +76,10 @@ export function ExerciseWizardDialog({
   onOpenChange,
   template,
   proofPointId,
+  existingInstance,
   onSuccess,
 }: ExerciseWizardDialogProps) {
+  const isEditing = !!existingInstance
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [activeTab, setActiveTab] = useState("basico")
@@ -78,9 +92,18 @@ export function ExerciseWizardDialog({
   const [duracion, setDuracion] = useState(20)
   const [esObligatorio, setEsObligatorio] = useState(true)
 
-  // Initialize form when template changes
+  // Initialize form when template or existingInstance changes
   useEffect(() => {
-    if (template) {
+    if (existingInstance) {
+      // Load existing instance data
+      setNombre(existingInstance.nombre)
+      setDescripcionBreve(existingInstance.descripcionBreve || "")
+      setConsideraciones(existingInstance.consideracionesContexto || "")
+      setConfiguracion(existingInstance.configuracionPersonalizada || {})
+      setDuracion(existingInstance.duracionEstimadaMinutos)
+      setEsObligatorio(existingInstance.esObligatorio)
+    } else if (template) {
+      // Load template defaults for new instance
       setNombre(template.nombre)
       setDescripcionBreve("")
       setConsideraciones("")
@@ -91,10 +114,10 @@ export function ExerciseWizardDialog({
       setDuracion(defaultDuration)
       setEsObligatorio(true)
     }
-  }, [template])
+  }, [template, existingInstance])
 
   const handleSubmit = async () => {
-    if (!template) return
+    if (!template && !existingInstance) return
 
     // Validation
     if (!nombre.trim()) {
@@ -109,33 +132,52 @@ export function ExerciseWizardDialog({
     setIsSubmitting(true)
 
     try {
-      await apiClient.post(`/proof-points/${encodeURIComponent(proofPointId)}/exercises`, {
-        templateId: template.id,
-        nombre: nombre.trim(),
-        descripcionBreve: descripcionBreve.trim() || undefined,
-        consideracionesContexto: consideraciones.trim() || undefined,
-        configuracionPersonalizada: configuracion,
-        duracionEstimadaMinutos: duracion,
-        esObligatorio,
-      })
+      if (isEditing && existingInstance) {
+        // Update existing exercise
+        await apiClient.put(`/exercises/${encodeURIComponent(existingInstance.id)}`, {
+          nombre: nombre.trim(),
+          descripcionBreve: descripcionBreve.trim() || undefined,
+          consideracionesContexto: consideraciones.trim() || undefined,
+          configuracionPersonalizada: configuracion,
+          duracionEstimadaMinutos: duracion,
+        })
 
-      toast({
-        title: "Ejercicio agregado",
-        description: "El ejercicio se agregó exitosamente al proof point",
-      })
+        toast({
+          title: "Ejercicio actualizado",
+          description: "Los cambios se guardaron exitosamente",
+        })
+      } else {
+        // Create new exercise
+        await apiClient.post(`/proof-points/${encodeURIComponent(proofPointId)}/exercises`, {
+          templateId: template?.id,
+          nombre: nombre.trim(),
+          descripcionBreve: descripcionBreve.trim() || undefined,
+          consideracionesContexto: consideraciones.trim() || undefined,
+          configuracionPersonalizada: configuracion,
+          duracionEstimadaMinutos: duracion,
+          esObligatorio,
+        })
+
+        toast({
+          title: "Ejercicio agregado",
+          description: "El ejercicio se agregó exitosamente al proof point",
+        })
+      }
 
       onSuccess()
       onOpenChange(false)
 
       // Reset form
-      setNombre("")
-      setDescripcionBreve("")
-      setConsideraciones("")
-      setActiveTab("basico")
+      if (!isEditing) {
+        setNombre("")
+        setDescripcionBreve("")
+        setConsideraciones("")
+        setActiveTab("basico")
+      }
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "No se pudo crear el ejercicio",
+        description: error.message || (isEditing ? "No se pudo actualizar el ejercicio" : "No se pudo crear el ejercicio"),
         variant: "destructive",
       })
     } finally {
@@ -248,17 +290,22 @@ export function ExerciseWizardDialog({
     }
   }
 
-  if (!template) return null
+  if (!template && !existingInstance) return null
+
+  const dialogTitle = isEditing ? `Editar Ejercicio: ${nombre}` : `Configurar: ${template?.nombre}`
+  const dialogDescription = isEditing
+    ? "Modifica la configuración del ejercicio"
+    : template?.objetivo_pedagogico
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <span style={{ color: template.color }}>{template.icono}</span>
-            Configurar: {template.nombre}
+            {template?.icono && <span style={{ color: template.color }}>{template.icono}</span>}
+            {dialogTitle}
           </DialogTitle>
-          <DialogDescription>{template.objetivo_pedagogico}</DialogDescription>
+          <DialogDescription>{dialogDescription}</DialogDescription>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
@@ -436,12 +483,21 @@ export function ExerciseWizardDialog({
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Agregando...
+                {isEditing ? "Guardando..." : "Agregando..."}
               </>
             ) : (
               <>
-                <Plus className="mr-2 h-4 w-4" />
-                Agregar Ejercicio
+                {isEditing ? (
+                  <>
+                    <Edit3 className="mr-2 h-4 w-4" />
+                    Guardar Cambios
+                  </>
+                ) : (
+                  <>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Agregar Ejercicio
+                  </>
+                )}
               </>
             )}
           </Button>
