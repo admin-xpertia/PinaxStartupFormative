@@ -34,7 +34,7 @@ import { LoadingState } from "@/components/shared/loading-state"
 import { ErrorState } from "@/components/shared/error-state"
 import { ExerciseWizardDialog } from "@/components/exercise-wizard-dialog"
 import { ExercisePreviewDialog } from "@/components/exercise-preview-dialog"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -320,14 +320,7 @@ export default function ExerciseLibraryPage({
           <main className="flex-1 overflow-y-auto">
             <div className="container mx-auto p-6 max-w-7xl">
               {/* Breadcrumbs */}
-              <Breadcrumbs
-                items={[
-                  { label: "Programas", href: "/programas" },
-                  { label: "Detalle", href: `/programas/${programId}` },
-                  { label: proofPoint.nombre, href: "#" },
-                  { label: "Ejercicios", href: "#", current: true },
-                ]}
-              />
+              <Breadcrumbs />
 
               {/* Header */}
               <PageHeader
@@ -336,11 +329,12 @@ export default function ExerciseLibraryPage({
                   proofPoint.pregunta_central ||
                   "Gestiona los ejercicios de aprendizaje para este proof point"
                 }
-              >
-                <Button variant="outline" asChild>
-                  <Link href={`/programas/${programId}`}>Volver</Link>
-                </Button>
-              </PageHeader>
+                actions={
+                  <Button variant="outline" asChild>
+                    <Link href={`/programas/${programId}`}>Volver</Link>
+                  </Button>
+                }
+              />
 
               {/* Context Documentation Card */}
               {proofPoint.documentacion_contexto && (
