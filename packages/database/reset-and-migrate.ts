@@ -5,17 +5,22 @@
  * Este script:
  * 1. Elimina TODAS las tablas existentes
  * 2. Elimina TODOS los datos
- * 3. Aplica el nuevo schema DDD desde schema-ddd.surql
- * 4. Opcionalmente inserta datos de seed
+ * 3. Aplica el nuevo schema DDD desde schema-ddd.surql y student-execution.surql
+ * 4. Carga datos de seed (usuarios + exercise templates)
  *
  * ADVERTENCIA: Este script es DESTRUCTIVO. Eliminará TODOS los datos.
  *
  * Uso:
- *   pnpm tsx reset-and-migrate.ts [--skip-seed]
+ *   pnpm tsx packages/database/reset-and-migrate.ts [--skip-seed] [--confirm]
  *
  * Opciones:
  *   --skip-seed    No insertar datos de seed después de la migración
  *   --confirm      Confirmar automáticamente (para scripts CI/CD)
+ *
+ * Seed de Exercise Templates:
+ *   - Incluye los 10 tipos de ejercicios con output_schemas actualizados
+ *   - Los schemas coinciden con las interfaces de los players en student-app
+ *   - La IA generará contenido que los players pueden visualizar correctamente
  */
 
 import Surreal from 'surrealdb.js';
@@ -484,18 +489,19 @@ async function main() {
     log('    Password: Estudiante123!', 'green');
     log('', 'reset');
 
-    log('\n📝 Exercise Templates disponibles:', 'cyan');
-    log('  1. 📖 Lección Interactiva', 'blue');
-    log('  2. 📝 Cuaderno de Trabajo', 'blue');
-    log('  3. 💬 Simulación de Interacción', 'blue');
-    log('  4. 🤖 Mentor y Asesor IA', 'blue');
-    log('  5. 🔍 Herramienta de Análisis', 'blue');
-    log('  6. 🎨 Herramienta de Creación', 'blue');
-    log('  7. 📊 Sistema de Tracking', 'blue');
-    log('  8. ✅ Herramienta de Revisión', 'blue');
-    log('  9. 🌐 Simulador de Entorno', 'blue');
-    log('  10. 🎯 Sistema de Progresión', 'blue');
+    log('\n📝 Exercise Templates disponibles (Schemas Actualizados):', 'cyan');
+    log('  1. 📖 Lección Interactiva - Genera { titulo, objetivos, secciones, conceptos_clave, quiz }', 'blue');
+    log('  2. 📝 Cuaderno de Trabajo - Genera { titulo, objetivo, contexto, secciones con prompts }', 'blue');
+    log('  3. 💬 Simulación de Interacción - Genera { titulo, personaje_ia, situacion_inicial, criterios_exito }', 'blue');
+    log('  4. 🤖 Mentor y Asesor IA - Genera { titulo, contexto_mentor, pasos, reflexion_final }', 'blue');
+    log('  5. 🔍 Herramienta de Análisis - Genera { titulo, tipoAnalisis, instrucciones, outputFormat }', 'blue');
+    log('  6. 🎨 Herramienta de Creación - Genera { titulo, tipoCreacion, promptsIniciales, plantillas }', 'blue');
+    log('  7. 📊 Sistema de Tracking - Genera { titulo, metricas, dashboard, alertas }', 'blue');
+    log('  8. ✅ Herramienta de Revisión - Genera { titulo, criterios_revision, rubrica, recursos_mejora }', 'blue');
+    log('  9. 🌐 Simulador de Entorno - Genera { titulo, tipo_entorno, estado_inicial, acciones_posibles }', 'blue');
+    log('  10. 🎯 Sistema de Progresión - Genera { titulo, niveles, arbol_dependencias, criterios_evaluacion }', 'blue');
     log('', 'reset');
+    log('  ℹ️  Todos los schemas coinciden con interfaces de student-app players', 'cyan');
 
     log('⚠️  IMPORTANTE: Cambiar las contraseñas por defecto en producción', 'yellow');
     log('', 'reset');
