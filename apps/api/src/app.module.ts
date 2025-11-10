@@ -9,6 +9,7 @@ import { UsuariosModule } from "./domains/usuarios/usuarios.module";
 import { ProgramDesignModule } from "./modules/program-design.module";
 import { ExerciseCatalogModule } from "./modules/exercise-catalog.module";
 import { ExerciseInstanceModule } from "./modules/exercise-instance.module";
+import { ExerciseProgressModule } from "./modules/exercise-progress.module";
 
 /**
  * Módulo principal de la aplicación
@@ -34,6 +35,7 @@ import { ExerciseInstanceModule } from "./modules/exercise-instance.module";
     ProgramDesignModule,
     ExerciseCatalogModule,
     ExerciseInstanceModule,
+    ExerciseProgressModule,
   ],
   providers: [
     // Guard global de autenticación
