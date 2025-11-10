@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, FileText, CheckCircle2, AlertCircle } from "lucide-react"
+import { Loader2, FileText, CheckCircle2, AlertCircle, Eye } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import ReactMarkdown from "react-markdown"
 import { apiClient } from "@/services/api/client"
@@ -187,11 +187,131 @@ export function ExercisePreviewDialog({
     }
 
     return (
-      <Tabs defaultValue="contenido" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs defaultValue="estudiante" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="estudiante">Vista Estudiante</TabsTrigger>
           <TabsTrigger value="contenido">Contenido</TabsTrigger>
           <TabsTrigger value="metadatos">Metadatos</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="estudiante" className="space-y-4 mt-4">
+          {/* Simulated Student View */}
+          <div className="border-2 border-dashed border-primary/30 rounded-lg p-6 bg-primary/5">
+            <div className="text-xs uppercase tracking-wide text-primary font-semibold mb-4 flex items-center gap-2">
+              <Eye className="h-3 w-3" />
+              Vista del Estudiante (Simulación)
+            </div>
+
+            {/* Exercise Header */}
+            <div className="bg-background rounded-lg shadow-sm border p-6 mb-4">
+              <div className="flex items-start gap-4 mb-4">
+                <div className="p-3 rounded-lg bg-primary/10">
+                  <span style={{ fontSize: "2rem" }}>{instance.template.icono}</span>
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold mb-2">{instance.nombre}</h2>
+                  {instance.descripcion_breve && (
+                    <p className="text-muted-foreground mb-3">{instance.descripcion_breve}</p>
+                  )}
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge variant="outline" className="gap-1">
+                      <span>⏱️</span>
+                      {instance.duracion_estimada_minutos} minutos
+                    </Badge>
+                    {instance.es_obligatorio && (
+                      <Badge variant="secondary">Obligatorio</Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Exercise Content Rendered for Student */}
+            <div className="bg-background rounded-lg shadow-sm border p-6 space-y-6">
+              {Object.entries(content.contenido_generado).map(([key, value]) => {
+                // Skip internal/technical fields
+                if (key === 'criterios_evaluacion' || key === 'validaciones') {
+                  return null;
+                }
+
+                return (
+                  <div key={key} className="space-y-3">
+                    <h3 className="text-lg font-semibold border-b pb-2 capitalize">
+                      {key.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+                    </h3>
+
+                    {typeof value === "string" && (
+                      <div className="prose prose-sm max-w-none dark:prose-invert">
+                        <ReactMarkdown>{value}</ReactMarkdown>
+                      </div>
+                    )}
+
+                    {Array.isArray(value) && (
+                      <div className="space-y-3">
+                        {value.map((item, idx) => (
+                          <div key={idx} className="bg-muted/50 p-4 rounded-lg">
+                            {typeof item === "string" ? (
+                              <div className="prose prose-sm max-w-none dark:prose-invert">
+                                <ReactMarkdown>{item}</ReactMarkdown>
+                              </div>
+                            ) : typeof item === "object" && item !== null ? (
+                              <div className="space-y-2">
+                                {Object.entries(item).map(([itemKey, itemValue]) => (
+                                  <div key={itemKey}>
+                                    <span className="font-medium text-sm">{itemKey}: </span>
+                                    <span className="text-sm">{String(itemValue)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p>{String(item)}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {typeof value === "object" && value !== null && !Array.isArray(value) && (
+                      <div className="space-y-2">
+                        {Object.entries(value).map(([subKey, subValue]) => (
+                          <div key={subKey} className="bg-muted/50 p-3 rounded">
+                            <div className="font-medium text-sm mb-1 capitalize">
+                              {subKey.replace(/_/g, " ")}
+                            </div>
+                            <div className="text-sm">
+                              {typeof subValue === "string" ? (
+                                <ReactMarkdown>{subValue}</ReactMarkdown>
+                              ) : (
+                                String(subValue)
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Simulated Student Action Buttons */}
+              <div className="pt-6 border-t flex gap-3">
+                <Button className="flex-1" disabled>
+                  <span>💾</span>
+                  <span className="ml-2">Guardar Progreso</span>
+                </Button>
+                <Button variant="outline" className="flex-1" disabled>
+                  <span>✅</span>
+                  <span className="ml-2">Completar Ejercicio</span>
+                </Button>
+              </div>
+            </div>
+
+            <div className="mt-4 text-xs text-center text-muted-foreground">
+              Esta es una simulación de cómo el estudiante verá el ejercicio.
+              Los botones están deshabilitados en el preview.
+            </div>
+          </div>
+        </TabsContent>
 
         <TabsContent value="contenido" className="space-y-4 mt-4">
           <div className="flex items-start gap-3 pb-4 border-b">

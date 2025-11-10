@@ -31,13 +31,14 @@ CREATE exercise_template:leccion_interactiva SET
     incluir_visualizaciones: true,
     numero_casos_practica: 3
   },
-  prompt_template = 'Crea una lección interactiva sobre {{topico}} con nivel {{profundidad}}. Incluye: 1) Explicación conceptual clara, 2) {{numero_casos_practica}} casos de aplicación, 3) Preguntas de comprensión con feedback explicativo, 4) Glosario de términos técnicos{{#if incluir_visualizaciones}}, 5) Visualizaciones o diagramas conceptuales{{/if}}',
+  prompt_template = 'Crea una lección interactiva sobre {{topico}} con nivel {{profundidad}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "objetivos": string[], "secciones": [{ "tipo": "texto"|"lista"|"concepto_clave", "contenido": string, "titulo"?: string, "items"?: string[] }], "conceptos_clave": string[], "quiz": [{ "pregunta": string, "tipo": "multiple_choice"|"verdadero_falso", "opciones": string[], "respuesta_correcta": string, "explicacion": string }], "recursos_adicionales": [{ "titulo": string, "url": string, "tipo": string }] }. Incluye al menos 3 secciones, {{numero_casos_practica}} preguntas de quiz, y conceptos clave.',
   output_schema = {
-    explicacion_conceptual: 'string',
-    casos_aplicacion: 'array',
-    preguntas_comprension: 'array',
-    glosario: 'object',
-    visualizaciones: 'array?'
+    titulo: 'string',
+    objetivos: 'array',
+    secciones: 'array',
+    conceptos_clave: 'array',
+    quiz: 'array',
+    recursos_adicionales: 'array?'
   },
   preview_config = {
     mostrar_progreso: true,
@@ -74,12 +75,14 @@ CREATE exercise_template:cuaderno_trabajo SET
     feedback_tiempo_real: true,
     validar_coherencia: true
   },
-  prompt_template = 'Crea un cuaderno de trabajo tipo {{tipo_trabajo}} con nivel de andamiaje {{nivel_andamiaje}}. Incluye: 1) Estructura de secciones clara, 2) Prompts guía para cada sección, 3) Criterios de evaluación, 4) Sistema de validación de coherencia{{#if feedback_tiempo_real}}, 5) Feedback en tiempo real durante escritura{{/if}}',
+  prompt_template = 'Crea un cuaderno de trabajo tipo {{tipo_trabajo}} con nivel de andamiaje {{nivel_andamiaje}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "objetivo": string, "contexto": string, "secciones": [{ "titulo": string, "descripcion": string, "instrucciones": string, "prompts": [{ "tipo": "texto_corto"|"texto_largo"|"lista"|"tabla"|"reflexion", "pregunta": string, "guia": string, "min_palabras"?: number, "placeholder"?: string }] }], "criterios_evaluacion": string[], "tiempo_sugerido": number }. Crea al menos 3 secciones con múltiples prompts guía que ayuden al estudiante a documentar y reflexionar sobre su trabajo.',
   output_schema = {
-    estructura_secciones: 'array',
-    prompts_guia: 'object',
-    criterios_evaluacion: 'object',
-    validaciones: 'array'
+    titulo: 'string',
+    objetivo: 'string',
+    contexto: 'string',
+    secciones: 'array',
+    criterios_evaluacion: 'array',
+    tiempo_sugerido: 'number'
   },
   preview_config = {
     autoguardado: true,
@@ -113,11 +116,16 @@ CREATE exercise_template:simulacion_interaccion SET
     nivel_dificultad: 'neutral',
     duracion_minutos: 10
   },
-  prompt_template = 'Simula una interacción con {{rol_simulado}} en contexto: {{contexto_situacion}}. Nivel de dificultad: {{nivel_dificultad}}. Mantén coherencia de personalidad{{#if personalidad}} con rasgos: {{personalidad}}{{/if}}. Incluye señales paraverbales y genera análisis de técnica al finalizar.',
+  prompt_template = 'Crea una simulación de interacción con {{rol_simulado}} en contexto: {{contexto_situacion}}. Nivel de dificultad: {{nivel_dificultad}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "descripcion": string, "personaje_ia": { "nombre": string, "rol": string, "personalidad": string, "tono": string, "contexto": string }, "objetivo_estudiante": string, "situacion_inicial": string, "criterios_exito": string[], "nivel_dificultad": "principiante"|"intermedio"|"avanzado", "tiempo_sugerido": number }. El personaje debe tener personalidad coherente{{#if personalidad}} con rasgos: {{personalidad}}{{/if}}.',
   output_schema = {
-    conversacion: 'array',
-    senales_paraverbales: 'array',
-    analisis_tecnica: 'object'
+    titulo: 'string',
+    descripcion: 'string',
+    personaje_ia: 'object',
+    objetivo_estudiante: 'string',
+    situacion_inicial: 'string',
+    criterios_exito: 'array',
+    nivel_dificultad: 'string',
+    tiempo_sugerido: 'number'
   },
   preview_config = {
     tiempo_respuesta_segundos: 3,
@@ -152,12 +160,14 @@ CREATE exercise_template:mentor_asesor_ia SET
     es_panel: false,
     profundidad_tecnica: 'aplicada'
   },
-  prompt_template = 'Actúa como {{dominio_experto}} usando estilo {{estilo_mentoria}}{{#if es_panel}} como parte de panel con: {{expertos_panel}}{{/if}}. Profundidad: {{profundidad_tecnica}}. Usa preguntas socráticas para exponer debilidades en razonamiento, identifica trade-offs no considerados, evalúa decisiones con criterios del campo.',
+  prompt_template = 'Crea una sesión de mentoría con {{dominio_experto}} usando estilo {{estilo_mentoria}}{{#if es_panel}} como panel con: {{expertos_panel}}{{/if}}. Profundidad: {{profundidad_tecnica}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "objetivo_general": string, "contexto_mentor": { "nombre": string, "especialidad": string, "estilo": string, "enfoque": string }, "pasos": [{ "numero": number, "titulo": string, "descripcion": string, "preguntas_guia": string[], "recursos_recomendados": string[] }], "reflexion_final": string, "metricas_seguimiento": string[] }. Usa preguntas socráticas, identifica trade-offs, evalúa con criterios del campo.',
   output_schema = {
-    preguntas_socraticas: 'array',
-    trade_offs_identificados: 'array',
-    evaluacion_decision: 'object',
-    recomendaciones: 'array'
+    titulo: 'string',
+    objetivo_general: 'string',
+    contexto_mentor: 'object',
+    pasos: 'array',
+    reflexion_final: 'string',
+    metricas_seguimiento: 'array'
   },
   preview_config = {
     interactivo: true,
@@ -192,14 +202,13 @@ CREATE exercise_template:herramienta_analisis SET
     identificar_patrones: true,
     comparar_con_ejemplares: false
   },
-  prompt_template = 'Analiza el trabajo evaluando: {{dimensiones_evaluar}}. Aplica criterios: {{criterios_calidad}}{{#if generar_metricas}}. Genera métricas cuantitativas{{/if}}{{#if identificar_patrones}}. Identifica patrones recurrentes{{/if}}{{#if comparar_con_ejemplares}}. Compara con ejemplares{{/if}}. Proporciona diagnóstico descriptivo primero, evaluativo después, con feedback accionable.',
+  prompt_template = 'Crea una herramienta de análisis para evaluar: {{dimensiones_evaluar}}. Criterios: {{criterios_calidad}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "descripcion": string, "tipoAnalisis": "interview_synthesis"|"data_analysis"|"competitor_analysis", "instrucciones": string[], "outputFormat": "themes"|"matrix"|"metrics" }. Proporciona instrucciones claras para que el estudiante realice el análisis, identifique patrones{{#if generar_metricas}}, genere métricas{{/if}}{{#if comparar_con_ejemplares}}, y compare con ejemplares{{/if}}.',
   output_schema = {
-    diagnostico: 'object',
-    evaluacion_dimensiones: 'object',
-    metricas: 'object?',
-    patrones_identificados: 'array?',
-    gaps_criticos: 'array',
-    recomendaciones_accionables: 'array'
+    titulo: 'string',
+    descripcion: 'string',
+    tipoAnalisis: 'string',
+    instrucciones: 'array',
+    outputFormat: 'string'
   },
   preview_config = {
     mostrar_graficas: true,
@@ -236,11 +245,14 @@ CREATE exercise_template:herramienta_creacion SET
     incluir_explicacion_logica: true,
     mantener_voz_aprendiz: true
   },
-  prompt_template = 'Genera {{tipo_output}} en nivel {{nivel_completitud}}. Crea {{numero_variaciones}} variaciones genuinamente diferentes{{#if incluir_explicacion_logica}} con explicación de lógica de cada una{{/if}}{{#if mantener_voz_aprendiz}}. Mantén voz del aprendiz, no impongas voz genérica{{/if}}. Los borradores deben ser útiles pero deliberadamente imperfectos para forzar refinamiento.',
+  prompt_template = 'Crea una herramienta de creación para generar {{tipo_output}} en nivel {{nivel_completitud}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "tipoCreacion": "business_model"|"value_proposition"|"pitch_deck"|"otro", "promptsIniciales": string[], "plantillas": [{ "nombre": string, "descripcion": string, "secciones": string[], "ejemplos": string[] }], "criterios_calidad": string[], "iteraciones_sugeridas": number }. Crea {{numero_variaciones}} variaciones diferentes{{#if incluir_explicacion_logica}} con explicación de lógica{{/if}}. Los borradores deben forzar refinamiento del estudiante.',
   output_schema = {
-    variaciones: 'array',
-    explicaciones_logica: 'object',
-    sugerencias_refinamiento: 'array'
+    titulo: 'string',
+    tipoCreacion: 'string',
+    promptsIniciales: 'array',
+    plantillas: 'array',
+    criterios_calidad: 'array',
+    iteraciones_sugeridas: 'number'
   },
   preview_config = {
     vista_previa_lado_a_lado: true,
@@ -277,14 +289,14 @@ CREATE exercise_template:sistema_tracking SET
     detectar_frustration: true,
     disparar_intervenciones: true
   },
-  prompt_template = 'Monitorea progreso tracking: {{metricas_seguimiento}}. Frecuencia: {{frecuencia_updates}}. Compara con benchmarks{{#if detectar_estancamiento}}. Detecta estancamiento o bloqueo{{/if}}{{#if detectar_frustration}}. Identifica señales de frustración{{/if}}{{#if disparar_intervenciones}}. Dispara intervenciones cuando aprendiz está genuinamente atascado{{/if}}. Celebra progreso para mantener motivación.',
+  prompt_template = 'Crea un sistema de tracking para monitorear: {{metricas_seguimiento}}. Frecuencia: {{frecuencia_updates}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "descripcion": string, "metricas": [{ "nombre": string, "descripcion": string, "tipo": "numerico"|"booleano"|"porcentaje", "umbral_critico": number, "meta": number }], "dashboard": { "graficos": string[], "kpis_principales": string[] }, "alertas": [{ "condicion": string, "mensaje": string, "nivel": "info"|"warning"|"critico" }], "recomendaciones_mejora": string[] }{{#if detectar_estancamiento}}. Detecta estancamiento{{/if}}{{#if disparar_intervenciones}}. Dispara intervenciones automáticas{{/if}}.',
   output_schema = {
-    visualizacion_progreso: 'object',
-    metricas_actuales: 'object',
-    comparacion_benchmarks: 'object',
-    patrones_detectados: 'array',
-    alertas_intervencion: 'array?',
-    proximos_pasos_criticos: 'array'
+    titulo: 'string',
+    descripcion: 'string',
+    metricas: 'array',
+    dashboard: 'object',
+    alertas: 'array',
+    recomendaciones_mejora: 'array'
   },
   preview_config = {
     dashboard_interactivo: true,
@@ -323,13 +335,15 @@ CREATE exercise_template:herramienta_revision SET
     adaptar_a_nivel_dominio: true,
     incluir_recursos_mejora: true
   },
-  prompt_template = 'Proporciona feedback {{momento_feedback}}{{#if priorizar_senalamientos}}, priorizando 3-5 señalamientos clave (no abrumar){{/if}}{{#if comenzar_con_fortalezas}}. Comienza con fortalezas específicas{{/if}}{{#if comparar_con_ejemplares}}. Compara con ejemplares para hacer gaps accionables{{/if}}{{#if adaptar_a_nivel_dominio}}. Adapta profundidad según nivel de dominio{{/if}}{{#if incluir_recursos_mejora}}. Conecta feedback con recursos para mejorar{{/if}}. Balancea honestidad con motivación.',
+  prompt_template = 'Crea una herramienta de revisión {{momento_feedback}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "descripcion": string, "criterios_revision": [{ "categoria": string, "aspectos": string[], "peso": number }], "rubrica": [{ "criterio": string, "excelente": string, "bueno": string, "necesita_mejora": string }], "preguntas_autoevaluacion": string[], "ejemplos_comparativos": [{ "nivel": "excelente"|"bueno"|"necesita_mejora", "descripcion": string, "ejemplo": string }], "recursos_mejora": [{ "titulo": string, "tipo": "articulo"|"video"|"plantilla", "url": string }] }{{#if priorizar_senalamientos}}. Prioriza 3-5 señalamientos clave{{/if}}{{#if comenzar_con_fortalezas}}. Comienza con fortalezas{{/if}}.',
   output_schema = {
-    fortalezas_especificas: 'array',
-    areas_mejora_priorizadas: 'array',
-    comparacion_ejemplares: 'object?',
-    feedback_accionable: 'array',
-    recursos_recomendados: 'array?'
+    titulo: 'string',
+    descripcion: 'string',
+    criterios_revision: 'array',
+    rubrica: 'array',
+    preguntas_autoevaluacion: 'array',
+    ejemplos_comparativos: 'array',
+    recursos_mejora: 'array'
   },
   preview_config = {
     resaltar_cambios: true,
@@ -368,13 +382,16 @@ CREATE exercise_template:simulador_entorno SET
     explicar_causas: true,
     mantener_log_experimentos: true
   },
-  prompt_template = 'Simula {{tipo_entorno}} con fidelidad {{nivel_fidelidad}}. Responde realísticamente a acciones del aprendiz{{#if incluir_casos_edge}}, incluyendo casos edge y outliers{{/if}}{{#if permitir_multiples_intentos}}. Permite múltiples intentos sin penalización{{/if}}{{#if explicar_causas}}. Explica por qué el sistema respondió así, revelando relaciones causales{{/if}}{{#if mantener_log_experimentos}}. Mantén log para análisis posterior{{/if}}.',
+  prompt_template = 'Crea un simulador de {{tipo_entorno}} con fidelidad {{nivel_fidelidad}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "descripcion": string, "tipo_entorno": "sistema_tecnico"|"mercado"|"organizacion"|"ecosistema", "estado_inicial": { "variables": object, "condiciones": string[] }, "acciones_posibles": [{ "nombre": string, "descripcion": string, "parametros": string[], "efectos": string[] }], "reglas_simulacion": string[], "metricas_observables": string[], "escenarios_ejemplo": [{ "nombre": string, "configuracion": object, "resultado_esperado": string }] }{{#if incluir_casos_edge}}. Incluye casos edge{{/if}}{{#if explicar_causas}}. Explica relaciones causales{{/if}}.',
   output_schema = {
-    estado_entorno: 'object',
-    respuesta_acciones: 'object',
-    explicaciones_causales: 'object',
-    log_experimentos: 'array?',
-    resultados_simulados: 'object'
+    titulo: 'string',
+    descripcion: 'string',
+    tipo_entorno: 'string',
+    estado_inicial: 'object',
+    acciones_posibles: 'array',
+    reglas_simulacion: 'array',
+    metricas_observables: 'array',
+    escenarios_ejemplo: 'array'
   },
   preview_config = {
     visualizacion_3d: false,
@@ -413,15 +430,14 @@ CREATE exercise_template:sistema_progresion SET
     max_reintentos: 3,
     diagnostico_entre_intentos: true
   },
-  prompt_template = 'Evalúa dominio contra criterios: {{criterios_suficiencia}} con umbrales: {{umbrales_dominio}}{{#if verificar_prerequisitos}}. Verifica rigurosamente pre-requisitos antes de desbloquear{{/if}}{{#if permitir_rutas_alternativas}}. Recomienda rutas adaptativas basadas en fortalezas/debilidades{{/if}}{{#if permitir_reintentos}}. Permite hasta {{max_reintentos}} reintentos{{#if diagnostico_entre_intentos}} con diagnóstico claro de qué falta entre intentos{{/if}}{{/if}}. Previene avance prematuro y estancamiento innecesario.',
+  prompt_template = 'Crea un sistema de progresión contra criterios: {{criterios_suficiencia}} con umbrales: {{umbrales_dominio}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "descripcion": string, "niveles": [{ "numero": number, "nombre": string, "descripcion": string, "requisitos": string[], "objetivos_aprendizaje": string[], "contenido_desbloqueado": string[] }], "arbol_dependencias": [{ "nivel": number, "prerequisitos": number[], "opcional": boolean }], "criterios_evaluacion": [{ "nivel": number, "criterio": string, "umbral": number, "metodo_evaluacion": string }], "rutas_alternativas": [{ "nombre": string, "niveles_incluidos": number[], "enfoque": string }] }{{#if verificar_prerequisitos}}. Verifica pre-requisitos{{/if}}{{#if permitir_rutas_alternativas}}. Incluye rutas adaptativas{{/if}}.',
   output_schema = {
-    evaluacion_dominio: 'object',
-    cumple_criterios: 'boolean',
-    prerequisitos_verificados: 'boolean',
-    diagnostico: 'object',
-    ruta_recomendada: 'object?',
-    contenido_desbloqueado: 'array',
-    evidencia_dominio: 'object'
+    titulo: 'string',
+    descripcion: 'string',
+    niveles: 'array',
+    arbol_dependencias: 'array',
+    criterios_evaluacion: 'array',
+    rutas_alternativas: 'array'
   },
   preview_config = {
     mostrar_arbol_progresion: true,
