@@ -355,6 +355,83 @@ export class ExerciseInstanceController {
   }
 
   /**
+   * Update exercise
+   */
+  @Put('exercises/:id')
+  @ApiOperation({
+    summary: 'Update exercise',
+    description: 'Update an existing exercise instance',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ExerciseInstance ID',
+    example: 'exercise_instance:abc123',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Exercise updated successfully',
+    type: ExerciseInstanceResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Exercise not found' })
+  async updateExercise(
+    @Param('id') id: string,
+    @Body() updateDto: AddExerciseToProofPointRequestDto,
+  ): Promise<ExerciseInstanceResponseDto> {
+    const decodedId = decodeURIComponent(id);
+
+    // Update using direct database query
+    const query = `
+      UPDATE type::thing($id) SET
+        nombre = $nombre,
+        descripcion_breve = $descripcionBreve,
+        consideraciones_contexto = $consideracionesContexto,
+        configuracion_personalizada = $configuracionPersonalizada,
+        duracion_estimada_minutos = $duracionEstimadaMinutos,
+        updated_at = time::now()
+      RETURN AFTER
+    `;
+
+    const result = await this.db.query(query, {
+      id: decodedId,
+      nombre: updateDto.nombre,
+      descripcionBreve: updateDto.descripcionBreve || '',
+      consideracionesContexto: updateDto.consideracionesContexto || '',
+      configuracionPersonalizada: updateDto.configuracionPersonalizada || {},
+      duracionEstimadaMinutos: updateDto.duracionEstimadaMinutos,
+    });
+
+    let updated: any;
+    if (Array.isArray(result) && result.length > 0) {
+      if (Array.isArray(result[0]) && result[0].length > 0) {
+        updated = result[0][0];
+      } else if (!Array.isArray(result[0])) {
+        updated = result[0];
+      }
+    }
+
+    if (!updated) {
+      throw new NotFoundException(`Exercise not found: ${id}`);
+    }
+
+    return {
+      id: updated.id,
+      template: updated.template,
+      proofPoint: updated.proof_point,
+      nombre: updated.nombre,
+      descripcionBreve: updated.descripcion_breve,
+      consideracionesContexto: updated.consideraciones_contexto,
+      configuracionPersonalizada: updated.configuracion_personalizada,
+      orden: updated.orden,
+      duracionEstimadaMinutos: updated.duracion_estimada_minutos,
+      estadoContenido: updated.estado_contenido,
+      contenidoActual: updated.contenido_actual,
+      esObligatorio: updated.es_obligatorio,
+      createdAt: updated.created_at,
+      updatedAt: updated.updated_at,
+    };
+  }
+
+  /**
    * Delete exercise
    */
   @Delete('exercises/:id')
@@ -371,7 +448,20 @@ export class ExerciseInstanceController {
   @ApiResponse({ status: 204, description: 'Exercise deleted successfully' })
   @ApiResponse({ status: 404, description: 'Exercise not found' })
   async deleteExercise(@Param('id') id: string): Promise<void> {
-    const deleted = await this.exerciseInstanceRepository.delete(RecordId.fromString(id));
+    const decodedId = decodeURIComponent(id);
+
+    // Delete using direct database query
+    const query = 'DELETE type::thing($id) RETURN BEFORE';
+    const result = await this.db.query(query, { id: decodedId });
+
+    let deleted: any;
+    if (Array.isArray(result) && result.length > 0) {
+      if (Array.isArray(result[0]) && result[0].length > 0) {
+        deleted = result[0][0];
+      } else if (!Array.isArray(result[0])) {
+        deleted = result[0];
+      }
+    }
 
     if (!deleted) {
       throw new NotFoundException(`Exercise not found: ${id}`);
