@@ -1,5 +1,6 @@
 // Base
 export { ExercisePlayer } from "./base/ExercisePlayer"
+export { ExercisePlayerEnhanced } from "./base/ExercisePlayerEnhanced"
 
 // Main 4 Players
 export { LeccionInteractivaPlayer } from "./leccion-interactiva/LeccionInteractivaPlayer"

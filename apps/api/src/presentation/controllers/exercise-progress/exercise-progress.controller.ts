@@ -19,12 +19,14 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { SurrealDbService } from '../../../core/database/surrealdb.service';
+import { OpenAIService } from '../../../infrastructure/ai/OpenAIService';
 import {
   StartExerciseDto,
   SaveProgressDto,
   CompleteExerciseDto,
   CompleteExerciseResponseDto,
   ExerciseProgressResponseDto,
+  StudentProgressSummaryDto,
 } from '../../dtos/exercise-progress';
 
 /**
@@ -37,7 +39,10 @@ import {
 export class ExerciseProgressController {
   private readonly logger = new Logger(ExerciseProgressController.name);
 
-  constructor(private readonly db: SurrealDbService) {}
+  constructor(
+    private readonly db: SurrealDbService,
+    private readonly openAIService: OpenAIService,
+  ) {}
 
   /**
    * Start an exercise (mark as started)
@@ -322,11 +327,34 @@ export class ExerciseProgressController {
       throw new BadRequestException('Failed to complete exercise');
     }
 
+    // Get exercise details for feedback generation
+    const exerciseQuery = `SELECT * FROM type::thing($id)`;
+    const exerciseResult = await this.db.query(exerciseQuery, {
+      id: decodedId,
+    });
+
+    let exercise: any;
+    if (Array.isArray(exerciseResult) && exerciseResult.length > 0) {
+      if (Array.isArray(exerciseResult[0]) && exerciseResult[0].length > 0) {
+        exercise = exerciseResult[0][0];
+      } else if (!Array.isArray(exerciseResult[0])) {
+        exercise = exerciseResult[0];
+      }
+    }
+
+    // Generate AI feedback
+    const feedback = await this.generateAIFeedback(
+      exercise?.nombre || 'ejercicio',
+      exercise?.template || 'general',
+      completeDto.datos,
+      completeDto.tiempoInvertidoMinutos || 0,
+    );
+
     return {
       id: completedProgress.id,
       estado: completedProgress.estado,
       scoreFinal: completedProgress.score_final,
-      feedback: 'Excelente trabajo. Has completado el ejercicio exitosamente.', // TODO: Generate AI feedback
+      feedback,
       completado: true,
     };
   }
@@ -384,6 +412,240 @@ export class ExerciseProgressController {
     }
 
     return this.mapProgressToDto(progress);
+  }
+
+  /**
+   * Get student progress summary
+   */
+  @Get('student/progress/summary')
+  @ApiOperation({
+    summary: 'Get student progress summary',
+    description: 'Get overall progress statistics for a student across all exercises',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Progress summary',
+    type: StudentProgressSummaryDto,
+  })
+  async getProgressSummary(
+    @Body() body: { estudianteId: string; cohorteId: string },
+  ): Promise<StudentProgressSummaryDto> {
+    // Get all progress records for student
+    const progressQuery = `
+      SELECT
+        id,
+        exercise_instance,
+        estado,
+        score_final,
+        tiempo_invertido_minutos,
+        fecha_completado
+      FROM exercise_progress
+      WHERE estudiante = type::thing($estudianteId)
+        AND cohorte = type::thing($cohorteId)
+    `;
+
+    const progressResult = await this.db.query(progressQuery, {
+      estudianteId: body.estudianteId,
+      cohorteId: body.cohorteId,
+    });
+
+    let progressRecords: any[] = [];
+    if (Array.isArray(progressResult) && progressResult.length > 0) {
+      progressRecords = Array.isArray(progressResult[0])
+        ? progressResult[0]
+        : [progressResult[0]];
+    }
+
+    // Get all published exercises for the cohorte
+    const exercisesQuery = `
+      SELECT id, nombre, template, proof_point
+      FROM exercise_instance
+      WHERE estado_contenido = 'publicado'
+        AND cohorte = type::thing($cohorteId)
+    `;
+
+    const exercisesResult = await this.db.query(exercisesQuery, {
+      cohorteId: body.cohorteId,
+    });
+
+    let allExercises: any[] = [];
+    if (Array.isArray(exercisesResult) && exercisesResult.length > 0) {
+      allExercises = Array.isArray(exercisesResult[0])
+        ? exercisesResult[0]
+        : [exercisesResult[0]];
+    }
+
+    // Calculate overall statistics
+    const completedRecords = progressRecords.filter((p) => p.estado === 'completado');
+    const inProgressRecords = progressRecords.filter((p) => p.estado === 'en_progreso');
+
+    const totalTimeInvested = progressRecords.reduce(
+      (sum, p) => sum + (p.tiempo_invertido_minutos || 0),
+      0,
+    );
+
+    const scoresWithValues = completedRecords
+      .filter((p) => p.score_final !== null && p.score_final !== undefined)
+      .map((p) => p.score_final);
+
+    const averageScore =
+      scoresWithValues.length > 0
+        ? scoresWithValues.reduce((sum, s) => sum + s, 0) / scoresWithValues.length
+        : null;
+
+    // Get proof point names
+    const proofPointIds = [...new Set(allExercises.map((e) => e.proof_point))];
+    const proofPointsQuery = `
+      SELECT id, nombre
+      FROM proof_point
+      WHERE id IN [${proofPointIds.map((id) => `type::thing('${id}')`).join(', ')}]
+    `;
+
+    const proofPointsResult = await this.db.query(proofPointsQuery);
+    let proofPoints: any[] = [];
+    if (Array.isArray(proofPointsResult) && proofPointsResult.length > 0) {
+      proofPoints = Array.isArray(proofPointsResult[0])
+        ? proofPointsResult[0]
+        : [proofPointsResult[0]];
+    }
+
+    // Group by proof point
+    const proofPointStatsMap = new Map();
+
+    for (const exercise of allExercises) {
+      const ppId = exercise.proof_point;
+      if (!proofPointStatsMap.has(ppId)) {
+        const ppData = proofPoints.find((pp) => pp.id === ppId);
+        proofPointStatsMap.set(ppId, {
+          proofPointId: ppId,
+          proofPointName: ppData?.nombre || 'Unknown',
+          totalExercises: 0,
+          completedExercises: 0,
+          timeInvestedMinutes: 0,
+          scores: [],
+        });
+      }
+
+      const stats = proofPointStatsMap.get(ppId);
+      stats.totalExercises++;
+
+      const progress = progressRecords.find(
+        (p) => p.exercise_instance === exercise.id && p.estado === 'completado',
+      );
+      if (progress) {
+        stats.completedExercises++;
+        stats.timeInvestedMinutes += progress.tiempo_invertido_minutos || 0;
+        if (progress.score_final !== null && progress.score_final !== undefined) {
+          stats.scores.push(progress.score_final);
+        }
+      }
+    }
+
+    // Convert to DTO format
+    const proofPointStats = Array.from(proofPointStatsMap.values()).map((stats) => ({
+      proofPointId: stats.proofPointId,
+      proofPointName: stats.proofPointName,
+      totalExercises: stats.totalExercises,
+      completedExercises: stats.completedExercises,
+      completionPercentage:
+        stats.totalExercises > 0
+          ? Math.round((stats.completedExercises / stats.totalExercises) * 100)
+          : 0,
+      averageScore:
+        stats.scores.length > 0
+          ? stats.scores.reduce((sum: number, s: number) => sum + s, 0) / stats.scores.length
+          : null,
+      timeInvestedMinutes: stats.timeInvestedMinutes,
+    }));
+
+    // Get recent completed exercises (last 10)
+    const recentCompletedQuery = `
+      SELECT
+        id,
+        exercise_instance,
+        fecha_completado,
+        score_final,
+        tiempo_invertido_minutos
+      FROM exercise_progress
+      WHERE estudiante = type::thing($estudianteId)
+        AND cohorte = type::thing($cohorteId)
+        AND estado = 'completado'
+      ORDER BY fecha_completado DESC
+      LIMIT 10
+    `;
+
+    const recentResult = await this.db.query(recentCompletedQuery, {
+      estudianteId: body.estudianteId,
+      cohorteId: body.cohorteId,
+    });
+
+    let recentRecords: any[] = [];
+    if (Array.isArray(recentResult) && recentResult.length > 0) {
+      recentRecords = Array.isArray(recentResult[0]) ? recentResult[0] : [recentResult[0]];
+    }
+
+    const recentCompletedExercises = recentRecords.map((record) => {
+      const exercise = allExercises.find((e) => e.id === record.exercise_instance);
+      return {
+        exerciseId: record.exercise_instance,
+        exerciseName: exercise?.nombre || 'Unknown',
+        exerciseTemplate: exercise?.template || 'general',
+        completedAt: record.fecha_completado,
+        score: record.score_final,
+        timeInvestedMinutes: record.tiempo_invertido_minutos || 0,
+      };
+    });
+
+    return {
+      totalExercises: allExercises.length,
+      completedExercises: completedRecords.length,
+      inProgressExercises: inProgressRecords.length,
+      completionPercentage:
+        allExercises.length > 0
+          ? Math.round((completedRecords.length / allExercises.length) * 100)
+          : 0,
+      totalTimeInvestedMinutes: totalTimeInvested,
+      averageScore,
+      proofPointStats,
+      recentCompletedExercises,
+    };
+  }
+
+  /**
+   * Generate AI feedback for completed exercise
+   */
+  private async generateAIFeedback(
+    exerciseName: string,
+    exerciseType: string,
+    studentWork: any,
+    timeSpent: number,
+  ): Promise<string> {
+    try {
+      const prompt = `Como tutor experto, proporciona feedback constructivo y personalizado para un estudiante que acaba de completar el ejercicio "${exerciseName}" de tipo "${exerciseType}".
+
+El estudiante invirtió ${timeSpent} minutos y este es su trabajo:
+${JSON.stringify(studentWork, null, 2)}
+
+Proporciona feedback que:
+1. Reconozca los aspectos positivos del trabajo
+2. Identifique áreas específicas de mejora
+3. Ofrezca sugerencias concretas y accionables
+4. Sea motivador y alentador
+5. Sea conciso (máximo 150 palabras)
+
+Feedback:`;
+
+      const response = await this.openAIService.generateCompletion(prompt, {
+        maxTokens: 300,
+        temperature: 0.7,
+      });
+
+      return response.trim();
+    } catch (error) {
+      this.logger.error('Failed to generate AI feedback:', error);
+      // Fallback to generic message
+      return `¡Excelente trabajo! Has completado el ejercicio "${exerciseName}" exitosamente. Continúa practicando para fortalecer tus habilidades.`;
+    }
   }
 
   /**
