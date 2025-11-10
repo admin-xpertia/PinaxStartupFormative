@@ -214,6 +214,43 @@ IMPORTANTE:
   }
 
   /**
+   * Generates a text completion using OpenAI
+   * Generic method for various AI tasks (feedback, chat, etc.)
+   */
+  async generateCompletion(
+    prompt: string,
+    options?: {
+      maxTokens?: number;
+      temperature?: number;
+      systemPrompt?: string;
+    },
+  ): Promise<string> {
+    try {
+      const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
+
+      // Add system prompt if provided
+      if (options?.systemPrompt) {
+        messages.push({ role: 'system', content: options.systemPrompt });
+      }
+
+      // Add user prompt
+      messages.push({ role: 'user', content: prompt });
+
+      const response = await this.client.chat.completions.create({
+        model: this.model,
+        messages,
+        temperature: options?.temperature ?? this.temperature,
+        max_tokens: options?.maxTokens ?? 500,
+      });
+
+      return response.choices[0].message.content || '';
+    } catch (error) {
+      this.logger.error('❌ Error generating completion with OpenAI', error);
+      throw new Error(`Failed to generate completion: ${error.message}`);
+    }
+  }
+
+  /**
    * Tests the OpenAI connection
    */
   async testConnection(): Promise<boolean> {
