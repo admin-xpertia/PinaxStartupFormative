@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, FileText, CheckCircle2, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import ReactMarkdown from "react-markdown"
+import { apiClient } from "@/services/api/client"
 
 interface ExerciseContent {
   id: string
@@ -75,24 +76,23 @@ export function ExercisePreviewDialog({
 
     try {
       // Fetch instance details
-      const instanceRes = await fetch(`/api/v1/exercise-instances/${instanceId}`)
-      if (!instanceRes.ok) {
-        throw new Error("No se pudo cargar la instancia del ejercicio")
-      }
-      const instanceData = await instanceRes.json()
-      setInstance(instanceData.data)
+      const instanceData = await apiClient.get<ExerciseInstance>(
+        `/exercises/${encodeURIComponent(instanceId)}`
+      )
+      setInstance(instanceData)
 
       // Fetch generated content
-      const contentRes = await fetch(`/api/v1/exercise-instances/${instanceId}/content`)
-      if (!contentRes.ok) {
-        if (contentRes.status === 404) {
+      try {
+        const contentData = await apiClient.get<ExerciseContent>(
+          `/exercises/${encodeURIComponent(instanceId)}/content`
+        )
+        setContent(contentData)
+      } catch (contentErr: any) {
+        if (contentErr.statusCode === 404) {
           setContent(null)
         } else {
-          throw new Error("No se pudo cargar el contenido del ejercicio")
+          throw contentErr
         }
-      } else {
-        const contentData = await contentRes.json()
-        setContent(contentData.data)
       }
     } catch (err: any) {
       setError(err.message || "Error al cargar el ejercicio")
