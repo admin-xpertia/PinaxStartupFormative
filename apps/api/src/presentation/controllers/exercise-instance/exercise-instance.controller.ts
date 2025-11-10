@@ -24,6 +24,7 @@ import { GenerateExerciseContentUseCase } from '../../../application/exercise-in
 import { IExerciseInstanceRepository } from '../../../domain/exercise-instance/repositories/IExerciseInstanceRepository';
 import { RecordId } from '../../../domain/shared/value-objects/RecordId';
 import { AddExerciseToProofPointRequestDto, ExerciseInstanceResponseDto, GenerateContentRequestDto, GenerateContentResponseDto } from '../../dtos/exercise-instance';
+import { SurrealDbService } from '../../../core/database/surrealdb.service';
 
 /**
  * ExerciseInstanceController
@@ -40,6 +41,7 @@ export class ExerciseInstanceController {
     private readonly generateContentUseCase: GenerateExerciseContentUseCase,
     @Inject('IExerciseInstanceRepository')
     private readonly exerciseInstanceRepository: IExerciseInstanceRepository,
+    private readonly db: SurrealDbService,
   ) {}
 
   /**
@@ -193,6 +195,63 @@ export class ExerciseInstanceController {
         throw new BadRequestException(error.message);
       },
     });
+  }
+
+  /**
+   * Get exercise content
+   */
+  @Get('exercises/:id/content')
+  @ApiOperation({
+    summary: 'Get exercise content',
+    description: 'Get the generated AI content for an exercise instance',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ExerciseInstance ID',
+    example: 'exercise_instance:abc123',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Exercise content',
+  })
+  @ApiResponse({ status: 404, description: 'Exercise or content not found' })
+  async getExerciseContent(@Param('id') id: string): Promise<any> {
+    const decodedId = decodeURIComponent(id);
+
+    // Query exercise content from database
+    const query = `
+      SELECT * FROM exercise_content
+      WHERE exercise_instance = type::thing($exerciseId)
+      ORDER BY created_at DESC
+      LIMIT 1
+    `;
+
+    const result = await this.db.query(query, {
+      exerciseId: decodedId,
+    });
+
+    let content: any;
+    if (Array.isArray(result) && result.length > 0) {
+      if (Array.isArray(result[0]) && result[0].length > 0) {
+        content = result[0][0];
+      } else if (!Array.isArray(result[0])) {
+        content = result[0];
+      }
+    }
+
+    if (!content) {
+      throw new NotFoundException(`Content not found for exercise: ${id}`);
+    }
+
+    return {
+      id: content.id,
+      exercise_instance: content.exercise_instance,
+      contenido_generado: content.contenido_generado,
+      prompt_usado: content.prompt_usado,
+      modelo: content.modelo,
+      created_at: content.created_at,
+      updated_at: content.updated_at,
+    };
   }
 
   /**
