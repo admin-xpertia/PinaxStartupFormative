@@ -3,6 +3,39 @@
 import { apiClient } from "./client"
 import type { ProofPointProgress, ActivityLog, ContinuePoint } from "@/types/progress"
 
+/**
+ * Types for Progress Summary
+ */
+export interface ProofPointProgressStats {
+  proofPointId: string
+  proofPointName: string
+  totalExercises: number
+  completedExercises: number
+  completionPercentage: number
+  averageScore: number | null
+  timeInvestedMinutes: number
+}
+
+export interface CompletedExercise {
+  exerciseId: string
+  exerciseName: string
+  exerciseTemplate: string
+  completedAt: string
+  score: number | null
+  timeInvestedMinutes: number
+}
+
+export interface StudentProgressSummary {
+  totalExercises: number
+  completedExercises: number
+  inProgressExercises: number
+  completionPercentage: number
+  totalTimeInvestedMinutes: number
+  averageScore: number | null
+  proofPointStats: ProofPointProgressStats[]
+  recentCompletedExercises: CompletedExercise[]
+}
+
 export const progressApi = {
   /**
    * Obtener progreso de un proof point específico
@@ -44,5 +77,18 @@ export const progressApi = {
    */
   async markAchievementSeen(achievementId: string): Promise<void> {
     return apiClient.post(`/student/achievements/${achievementId}/seen`, {})
+  },
+
+  /**
+   * Get student progress summary
+   */
+  async getProgressSummary(
+    estudianteId: string,
+    cohorteId: string
+  ): Promise<StudentProgressSummary> {
+    return apiClient.get<StudentProgressSummary>("/student/progress/summary", {
+      estudianteId,
+      cohorteId,
+    })
   },
 }

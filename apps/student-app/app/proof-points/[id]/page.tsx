@@ -23,7 +23,7 @@ import {
   Sparkles,
 } from "lucide-react"
 import Link from "next/link"
-import { enrollmentsApi, progressApi } from "@/services/api"
+import { enrollmentsApi, progressApi, proofPointsApi, type PublishedExercise } from "@/services/api"
 import { cn } from "@/lib/utils"
 import { Textarea } from "@/components/ui/textarea"
 
@@ -42,7 +42,16 @@ export default function ProofPointPage() {
     () => progressApi.getProofPointProgress(proofPointId)
   )
 
-  // Mock data for demonstration
+  // Fetch published exercises for this proof point
+  const { data: publishedExercises, isLoading: exercisesLoading } = useSWR<PublishedExercise[]>(
+    proofPointId ? `proof-point-exercises-${proofPointId}` : null,
+    () => proofPointsApi.getPublishedExercises(proofPointId)
+  )
+
+  // Use real exercises if available, otherwise show empty state
+  const hasRealExercises = publishedExercises && publishedExercises.length > 0
+
+  // Mock data for demonstration (used when no real exercises are available yet)
   const mockProofPoint = {
     id: proofPointId,
     nombre: "Estilos de Liderazgo",
@@ -51,7 +60,14 @@ export default function ProofPointPage() {
     nivelNombre: "Nivel 1: Fundamentos",
     phaseNombre: "Fase 2: Liderazgo Situacional",
     progress: 60,
-    exercises: [
+    exercises: hasRealExercises ? publishedExercises.map((ex, idx) => ({
+      id: ex.id,
+      nombre: ex.nombre,
+      tipo: ex.template.split(':')[1] || 'leccion_interactiva',
+      estimatedMinutes: ex.duracionEstimadaMinutos,
+      status: "available", // TODO: Get real status from progress API
+      progress: 0,
+    })) : [
       {
         id: "ex1",
         nombre: "Introducción a los Estilos de Liderazgo",
@@ -209,10 +225,33 @@ export default function ProofPointPage() {
               {/* Exercise List */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-sm">Ejercicios</CardTitle>
+                  <CardTitle className="text-sm">
+                    Ejercicios
+                    {hasRealExercises && (
+                      <Badge variant="secondary" className="ml-2 text-xs">
+                        {publishedExercises.length} publicados
+                      </Badge>
+                    )}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {mockProofPoint.exercises.map((exercise, idx) => (
+                  {exercisesLoading && (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Cargando ejercicios...
+                    </p>
+                  )}
+                  {!exercisesLoading && mockProofPoint.exercises.length === 0 && (
+                    <div className="text-center py-8">
+                      <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                      <p className="text-sm text-muted-foreground">
+                        No hay ejercicios publicados aún
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        El instructor está preparando los ejercicios para este proof point
+                      </p>
+                    </div>
+                  )}
+                  {!exercisesLoading && mockProofPoint.exercises.map((exercise, idx) => (
                     <button
                       key={exercise.id}
                       onClick={() => handleExerciseClick(exercise, idx)}

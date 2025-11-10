@@ -34,7 +34,7 @@ interface ExerciseInstance {
   descripcion_breve?: string
   duracion_estimada_minutos: number
   es_obligatorio: boolean
-  estado_contenido: "pendiente" | "generando" | "generado" | "error"
+  estado_contenido: "sin_generar" | "generando" | "draft" | "publicado"
   template: {
     id: string
     nombre: string
@@ -49,18 +49,21 @@ interface ExercisePreviewDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   instanceId: string | null
+  onPublish?: (instanceId: string) => Promise<void>
 }
 
 export function ExercisePreviewDialog({
   open,
   onOpenChange,
   instanceId,
+  onPublish,
 }: ExercisePreviewDialogProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
   const [instance, setInstance] = useState<ExerciseInstance | null>(null)
   const [content, setContent] = useState<ExerciseContent | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [publishing, setPublishing] = useState(false)
 
   useEffect(() => {
     if (open && instanceId) {
@@ -103,6 +106,29 @@ export function ExercisePreviewDialog({
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handlePublish = async () => {
+    if (!instanceId || !onPublish) return
+
+    setPublishing(true)
+    try {
+      await onPublish(instanceId)
+      toast({
+        title: "Ejercicio publicado",
+        description: "El ejercicio está ahora disponible para los estudiantes",
+      })
+      // Refresh the instance data
+      await fetchInstanceAndContent()
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Error al publicar el ejercicio",
+        variant: "destructive",
+      })
+    } finally {
+      setPublishing(false)
     }
   }
 
@@ -172,7 +198,7 @@ export function ExercisePreviewDialog({
       )
     }
 
-    if (!content || instance.estado_contenido !== "generado") {
+    if (!content || (instance.estado_contenido !== "draft" && instance.estado_contenido !== "publicado")) {
       return (
         <div className="flex flex-col items-center justify-center py-12 gap-3">
           <FileText className="h-12 w-12 text-muted-foreground" />
@@ -405,10 +431,38 @@ export function ExercisePreviewDialog({
         <div className="flex-1 overflow-y-auto">{renderContent()}</div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cerrar
-          </Button>
-          {/* TODO: Agregar botones de editar y publicar en el futuro */}
+          <div className="flex justify-between items-center w-full">
+            <div className="flex gap-2">
+              {instance && instance.estado_contenido === "draft" && onPublish && (
+                <Button
+                  onClick={handlePublish}
+                  disabled={publishing}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {publishing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Publicando...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Publicar para Estudiantes
+                    </>
+                  )}
+                </Button>
+              )}
+              {instance && instance.estado_contenido === "publicado" && (
+                <Badge variant="default" className="bg-green-500 px-3 py-1">
+                  <CheckCircle2 className="mr-1 h-3 w-3" />
+                  Publicado
+                </Badge>
+              )}
+            </div>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cerrar
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

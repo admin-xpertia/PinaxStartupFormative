@@ -24,7 +24,7 @@ import { AddExerciseToProofPointUseCase } from '../../../application/exercise-in
 import { GenerateExerciseContentUseCase } from '../../../application/exercise-instance/use-cases/GenerateExerciseContent/GenerateExerciseContentUseCase';
 import { IExerciseInstanceRepository } from '../../../domain/exercise-instance/repositories/IExerciseInstanceRepository';
 import { RecordId } from '../../../domain/shared/value-objects/RecordId';
-import { AddExerciseToProofPointRequestDto, ExerciseInstanceResponseDto, GenerateContentRequestDto, GenerateContentResponseDto } from '../../dtos/exercise-instance';
+import { AddExerciseToProofPointRequestDto, ExerciseInstanceResponseDto, GenerateContentRequestDto, GenerateContentResponseDto, UpdateExerciseStatusDto } from '../../dtos/exercise-instance';
 import { SurrealDbService } from '../../../core/database/surrealdb.service';
 
 /**
@@ -433,6 +433,93 @@ export class ExerciseInstanceController {
   }
 
   /**
+   * Publish exercise (change status to published)
+   */
+  @Put('exercises/:id/publish')
+  @ApiOperation({
+    summary: 'Publish exercise',
+    description: 'Change exercise content status to published',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ExerciseInstance ID',
+    example: 'exercise_instance:abc123',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Exercise published successfully',
+    type: ExerciseInstanceResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Exercise not found' })
+  @ApiResponse({ status: 400, description: 'Exercise must be in draft state to publish' })
+  async publishExercise(@Param('id') id: string): Promise<ExerciseInstanceResponseDto> {
+    const decodedId = decodeURIComponent(id);
+
+    // First, check if exercise exists and is in draft state
+    const checkQuery = 'SELECT * FROM type::thing($id)';
+    const checkResult = await this.db.query(checkQuery, { id: decodedId });
+
+    let exercise: any;
+    if (Array.isArray(checkResult) && checkResult.length > 0) {
+      if (Array.isArray(checkResult[0]) && checkResult[0].length > 0) {
+        exercise = checkResult[0][0];
+      } else if (!Array.isArray(checkResult[0])) {
+        exercise = checkResult[0];
+      }
+    }
+
+    if (!exercise) {
+      throw new NotFoundException(`Exercise not found: ${id}`);
+    }
+
+    if (exercise.estado_contenido !== 'draft') {
+      throw new BadRequestException(
+        `Exercise must be in draft state to publish. Current state: ${exercise.estado_contenido}`
+      );
+    }
+
+    // Update status to published
+    const updateQuery = `
+      UPDATE type::thing($id) SET
+        estado_contenido = 'publicado',
+        updated_at = time::now()
+      RETURN AFTER
+    `;
+
+    const updateResult = await this.db.query(updateQuery, { id: decodedId });
+
+    let updated: any;
+    if (Array.isArray(updateResult) && updateResult.length > 0) {
+      if (Array.isArray(updateResult[0]) && updateResult[0].length > 0) {
+        updated = updateResult[0][0];
+      } else if (!Array.isArray(updateResult[0])) {
+        updated = updateResult[0];
+      }
+    }
+
+    if (!updated) {
+      throw new NotFoundException(`Failed to update exercise: ${id}`);
+    }
+
+    return {
+      id: updated.id,
+      template: updated.template,
+      proofPoint: updated.proof_point,
+      nombre: updated.nombre,
+      descripcionBreve: updated.descripcion_breve,
+      consideracionesContexto: updated.consideraciones_contexto,
+      configuracionPersonalizada: updated.configuracion_personalizada,
+      orden: updated.orden,
+      duracionEstimadaMinutos: updated.duracion_estimada_minutos,
+      estadoContenido: updated.estado_contenido,
+      contenidoActual: updated.contenido_actual,
+      esObligatorio: updated.es_obligatorio,
+      createdAt: updated.created_at,
+      updatedAt: updated.updated_at,
+    };
+  }
+
+  /**
    * Delete exercise
    */
   @Delete('exercises/:id')
@@ -467,6 +554,210 @@ export class ExerciseInstanceController {
     if (!deleted) {
       throw new NotFoundException(`Exercise not found: ${id}`);
     }
+  }
+
+  /**
+   * Get published exercises for a proof point (Student endpoint)
+   */
+  @Get('student/proof-points/:proofPointId/exercises')
+  @ApiOperation({
+    summary: 'Get published exercises for students',
+    description: 'Get all published exercises for a specific proof point (student view)',
+  })
+  @ApiParam({
+    name: 'proofPointId',
+    description: 'ProofPoint ID',
+    example: 'proof_point:abc123',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of published exercises',
+    type: [ExerciseInstanceResponseDto],
+  })
+  async getPublishedExercisesByProofPoint(
+    @Param('proofPointId') proofPointId: string,
+  ): Promise<ExerciseInstanceResponseDto[]> {
+    const decodedProofPointId = decodeURIComponent(proofPointId);
+
+    // Query only published exercises
+    const query = `
+      SELECT * FROM exercise_instance
+      WHERE proof_point = type::thing($proofPointId)
+        AND estado_contenido = 'publicado'
+      ORDER BY orden ASC
+    `;
+
+    const result = await this.db.query(query, {
+      proofPointId: decodedProofPointId,
+    });
+
+    // Extract exercises
+    let exercises: any[];
+    if (Array.isArray(result) && result.length > 0) {
+      if (Array.isArray(result[0])) {
+        exercises = result[0];
+      } else {
+        exercises = result;
+      }
+    } else {
+      exercises = [];
+    }
+
+    // Map to DTOs (excluding instructor-specific fields)
+    return exercises.map((exercise: any) => ({
+      id: exercise.id,
+      template: exercise.template,
+      proofPoint: exercise.proof_point,
+      nombre: exercise.nombre,
+      descripcionBreve: exercise.descripcion_breve,
+      consideracionesContexto: '', // Don't expose to students
+      configuracionPersonalizada: exercise.configuracion_personalizada,
+      orden: exercise.orden,
+      duracionEstimadaMinutos: exercise.duracion_estimada_minutos,
+      estadoContenido: exercise.estado_contenido,
+      contenidoActual: exercise.contenido_actual,
+      esObligatorio: exercise.es_obligatorio,
+      createdAt: exercise.created_at,
+      updatedAt: exercise.updated_at,
+    }));
+  }
+
+  /**
+   * Get published exercise by ID (Student endpoint)
+   */
+  @Get('student/exercises/:id')
+  @ApiOperation({
+    summary: 'Get published exercise for student',
+    description: 'Get a specific exercise if it is published',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ExerciseInstance ID',
+    example: 'exercise_instance:abc123',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Exercise details',
+    type: ExerciseInstanceResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Exercise not found or not published' })
+  async getPublishedExercise(@Param('id') id: string): Promise<ExerciseInstanceResponseDto> {
+    const decodedId = decodeURIComponent(id);
+
+    // Query database for published exercise only
+    const query = `
+      SELECT * FROM type::thing($id)
+      WHERE estado_contenido = 'publicado'
+    `;
+
+    const result = await this.db.query(query, { id: decodedId });
+
+    let exercise: any;
+    if (Array.isArray(result) && result.length > 0) {
+      if (Array.isArray(result[0]) && result[0].length > 0) {
+        exercise = result[0][0];
+      } else if (!Array.isArray(result[0])) {
+        exercise = result[0];
+      }
+    }
+
+    if (!exercise) {
+      throw new NotFoundException(`Published exercise not found: ${id}`);
+    }
+
+    return {
+      id: exercise.id,
+      template: exercise.template,
+      proofPoint: exercise.proof_point,
+      nombre: exercise.nombre,
+      descripcionBreve: exercise.descripcion_breve,
+      consideracionesContexto: '', // Don't expose to students
+      configuracionPersonalizada: exercise.configuracion_personalizada,
+      orden: exercise.orden,
+      duracionEstimadaMinutos: exercise.duracion_estimada_minutos,
+      estadoContenido: exercise.estado_contenido,
+      contenidoActual: exercise.contenido_actual,
+      esObligatorio: exercise.es_obligatorio,
+      createdAt: exercise.created_at,
+      updatedAt: exercise.updated_at,
+    };
+  }
+
+  /**
+   * Get published exercise content (Student endpoint)
+   */
+  @Get('student/exercises/:id/content')
+  @ApiOperation({
+    summary: 'Get published exercise content for student',
+    description: 'Get the content of a published exercise',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ExerciseInstance ID',
+    example: 'exercise_instance:abc123',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Exercise content',
+  })
+  @ApiResponse({ status: 404, description: 'Exercise or content not found' })
+  async getPublishedExerciseContent(@Param('id') id: string): Promise<any> {
+    const decodedId = decodeURIComponent(id);
+
+    // First verify the exercise is published
+    const exerciseQuery = `
+      SELECT * FROM type::thing($id)
+      WHERE estado_contenido = 'publicado'
+    `;
+
+    const exerciseResult = await this.db.query(exerciseQuery, { id: decodedId });
+
+    let exercise: any;
+    if (Array.isArray(exerciseResult) && exerciseResult.length > 0) {
+      if (Array.isArray(exerciseResult[0]) && exerciseResult[0].length > 0) {
+        exercise = exerciseResult[0][0];
+      } else if (!Array.isArray(exerciseResult[0])) {
+        exercise = exerciseResult[0];
+      }
+    }
+
+    if (!exercise) {
+      throw new NotFoundException(`Published exercise not found: ${id}`);
+    }
+
+    // Query exercise content
+    const contentQuery = `
+      SELECT * FROM exercise_content
+      WHERE exercise_instance = type::thing($exerciseId)
+      ORDER BY created_at DESC
+      LIMIT 1
+    `;
+
+    const contentResult = await this.db.query(contentQuery, {
+      exerciseId: decodedId,
+    });
+
+    let content: any;
+    if (Array.isArray(contentResult) && contentResult.length > 0) {
+      if (Array.isArray(contentResult[0]) && contentResult[0].length > 0) {
+        content = contentResult[0][0];
+      } else if (!Array.isArray(contentResult[0])) {
+        content = contentResult[0];
+      }
+    }
+
+    if (!content) {
+      throw new NotFoundException(`Content not found for exercise: ${id}`);
+    }
+
+    return {
+      id: content.id,
+      exercise_instance: content.exercise_instance,
+      contenido_generado: content.contenido_generado,
+      // Don't expose prompt_usado and modelo to students
+      created_at: content.created_at,
+      updated_at: content.updated_at,
+    };
   }
 
   /**

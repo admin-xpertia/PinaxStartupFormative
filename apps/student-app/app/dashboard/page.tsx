@@ -150,8 +150,8 @@ export default function DashboardPage() {
             <h1 className="text-xl font-bold">Xpertia</h1>
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm">
-              Mi Progreso
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/dashboard/progress">Mi Progreso</Link>
             </Button>
             <Avatar>
               <AvatarFallback>ES</AvatarFallback>
