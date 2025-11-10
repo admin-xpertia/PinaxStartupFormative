@@ -11,37 +11,38 @@ export const proofPointsApi = {
    * Get all proof points for a fase
    */
   getByFase: (faseId: string) =>
-    apiClient.get<ProofPointResponse[]>(`/fases/${faseId}/proof-points`),
+    apiClient.get<ProofPointResponse[]>(`/fases/${encodeURIComponent(faseId)}/proof-points`),
 
   /**
    * Get proof point by ID
    */
   getById: (id: string) =>
-    apiClient.get<ProofPointResponse>(`/proof-points/${id}`),
+    apiClient.get<ProofPointResponse>(`/proof-points/${encodeURIComponent(id)}`),
 
   /**
    * Add proof point to fase
    */
   create: (faseId: string, data: AddProofPointRequest) =>
-    apiClient.post<ProofPointResponse>(`/fases/${faseId}/proof-points`, data),
+    apiClient.post<ProofPointResponse>(`/fases/${encodeURIComponent(faseId)}/proof-points`, data),
 
   /**
    * Update proof point
    */
   update: (id: string, data: Partial<AddProofPointRequest>) =>
-    apiClient.put<ProofPointResponse>(`/proof-points/${id}`, data),
+    apiClient.put<ProofPointResponse>(`/proof-points/${encodeURIComponent(id)}`, data),
 
   /**
    * Delete proof point
    */
-  delete: (id: string) => apiClient.delete<void>(`/proof-points/${id}`),
+  delete: (id: string) =>
+    apiClient.delete<void>(`/proof-points/${encodeURIComponent(id)}`),
 
   /**
    * Reorder proof points in a fase
    */
   reorder: (faseId: string, proofPointIds: string[]) =>
     apiClient.put<ProofPointResponse[]>(
-      `/fases/${faseId}/proof-points/reorder`,
+      `/fases/${encodeURIComponent(faseId)}/proof-points/reorder`,
       { proofPointIds }
     ),
 

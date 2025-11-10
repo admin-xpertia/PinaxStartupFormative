@@ -108,19 +108,17 @@ export function ExerciseWizardDialog({
     setIsSubmitting(true)
 
     try {
-      const response = await fetch("/api/v1/exercise-instances", {
+      const response = await fetch(`/api/v1/proof-points/${proofPointId}/exercises`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           templateId: template.id,
-          proofPointId,
           nombre: nombre.trim(),
           descripcionBreve: descripcionBreve.trim() || undefined,
           consideracionesContexto: consideraciones.trim() || undefined,
           configuracionPersonalizada: configuracion,
-          orden: 999, // Will be adjusted by backend
           duracionEstimadaMinutos: duracion,
           esObligatorio,
         }),
