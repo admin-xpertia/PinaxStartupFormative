@@ -57,7 +57,7 @@ export class OpenAIService {
     });
 
     // Configuration
-    this.model = this.configService.get<string>('OPENAI_MODEL') || 'gpt-4-turbo-preview';
+    this.model = this.configService.get<string>('OPENAI_MODEL') || 'gpt-5-nano';
     this.maxTokens = this.configService.get<number>('OPENAI_MAX_TOKENS') || 4000;
     this.temperature = this.configService.get<number>('OPENAI_TEMPERATURE') || 0.7;
 
