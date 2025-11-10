@@ -129,6 +129,8 @@ export default function ExerciseLibraryPage({
   const [instanceToPreview, setInstanceToPreview] = useState<string | null>(null)
   const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set())
   const [batchGenerating, setBatchGenerating] = useState(false)
+  const [editWizardOpen, setEditWizardOpen] = useState(false)
+  const [instanceToEdit, setInstanceToEdit] = useState<ExerciseInstance | null>(null)
 
   // Fetch proof point data
   const { data: proofPoint, isLoading: ppLoading } = useSWR<ProofPoint>(
@@ -239,7 +241,7 @@ export default function ExerciseLibraryPage({
     if (!instanceToDelete) return
 
     try {
-      const response = await fetch(`/api/v1/exercises/${instanceToDelete}`, {
+      const response = await fetch(`/api/v1/exercises/${encodeURIComponent(instanceToDelete)}`, {
         method: "DELETE",
       })
 
@@ -269,6 +271,26 @@ export default function ExerciseLibraryPage({
   const handleAddTemplate = (template: ExerciseTemplate) => {
     setSelectedTemplate(template)
     setWizardOpen(true)
+  }
+
+  // Handle edit
+  const handleEdit = (instance: ExerciseInstance) => {
+    // Find the template for this instance
+    const templateId = instance.template
+    let foundTemplate: ExerciseTemplate | null = null
+
+    // Search through all grouped templates
+    for (const templates of Object.values(templatesGrouped)) {
+      const template = templates.find((t) => t.id === templateId)
+      if (template) {
+        foundTemplate = template
+        break
+      }
+    }
+
+    setSelectedTemplate(foundTemplate)
+    setInstanceToEdit(instance)
+    setEditWizardOpen(true)
   }
 
   // Handle preview
@@ -423,6 +445,7 @@ export default function ExerciseLibraryPage({
                             instance={instance}
                             index={index}
                             onDelete={() => handleDelete(instance.id)}
+                            onEdit={() => handleEdit(instance)}
                             onGenerate={() => handleGenerate(instance.id)}
                             onPreview={() => handlePreview(instance.id)}
                             onPublish={() => handlePublish(instance.id)}
@@ -503,6 +526,18 @@ export default function ExerciseLibraryPage({
         }}
       />
 
+      {/* Edit Wizard Dialog */}
+      <ExerciseWizardDialog
+        open={editWizardOpen}
+        onOpenChange={setEditWizardOpen}
+        template={selectedTemplate}
+        proofPointId={ppId}
+        existingInstance={instanceToEdit}
+        onSuccess={() => {
+          mutateInstances()
+        }}
+      />
+
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
@@ -538,6 +573,7 @@ function ExerciseInstanceCard({
   instance,
   index,
   onDelete,
+  onEdit,
   onGenerate,
   onPreview,
   onPublish,
@@ -546,6 +582,7 @@ function ExerciseInstanceCard({
   instance: ExerciseInstance
   index: number
   onDelete: () => void
+  onEdit: () => void
   onGenerate: () => void
   onPreview: () => void
   onPublish?: () => void
@@ -635,29 +672,51 @@ function ExerciseInstanceCard({
 
           {/* Actions */}
           <div className="flex-shrink-0 flex gap-2">
+            {/* Editar: siempre disponible */}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onEdit}
+              disabled={isGenerating}
+              title="Editar configuración"
+            >
+              <Edit3 className="h-4 w-4" />
+            </Button>
+
+            {/* Generar: solo cuando no tiene contenido */}
             {instance.estado_contenido === "sin_generar" && !isGenerating && (
-              <Button size="sm" onClick={onGenerate} title="Generar con IA">
+              <Button size="sm" onClick={onGenerate} title="Generar contenido con IA">
                 <Zap className="h-4 w-4" />
               </Button>
             )}
+
+            {/* Previsualizar: cuando tiene contenido generado */}
             {(instance.estado_contenido === "draft" || instance.estado_contenido === "publicado") && (
-              <>
-                <Button size="sm" variant="outline" onClick={onPreview} title="Previsualizar">
-                  <Eye className="h-4 w-4" />
-                </Button>
-                {instance.estado_contenido === "draft" && onPublish && (
-                  <Button
-                    size="sm"
-                    className="bg-green-600 hover:bg-green-700"
-                    onClick={onPublish}
-                    title="Publicar para estudiantes"
-                  >
-                    Publicar
-                  </Button>
-                )}
-              </>
+              <Button size="sm" variant="outline" onClick={onPreview} title="Previsualizar ejercicio">
+                <Eye className="h-4 w-4" />
+              </Button>
             )}
-            <Button size="sm" variant="ghost" onClick={onDelete} disabled={isGenerating} title="Eliminar">
+
+            {/* Publicar: solo en estado draft */}
+            {instance.estado_contenido === "draft" && onPublish && (
+              <Button
+                size="sm"
+                className="bg-green-600 hover:bg-green-700"
+                onClick={onPublish}
+                title="Publicar para estudiantes"
+              >
+                Publicar
+              </Button>
+            )}
+
+            {/* Eliminar */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={onDelete}
+              disabled={isGenerating}
+              title="Eliminar ejercicio"
+            >
               <Trash2 className="h-4 w-4 text-destructive" />
             </Button>
           </div>
