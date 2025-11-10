@@ -277,6 +277,34 @@ export default function ExerciseLibraryPage({
     setPreviewDialogOpen(true)
   }
 
+  // Handle publish
+  const handlePublish = async (instanceId: string) => {
+    try {
+      const response = await fetch(`/api/v1/exercises/${instanceId}/publish`, {
+        method: "PUT",
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || "Error al publicar el ejercicio")
+      }
+
+      toast({
+        title: "Ejercicio publicado",
+        description: "El ejercicio está ahora disponible para los estudiantes",
+      })
+
+      mutateInstances()
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo publicar el ejercicio",
+        variant: "destructive",
+      })
+      throw error
+    }
+  }
+
   if (ppLoading || templatesLoading) {
     return (
       <div className="flex h-screen overflow-hidden bg-background">
@@ -397,6 +425,7 @@ export default function ExerciseLibraryPage({
                             onDelete={() => handleDelete(instance.id)}
                             onGenerate={() => handleGenerate(instance.id)}
                             onPreview={() => handlePreview(instance.id)}
+                            onPublish={() => handlePublish(instance.id)}
                             isGenerating={generatingIds.has(instance.id)}
                           />
                         ))}
@@ -498,6 +527,7 @@ export default function ExerciseLibraryPage({
         open={previewDialogOpen}
         onOpenChange={setPreviewDialogOpen}
         instanceId={instanceToPreview}
+        onPublish={handlePublish}
       />
     </>
   )
@@ -510,6 +540,7 @@ function ExerciseInstanceCard({
   onDelete,
   onGenerate,
   onPreview,
+  onPublish,
   isGenerating,
 }: {
   instance: ExerciseInstance
@@ -517,6 +548,7 @@ function ExerciseInstanceCard({
   onDelete: () => void
   onGenerate: () => void
   onPreview: () => void
+  onPublish?: () => void
   isGenerating: boolean
 }) {
   const getStatusBadge = () => {
@@ -604,16 +636,28 @@ function ExerciseInstanceCard({
           {/* Actions */}
           <div className="flex-shrink-0 flex gap-2">
             {instance.estado_contenido === "sin_generar" && !isGenerating && (
-              <Button size="sm" onClick={onGenerate}>
+              <Button size="sm" onClick={onGenerate} title="Generar con IA">
                 <Zap className="h-4 w-4" />
               </Button>
             )}
             {(instance.estado_contenido === "draft" || instance.estado_contenido === "publicado") && (
-              <Button size="sm" variant="outline" onClick={onPreview}>
-                <Eye className="h-4 w-4" />
-              </Button>
+              <>
+                <Button size="sm" variant="outline" onClick={onPreview} title="Previsualizar">
+                  <Eye className="h-4 w-4" />
+                </Button>
+                {instance.estado_contenido === "draft" && onPublish && (
+                  <Button
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={onPublish}
+                    title="Publicar para estudiantes"
+                  >
+                    Publicar
+                  </Button>
+                )}
+              </>
             )}
-            <Button size="sm" variant="ghost" onClick={onDelete} disabled={isGenerating}>
+            <Button size="sm" variant="ghost" onClick={onDelete} disabled={isGenerating} title="Eliminar">
               <Trash2 className="h-4 w-4 text-destructive" />
             </Button>
           </div>

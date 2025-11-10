@@ -24,7 +24,7 @@ import { AddExerciseToProofPointUseCase } from '../../../application/exercise-in
 import { GenerateExerciseContentUseCase } from '../../../application/exercise-instance/use-cases/GenerateExerciseContent/GenerateExerciseContentUseCase';
 import { IExerciseInstanceRepository } from '../../../domain/exercise-instance/repositories/IExerciseInstanceRepository';
 import { RecordId } from '../../../domain/shared/value-objects/RecordId';
-import { AddExerciseToProofPointRequestDto, ExerciseInstanceResponseDto, GenerateContentRequestDto, GenerateContentResponseDto } from '../../dtos/exercise-instance';
+import { AddExerciseToProofPointRequestDto, ExerciseInstanceResponseDto, GenerateContentRequestDto, GenerateContentResponseDto, UpdateExerciseStatusDto } from '../../dtos/exercise-instance';
 import { SurrealDbService } from '../../../core/database/surrealdb.service';
 
 /**
@@ -412,6 +412,93 @@ export class ExerciseInstanceController {
 
     if (!updated) {
       throw new NotFoundException(`Exercise not found: ${id}`);
+    }
+
+    return {
+      id: updated.id,
+      template: updated.template,
+      proofPoint: updated.proof_point,
+      nombre: updated.nombre,
+      descripcionBreve: updated.descripcion_breve,
+      consideracionesContexto: updated.consideraciones_contexto,
+      configuracionPersonalizada: updated.configuracion_personalizada,
+      orden: updated.orden,
+      duracionEstimadaMinutos: updated.duracion_estimada_minutos,
+      estadoContenido: updated.estado_contenido,
+      contenidoActual: updated.contenido_actual,
+      esObligatorio: updated.es_obligatorio,
+      createdAt: updated.created_at,
+      updatedAt: updated.updated_at,
+    };
+  }
+
+  /**
+   * Publish exercise (change status to published)
+   */
+  @Put('exercises/:id/publish')
+  @ApiOperation({
+    summary: 'Publish exercise',
+    description: 'Change exercise content status to published',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ExerciseInstance ID',
+    example: 'exercise_instance:abc123',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Exercise published successfully',
+    type: ExerciseInstanceResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Exercise not found' })
+  @ApiResponse({ status: 400, description: 'Exercise must be in draft state to publish' })
+  async publishExercise(@Param('id') id: string): Promise<ExerciseInstanceResponseDto> {
+    const decodedId = decodeURIComponent(id);
+
+    // First, check if exercise exists and is in draft state
+    const checkQuery = 'SELECT * FROM type::thing($id)';
+    const checkResult = await this.db.query(checkQuery, { id: decodedId });
+
+    let exercise: any;
+    if (Array.isArray(checkResult) && checkResult.length > 0) {
+      if (Array.isArray(checkResult[0]) && checkResult[0].length > 0) {
+        exercise = checkResult[0][0];
+      } else if (!Array.isArray(checkResult[0])) {
+        exercise = checkResult[0];
+      }
+    }
+
+    if (!exercise) {
+      throw new NotFoundException(`Exercise not found: ${id}`);
+    }
+
+    if (exercise.estado_contenido !== 'draft') {
+      throw new BadRequestException(
+        `Exercise must be in draft state to publish. Current state: ${exercise.estado_contenido}`
+      );
+    }
+
+    // Update status to published
+    const updateQuery = `
+      UPDATE type::thing($id) SET
+        estado_contenido = 'publicado',
+        updated_at = time::now()
+      RETURN AFTER
+    `;
+
+    const updateResult = await this.db.query(updateQuery, { id: decodedId });
+
+    let updated: any;
+    if (Array.isArray(updateResult) && updateResult.length > 0) {
+      if (Array.isArray(updateResult[0]) && updateResult[0].length > 0) {
+        updated = updateResult[0][0];
+      } else if (!Array.isArray(updateResult[0])) {
+        updated = updateResult[0];
+      }
+    }
+
+    if (!updated) {
+      throw new NotFoundException(`Failed to update exercise: ${id}`);
     }
 
     return {
