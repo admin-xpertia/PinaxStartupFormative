@@ -68,8 +68,10 @@ export class ExerciseInstanceController {
     @Param('proofPointId') proofPointId: string,
     @Body() addExerciseDto: AddExerciseToProofPointRequestDto,
   ): Promise<ExerciseInstanceResponseDto> {
+    const decodedProofPointId = decodeURIComponent(proofPointId);
+
     const result = await this.addExerciseUseCase.execute({
-      proofPointId,
+      proofPointId: decodedProofPointId,
       templateId: addExerciseDto.templateId,
       nombre: addExerciseDto.nombre,
       duracionMinutos: addExerciseDto.duracionEstimadaMinutos,
@@ -79,10 +81,40 @@ export class ExerciseInstanceController {
 
     return result.match({
       ok: async (response) => {
-        const exercise = await this.exerciseInstanceRepository.findById(
-          RecordId.fromString(response.exerciseInstanceId),
-        );
-        return this.mapToResponseDto(exercise!);
+        // Query the exercise directly from database to avoid mapper issues
+        const query = 'SELECT * FROM type::thing($id)';
+        const dbResult = await this.db.query(query, { id: response.exerciseInstanceId });
+
+        let exercise: any;
+        if (Array.isArray(dbResult) && dbResult.length > 0) {
+          if (Array.isArray(dbResult[0]) && dbResult[0].length > 0) {
+            exercise = dbResult[0][0];
+          } else if (!Array.isArray(dbResult[0])) {
+            exercise = dbResult[0];
+          }
+        }
+
+        if (!exercise) {
+          throw new NotFoundException(`Exercise not found: ${response.exerciseInstanceId}`);
+        }
+
+        // Map manually to DTO
+        return {
+          id: exercise.id,
+          template: exercise.template,
+          proofPoint: exercise.proof_point,
+          nombre: exercise.nombre,
+          descripcionBreve: exercise.descripcion_breve,
+          consideracionesContexto: exercise.consideraciones_contexto,
+          configuracionPersonalizada: exercise.configuracion_personalizada,
+          orden: exercise.orden,
+          duracionEstimadaMinutos: exercise.duracion_estimada_minutos,
+          estadoContenido: exercise.estado_contenido,
+          contenidoActual: exercise.contenido_actual,
+          esObligatorio: exercise.es_obligatorio,
+          createdAt: exercise.created_at,
+          updatedAt: exercise.updated_at,
+        };
       },
       fail: (error) => {
         if (error.message.includes('not found')) {
@@ -114,10 +146,48 @@ export class ExerciseInstanceController {
   async listExercisesByProofPoint(
     @Param('proofPointId') proofPointId: string,
   ): Promise<ExerciseInstanceResponseDto[]> {
-    const exercises = await this.exerciseInstanceRepository.findByProofPoint(
-      RecordId.fromString(proofPointId),
-    );
-    return exercises.map(ex => this.mapToResponseDto(ex));
+    const decodedProofPointId = decodeURIComponent(proofPointId);
+
+    // Query database directly
+    const query = `
+      SELECT * FROM exercise_instance
+      WHERE proof_point = type::thing($proofPointId)
+      ORDER BY orden ASC
+    `;
+
+    const result = await this.db.query(query, {
+      proofPointId: decodedProofPointId,
+    });
+
+    // Extract exercises
+    let exercises: any[];
+    if (Array.isArray(result) && result.length > 0) {
+      if (Array.isArray(result[0])) {
+        exercises = result[0];
+      } else {
+        exercises = result;
+      }
+    } else {
+      exercises = [];
+    }
+
+    // Map to DTOs
+    return exercises.map((exercise: any) => ({
+      id: exercise.id,
+      template: exercise.template,
+      proofPoint: exercise.proof_point,
+      nombre: exercise.nombre,
+      descripcionBreve: exercise.descripcion_breve,
+      consideracionesContexto: exercise.consideraciones_contexto,
+      configuracionPersonalizada: exercise.configuracion_personalizada,
+      orden: exercise.orden,
+      duracionEstimadaMinutos: exercise.duracion_estimada_minutos,
+      estadoContenido: exercise.estado_contenido,
+      contenidoActual: exercise.contenido_actual,
+      esObligatorio: exercise.es_obligatorio,
+      createdAt: exercise.created_at,
+      updatedAt: exercise.updated_at,
+    }));
   }
 
   /**
@@ -140,13 +210,43 @@ export class ExerciseInstanceController {
   })
   @ApiResponse({ status: 404, description: 'Exercise not found' })
   async getExercise(@Param('id') id: string): Promise<ExerciseInstanceResponseDto> {
-    const exercise = await this.exerciseInstanceRepository.findById(RecordId.fromString(id));
+    const decodedId = decodeURIComponent(id);
+
+    // Query database directly
+    const result = await this.db.query(
+      'SELECT * FROM type::thing($id)',
+      { id: decodedId }
+    );
+
+    let exercise: any;
+    if (Array.isArray(result) && result.length > 0) {
+      if (Array.isArray(result[0]) && result[0].length > 0) {
+        exercise = result[0][0];
+      } else if (!Array.isArray(result[0])) {
+        exercise = result[0];
+      }
+    }
 
     if (!exercise) {
       throw new NotFoundException(`Exercise not found: ${id}`);
     }
 
-    return this.mapToResponseDto(exercise);
+    return {
+      id: exercise.id,
+      template: exercise.template,
+      proofPoint: exercise.proof_point,
+      nombre: exercise.nombre,
+      descripcionBreve: exercise.descripcion_breve,
+      consideracionesContexto: exercise.consideraciones_contexto,
+      configuracionPersonalizada: exercise.configuracion_personalizada,
+      orden: exercise.orden,
+      duracionEstimadaMinutos: exercise.duracion_estimada_minutos,
+      estadoContenido: exercise.estado_contenido,
+      contenidoActual: exercise.contenido_actual,
+      esObligatorio: exercise.es_obligatorio,
+      createdAt: exercise.created_at,
+      updatedAt: exercise.updated_at,
+    };
   }
 
   /**
