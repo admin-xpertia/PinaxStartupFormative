@@ -13,6 +13,10 @@ import { progressApi, proofPointsApi, type PublishedExercise } from "@/services/
 import type { ProofPointExercise, ProofPointOverview } from "@/types/proof-point"
 import { getHighlightExercise } from "@/lib/proof-point"
 
+// Mock user data - replace with real auth context
+const MOCK_ESTUDIANTE_ID = "usuario:estudiante1"
+const MOCK_COHORTE_ID = "cohorte:cohorte1"
+
 const FALLBACK_OBJECTIVES = [
   "Identificar los principales estilos de liderazgo y sus características",
   "Reconocer tu estilo natural de liderazgo",
@@ -92,7 +96,7 @@ export default function ProofPointPage() {
 
   const { data: proofPointProgress } = useSWR(
     proofPointId ? `proof-point-${proofPointId}` : null,
-    () => progressApi.getProofPointProgress(proofPointId)
+    () => progressApi.getProofPointProgress(proofPointId, MOCK_ESTUDIANTE_ID, MOCK_COHORTE_ID)
   )
 
   const { data: publishedExercises, isLoading: exercisesLoading } = useSWR<PublishedExercise[]>(

@@ -40,9 +40,18 @@ export const progressApi = {
   /**
    * Obtener progreso de un proof point específico
    */
-  async getProofPointProgress(proofPointId: string): Promise<ProofPointProgress> {
+  async getProofPointProgress(
+    proofPointId: string,
+    estudianteId: string,
+    cohorteId: string
+  ): Promise<ProofPointProgress> {
+    const query = new URLSearchParams({
+      estudianteId,
+      cohorteId,
+    })
+
     return apiClient.get<ProofPointProgress>(
-      `/student/proof-points/${proofPointId}/progress`
+      `/student/proof-points/${proofPointId}/progress?${query.toString()}`
     )
   },
 
