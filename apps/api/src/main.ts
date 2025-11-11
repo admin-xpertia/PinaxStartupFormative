@@ -13,8 +13,14 @@ async function bootstrap() {
   app.setGlobalPrefix(apiPrefix);
 
   // CORS
+  const corsEnv = process.env.CORS_ORIGIN || "http://localhost:3001";
+  const allowedOrigins = corsEnv
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:3001",
+    origin: allowedOrigins,
     credentials: true,
   });
 

@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Layers, Target, Sparkles, Check } from "lucide-react"
+import { ArrowLeft, Layers, Target, Sparkles, Check, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { notFound, useRouter } from "next/navigation"
 import { programsApi, fasesApi } from "@/services/api"
@@ -39,6 +39,7 @@ export default function ProgramEstructuraPage({ params }: { params: Promise<{ id
     data: program,
     error: programError,
     isLoading: programLoading,
+    mutate: mutateProgram,
   } = useSWR<Program>(id ? `program-${id}` : null, () => (id ? programsApi.getById(id) : null))
 
   // Load fases
@@ -95,6 +96,24 @@ export default function ProgramEstructuraPage({ params }: { params: Promise<{ id
   }
 
   const selectedFase = fases?.find(f => f.id === selectedFaseId)
+  const [publishing, setPublishing] = useState(false)
+
+  const handlePublish = async () => {
+    try {
+      setPublishing(true)
+      await programsApi.publish(id)
+      await mutateProgram()
+      toast.success("Programa publicado", {
+        description: "Puedes crear cohortes desde la sección Cohortes.",
+      })
+    } catch (error: any) {
+      toast.error("No se pudo publicar", {
+        description: error?.message || "Inténtalo nuevamente.",
+      })
+    } finally {
+      setPublishing(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -122,11 +141,12 @@ export default function ProgramEstructuraPage({ params }: { params: Promise<{ id
             </div>
             <div className="flex gap-2">
               {program.estado === "borrador" && (
-                <Button onClick={() => {
-                  // TODO: Implement publish
-                  toast.info("Funcionalidad de publicación próximamente")
-                }}>
-                  <Check className="mr-2 h-4 w-4" />
+                <Button onClick={handlePublish} disabled={publishing}>
+                  {publishing ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="mr-2 h-4 w-4" />
+                  )}
                   Publicar Programa
                 </Button>
               )}

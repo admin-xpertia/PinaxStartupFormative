@@ -266,7 +266,6 @@ export class Programa extends AggregateRoot<ProgramaProps> {
       tags: this.props.tags,
       visible: this.props.visible,
       creador: this.props.creador.toString(),
-      // created_at and updated_at are handled by SurrealDB DEFAULT time::now()
     };
   }
 }

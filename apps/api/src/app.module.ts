@@ -10,6 +10,7 @@ import { ProgramDesignModule } from "./modules/program-design.module";
 import { ExerciseCatalogModule } from "./modules/exercise-catalog.module";
 import { ExerciseInstanceModule } from "./modules/exercise-instance.module";
 import { ExerciseProgressModule } from "./modules/exercise-progress.module";
+import { CohortModule } from "./modules/cohort.module";
 
 /**
  * Módulo principal de la aplicación
@@ -36,6 +37,7 @@ import { ExerciseProgressModule } from "./modules/exercise-progress.module";
     ExerciseCatalogModule,
     ExerciseInstanceModule,
     ExerciseProgressModule,
+    CohortModule,
   ],
   providers: [
     // Guard global de autenticación

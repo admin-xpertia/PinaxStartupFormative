@@ -65,8 +65,16 @@ export class ProgramRepository implements IProgramRepository {
       const exists = await this.exists(programa.getId());
 
       if (exists) {
-        // Update existing
-        await this.db.update(id, data);
+        // Update existing using MERGE to keep metadata like created_at
+        const updateQuery = `
+          UPDATE type::thing($id) MERGE $data;
+          UPDATE type::thing($id) SET updated_at = time::now();
+        `;
+
+        await this.db.query(updateQuery, {
+          id,
+          data,
+        });
       } else {
         // Create new
         await this.db.create(id, data);

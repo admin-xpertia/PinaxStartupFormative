@@ -3,6 +3,8 @@ export * from "./ProgramRepository";
 export * from "./FaseRepository";
 export * from "./ProofPointRepository";
 export * from "./FaseDocumentationRepository";
+export * from "./CohortRepository";
+export * from "./CohortEnrollmentRepository";
 
 // Exercise Catalog Repositories
 export * from "./ExerciseTemplateRepository";

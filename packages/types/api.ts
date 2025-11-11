@@ -182,3 +182,44 @@ export interface ExerciseInstanceResponse {
   createdAt: string
   updatedAt: string
 }
+
+// ============================================================================
+// Cohorts - Response DTOs
+// ============================================================================
+
+export interface CohortProgramInfo {
+  id: string
+  nombre: string
+  version: string
+}
+
+export interface CohortResponse {
+  id: string
+  nombre: string
+  descripcion?: string
+  estado: "planificado" | "activo" | "finalizado" | "archivado"
+  fechaInicio: string
+  fechaFinEstimada?: string
+  programa: CohortProgramInfo
+  configuracion?: Record<string, any>
+  snapshotProgramaId?: string
+  totalEstudiantes: number
+  structure?: Record<string, any>
+}
+
+export interface CreateCohortApiRequest {
+  programaId: string
+  nombre: string
+  descripcion?: string
+  fechaInicio: string
+  fechaFinEstimada?: string
+  configuracion?: Record<string, any>
+  instructorId?: string
+  capacidadMaxima?: number
+  autoActivate?: boolean
+}
+
+export interface EnrollStudentRequest {
+  estudianteId: string
+  estado?: "activo" | "completado" | "abandonado" | "suspendido"
+}

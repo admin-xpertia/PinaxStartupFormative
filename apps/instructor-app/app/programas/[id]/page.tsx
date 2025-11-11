@@ -1,6 +1,6 @@
 "use client"
 
-import { use } from "react"
+import { use, useState } from "react"
 import useSWR from "swr"
 import { AppHeader } from "@/components/app-header"
 import { Sidebar } from "@/components/sidebar"
@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/shared/page-header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Edit, Users, Layers, Target, Clock, Rocket } from "lucide-react"
+import { Edit, Users, Layers, Target, Clock, Rocket, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { fetcher } from "@/lib/fetcher"
@@ -17,6 +17,7 @@ import { LoadingState } from "@/components/shared/loading-state"
 import { ErrorState } from "@/components/shared/error-state"
 import type { Program } from "@/types/program"
 import { programsApi } from "@/services/api"
+import { toast } from "sonner"
 
 export default function ProgramDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: rawId } = use(params)
@@ -27,7 +28,8 @@ export default function ProgramDetailPage({ params }: { params: Promise<{ id: st
     error,
     isLoading,
     mutate,
-  } = useSWR<Program>(id ? `program-${id}` : null, () => id ? programsApi.getById(id) : null)
+  } = useSWR<Program>(id ? `program-${id}` : null, () => (id ? programsApi.getById(id) : null))
+  const [publishing, setPublishing] = useState(false)
 
   if (isLoading) {
     return (
@@ -70,6 +72,23 @@ export default function ProgramDetailPage({ params }: { params: Promise<{ id: st
   }
   const isPublished = program.estado === "publicado"
 
+  const handlePublish = async () => {
+    try {
+      setPublishing(true)
+      await programsApi.publish(programId)
+      await mutate()
+      toast.success("Programa publicado", {
+        description: "Ahora puedes crear una cohorte desde Cohortes.",
+      })
+    } catch (err: any) {
+      toast.error("No se pudo publicar", {
+        description: err?.message || "Inténtalo nuevamente.",
+      })
+    } finally {
+      setPublishing(false)
+    }
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar />
@@ -94,8 +113,12 @@ export default function ProgramDetailPage({ params }: { params: Promise<{ id: st
                     </Link>
                   </Button>
                   {!isPublished && (
-                    <Button size="sm">
-                      <Rocket className="mr-2 h-4 w-4" />
+                    <Button size="sm" onClick={handlePublish} disabled={publishing}>
+                      {publishing ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Rocket className="mr-2 h-4 w-4" />
+                      )}
                       Publicar Programa
                     </Button>
                   )}

@@ -7,8 +7,9 @@ export const enrollmentsApi = {
   /**
    * Obtener todas las inscripciones del estudiante actual
    */
-  async getMy(): Promise<Enrollment[]> {
-    return apiClient.get<Enrollment[]>("/student/enrollments")
+  async getMy(studentId?: string): Promise<Enrollment[]> {
+    const query = studentId ? `?estudianteId=${encodeURIComponent(studentId)}` : ""
+    return apiClient.get<Enrollment[]>(`/student/enrollments${query}`)
   },
 
   /**
