@@ -21,16 +21,15 @@ import {
 import Link from "next/link"
 import { progressApi } from "@/services/api"
 import { cn } from "@/lib/utils"
-
-// Mock user data - replace with real auth context
-const MOCK_ESTUDIANTE_ID = "usuario:estudiante1"
-const MOCK_COHORTE_ID = "cohorte:cohorte1"
+import { useStudentSession } from "@/lib/hooks/use-student-session"
 
 export default function ProgressDashboardPage() {
+  const { estudianteId, cohorteId } = useStudentSession()
+
   // Fetch progress summary
   const { data: summary, isLoading } = useSWR(
     "progress-summary",
-    () => progressApi.getProgressSummary(MOCK_ESTUDIANTE_ID, MOCK_COHORTE_ID)
+    () => progressApi.getProgressSummary(estudianteId, cohorteId)
   )
 
   // Format time

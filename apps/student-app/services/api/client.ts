@@ -28,11 +28,7 @@ export async function apiRequest<T>(
     "Content-Type": "application/json",
   }
 
-  // TODO: Add authentication token
-  // const token = await getAuthToken()
-  // if (token) {
-  //   defaultHeaders.Authorization = `Bearer ${token}`
-  // }
+  // TODO: Add authentication token when auth is implemented
 
   const config: RequestInit = {
     ...options,
