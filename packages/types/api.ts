@@ -170,7 +170,13 @@ export interface ExerciseInstanceResponse {
   configuracionPersonalizada: Record<string, any>
   orden: number
   duracionEstimadaMinutos: number
-  estadoContenido: 'sin_generar' | 'generando' | 'draft' | 'publicado'
+  estadoContenido:
+    | 'sin_generar'
+    | 'generando'
+    | 'generado'
+    | 'draft'
+    | 'publicado'
+    | 'error'
   contenidoActual?: string
   esObligatorio: boolean
   createdAt: string

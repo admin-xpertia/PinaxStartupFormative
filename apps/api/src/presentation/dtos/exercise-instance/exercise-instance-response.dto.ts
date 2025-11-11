@@ -56,7 +56,7 @@ export class ExerciseInstanceResponseDto {
 
   @ApiProperty({
     description: 'Estado del contenido generado',
-    enum: ['sin_generar', 'generando', 'draft', 'publicado'],
+    enum: ['sin_generar', 'generando', 'generado', 'draft', 'publicado', 'error'],
     example: 'sin_generar',
   })
   estadoContenido: string;

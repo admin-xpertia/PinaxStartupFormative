@@ -637,7 +637,6 @@ Feedback:`;
 
       const response = await this.openAIService.generateCompletion(prompt, {
         maxTokens: 300,
-        temperature: 0.7,
       });
 
       return response.trim();

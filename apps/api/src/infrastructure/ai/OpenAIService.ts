@@ -42,8 +42,7 @@ export class OpenAIService {
   private readonly logger = new Logger(OpenAIService.name);
   private readonly client: OpenAI;
   private readonly model: string;
-  private readonly maxTokens: number;
-  private readonly temperature: number;
+  private readonly maxCompletionTokens: number;
 
   constructor(private configService: ConfigService) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
@@ -58,13 +57,12 @@ export class OpenAIService {
 
     // Configuration
     this.model = this.configService.get<string>('OPENAI_MODEL') || 'gpt-5-nano';
-    this.maxTokens = this.configService.get<number>('OPENAI_MAX_TOKENS') || 4000;
-    this.temperature = this.configService.get<number>('OPENAI_TEMPERATURE') || 0.7;
+    this.maxCompletionTokens =
+      this.configService.get<number>('OPENAI_MAX_TOKENS') || 4000;
 
     this.logger.log(`🤖 OpenAI Service initialized`);
     this.logger.log(`   Model: ${this.model}`);
-    this.logger.log(`   Max Tokens: ${this.maxTokens}`);
-    this.logger.log(`   Temperature: ${this.temperature}`);
+    this.logger.log(`   Max Tokens: ${this.maxCompletionTokens}`);
   }
 
   /**
@@ -95,8 +93,7 @@ export class OpenAIService {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        temperature: this.temperature,
-        max_tokens: this.maxTokens,
+        max_completion_tokens: this.maxCompletionTokens,
         response_format: { type: 'json_object' },
       });
 
@@ -106,8 +103,21 @@ export class OpenAIService {
       this.logger.debug(`   Tokens used: ${response.usage?.total_tokens || 'unknown'}`);
       this.logger.debug(`   Model: ${response.model}`);
 
+      const rawContent = this.extractMessageContent(response.choices[0]?.message);
+
+      if (!rawContent) {
+        throw new Error('OpenAI returned empty content');
+      }
+
       // Parse and validate response
-      const content = JSON.parse(response.choices[0].message.content || '{}');
+      let content: Record<string, any>;
+      try {
+        content = JSON.parse(rawContent);
+      } catch (parseError) {
+        this.logger.error('Failed to parse JSON content from OpenAI', parseError);
+        this.logger.debug(`Raw OpenAI content: ${rawContent}`);
+        throw new Error('OpenAI returned invalid JSON content');
+      }
 
       // Validate against template's output schema if available
       const outputSchema = request.template.getOutputSchema();
@@ -221,7 +231,6 @@ IMPORTANTE:
     prompt: string,
     options?: {
       maxTokens?: number;
-      temperature?: number;
       systemPrompt?: string;
     },
   ): Promise<string> {
@@ -239,11 +248,10 @@ IMPORTANTE:
       const response = await this.client.chat.completions.create({
         model: this.model,
         messages,
-        temperature: options?.temperature ?? this.temperature,
-        max_tokens: options?.maxTokens ?? 500,
+        max_completion_tokens: options?.maxTokens ?? 500,
       });
 
-      return response.choices[0].message.content || '';
+      return this.extractMessageContent(response.choices[0]?.message);
     } catch (error) {
       this.logger.error('❌ Error generating completion with OpenAI', error);
       throw new Error(`Failed to generate completion: ${error.message}`);
@@ -260,14 +268,95 @@ IMPORTANTE:
         messages: [
           { role: 'user', content: 'Responde con "OK" si puedes leerme.' },
         ],
-        max_tokens: 10,
+        max_completion_tokens: 10,
       });
 
-      const answer = response.choices[0].message.content?.trim().toLowerCase();
+      const answer = this.extractMessageContent(response.choices[0]?.message)
+        .trim()
+        .toLowerCase();
       return answer === 'ok';
     } catch (error) {
       this.logger.error('❌ OpenAI connection test failed', error);
       return false;
+    }
+  }
+
+  /**
+   * Extracts text content from OpenAI chat completion responses
+   */
+  private extractMessageContent(
+    message?: OpenAI.Chat.Completions.ChatCompletionMessage,
+  ): string {
+    if (!message) {
+      return '';
+    }
+
+    const potentialParsed = (message as any)?.parsed;
+    if (!message.content && potentialParsed) {
+      if (typeof potentialParsed === 'string') {
+        return potentialParsed.trim();
+      }
+
+      try {
+        return JSON.stringify(potentialParsed);
+      } catch {
+        return '';
+      }
+    }
+
+    if (!message.content) {
+      return '';
+    }
+
+    const content = message.content as any;
+
+    if (typeof content === 'string') {
+      return content.trim();
+    }
+
+    if (Array.isArray(content)) {
+      return content
+        .map((part: any) => {
+          if (!part) return '';
+          if (typeof part === 'string') {
+            return part;
+          }
+
+          if (typeof part.text === 'string') {
+            return part.text;
+          }
+
+          if (part.type === 'json_object' && part.json_object) {
+            return this.safeStringify(part.json_object);
+          }
+
+          return '';
+        })
+        .filter((segment) => typeof segment === 'string' && segment.trim().length > 0)
+        .join('\n')
+        .trim();
+    }
+
+    if (typeof content === 'object') {
+      return this.safeStringify(content);
+    }
+
+    return '';
+  }
+
+  private safeStringify(value: unknown): string {
+    if (!value) {
+      return '';
+    }
+
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return '';
     }
   }
 }

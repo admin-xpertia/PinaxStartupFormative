@@ -603,7 +603,13 @@ export interface ExerciseInstance {
   configuracion_personalizada: JSONObject;
   orden: number;
   duracion_estimada_minutos: number;
-  estado_contenido: 'sin_generar' | 'generando' | 'draft' | 'publicado';
+  estado_contenido:
+    | 'sin_generar'
+    | 'generando'
+    | 'generado'
+    | 'draft'
+    | 'publicado'
+    | 'error';
   contenido_actual?: RecordId<'exercise_content'>;
   es_obligatorio: boolean;
   created_at: DateTime;

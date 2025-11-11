@@ -317,7 +317,6 @@ export class ExerciseInstance extends AggregateRoot<ExerciseInstanceProps> {
       estado_contenido: this.props.estadoContenido.getValue(),
       contenido_actual: this.props.contenidoActual?.toString(),
       es_obligatorio: this.props.esObligatorio,
-      // created_at and updated_at are handled by SurrealDB DEFAULT time::now()
     };
   }
 }

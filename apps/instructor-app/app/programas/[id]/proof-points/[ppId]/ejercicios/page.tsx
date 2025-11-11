@@ -27,6 +27,7 @@ import {
   GripVertical,
   Zap,
   Loader2,
+  AlertCircle,
 } from "lucide-react"
 import Link from "next/link"
 import { fetcher } from "@/lib/fetcher"
@@ -35,6 +36,8 @@ import { ErrorState } from "@/components/shared/error-state"
 import { ExerciseWizardDialog } from "@/components/exercise-wizard-dialog"
 import { ExercisePreviewDialog } from "@/components/exercise-preview-dialog"
 import { useToast } from "@/hooks/use-toast"
+import { apiClient } from "@/services/api/client"
+import type { ExerciseInstanceResponse } from "@/types/api"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -60,19 +63,6 @@ interface ExerciseTemplate {
   configuracion_default: Record<string, any>
   es_oficial: boolean
   activo: boolean
-}
-
-interface ExerciseInstance {
-  id: string
-  template: string
-  proof_point: string
-  nombre: string
-  descripcion_breve?: string
-  consideraciones_contexto: string
-  orden: number
-  duracion_estimada_minutos: number
-  estado_contenido: "sin_generar" | "generando" | "draft" | "publicado"
-  es_obligatorio: boolean
 }
 
 interface ProofPoint {
@@ -130,7 +120,7 @@ export default function ExerciseLibraryPage({
   const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set())
   const [batchGenerating, setBatchGenerating] = useState(false)
   const [editWizardOpen, setEditWizardOpen] = useState(false)
-  const [instanceToEdit, setInstanceToEdit] = useState<ExerciseInstance | null>(null)
+  const [instanceToEdit, setInstanceToEdit] = useState<ExerciseInstanceResponse | null>(null)
 
   // Fetch proof point data
   const { data: proofPoint, isLoading: ppLoading } = useSWR<ProofPoint>(
@@ -143,7 +133,7 @@ export default function ExerciseLibraryPage({
     data: instances,
     mutate: mutateInstances,
     isLoading: instancesLoading,
-  } = useSWR<ExerciseInstance[]>(
+  } = useSWR<ExerciseInstanceResponse[]>(
     `/api/v1/proof-points/${ppId}/exercises`,
     fetcher
   )
@@ -161,26 +151,14 @@ export default function ExerciseLibraryPage({
     setGeneratingIds((prev) => new Set(prev).add(instanceId))
 
     try {
-      const response = await fetch(`/api/v1/exercises/${instanceId}/generate`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          forceRegenerate: false,
-        }),
+      await apiClient.post(`/exercises/${encodeURIComponent(instanceId)}/generate`, {
+        forceRegenerate: false,
       })
-
-      if (!response.ok) {
-        throw new Error("Error al generar el ejercicio")
-      }
 
       toast({
         title: "Ejercicio generado",
         description: "El contenido se generó exitosamente con IA",
       })
-
-      mutateInstances()
     } catch (error: any) {
       toast({
         title: "Error",
@@ -188,6 +166,7 @@ export default function ExerciseLibraryPage({
         variant: "destructive",
       })
     } finally {
+      mutateInstances()
       setGeneratingIds((prev) => {
         const next = new Set(prev)
         next.delete(instanceId)
@@ -201,25 +180,14 @@ export default function ExerciseLibraryPage({
     setBatchGenerating(true)
 
     try {
-      const response = await fetch(
-        `/api/v1/exercise-generation/proof-point/${ppId}/batch`,
-        {
-          method: "POST",
-        }
+      const result = await apiClient.post<{ count: number }>(
+        `/exercise-generation/proof-point/${encodeURIComponent(ppId)}/batch`
       )
-
-      if (!response.ok) {
-        throw new Error("Error al generar los ejercicios")
-      }
-
-      const result = await response.json()
 
       toast({
         title: "Ejercicios generados",
         description: `Se generaron ${result.count} ejercicio(s) exitosamente`,
       })
-
-      mutateInstances()
     } catch (error: any) {
       toast({
         title: "Error",
@@ -227,6 +195,7 @@ export default function ExerciseLibraryPage({
         variant: "destructive",
       })
     } finally {
+      mutateInstances()
       setBatchGenerating(false)
     }
   }
@@ -241,13 +210,7 @@ export default function ExerciseLibraryPage({
     if (!instanceToDelete) return
 
     try {
-      const response = await fetch(`/api/v1/exercises/${encodeURIComponent(instanceToDelete)}`, {
-        method: "DELETE",
-      })
-
-      if (!response.ok) {
-        throw new Error("Error al eliminar el ejercicio")
-      }
+      await apiClient.delete(`/exercises/${encodeURIComponent(instanceToDelete)}`)
 
       toast({
         title: "Ejercicio eliminado",
@@ -274,7 +237,7 @@ export default function ExerciseLibraryPage({
   }
 
   // Handle edit
-  const handleEdit = (instance: ExerciseInstance) => {
+  const handleEdit = (instance: ExerciseInstanceResponse) => {
     // Find the template for this instance
     const templateId = instance.template
     let foundTemplate: ExerciseTemplate | null = null
@@ -302,14 +265,7 @@ export default function ExerciseLibraryPage({
   // Handle publish
   const handlePublish = async (instanceId: string) => {
     try {
-      const response = await fetch(`/api/v1/exercises/${instanceId}/publish`, {
-        method: "PUT",
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || "Error al publicar el ejercicio")
-      }
+      await apiClient.put(`/exercises/${encodeURIComponent(instanceId)}/publish`)
 
       toast({
         title: "Ejercicio publicado",
@@ -358,7 +314,8 @@ export default function ExerciseLibraryPage({
     )
   }
 
-  const pendingGeneration = exerciseInstances.filter((i) => i.estado_contenido === "sin_generar")
+  const regenerationStatuses = new Set(["sin_generar", "error"])
+  const pendingGeneration = exerciseInstances.filter((i) => regenerationStatuses.has(i.estadoContenido))
 
   return (
     <>
@@ -579,7 +536,7 @@ function ExerciseInstanceCard({
   onPublish,
   isGenerating,
 }: {
-  instance: ExerciseInstance
+  instance: ExerciseInstanceResponse
   index: number
   onDelete: () => void
   onEdit: () => void
@@ -588,6 +545,10 @@ function ExerciseInstanceCard({
   onPublish?: () => void
   isGenerating: boolean
 }) {
+  const needsRegeneration = instance.estadoContenido === "sin_generar" || instance.estadoContenido === "error"
+  const canPreview = ["generado", "draft", "publicado"].includes(instance.estadoContenido)
+  const canPublish = instance.estadoContenido === "generado" || instance.estadoContenido === "draft"
+
   const getStatusBadge = () => {
     if (isGenerating) {
       return (
@@ -598,7 +559,7 @@ function ExerciseInstanceCard({
       )
     }
 
-    switch (instance.estado_contenido) {
+    switch (instance.estadoContenido) {
       case "sin_generar":
         return <Badge variant="secondary">Sin generar</Badge>
       case "generando":
@@ -608,12 +569,21 @@ function ExerciseInstanceCard({
             Generando...
           </Badge>
         )
+      case "generado":
+        return <Badge variant="outline">Generado</Badge>
       case "draft":
         return <Badge variant="outline">Borrador</Badge>
       case "publicado":
         return (
           <Badge variant="default" className="bg-green-500">
             Publicado
+          </Badge>
+        )
+      case "error":
+        return (
+          <Badge variant="destructive" className="gap-1">
+            <AlertCircle className="h-3 w-3" />
+            Error
           </Badge>
         )
       default:
@@ -642,8 +612,8 @@ function ExerciseInstanceCard({
             <div className="flex items-start justify-between gap-4 mb-2">
               <div>
                 <h4 className="font-semibold text-base mb-1">{instance.nombre}</h4>
-                {instance.descripcion_breve && (
-                  <p className="text-sm text-muted-foreground">{instance.descripcion_breve}</p>
+                {instance.descripcionBreve && (
+                  <p className="text-sm text-muted-foreground">{instance.descripcionBreve}</p>
                 )}
               </div>
               {getStatusBadge()}
@@ -652,20 +622,27 @@ function ExerciseInstanceCard({
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <BookOpen className="h-4 w-4" />
-                {instance.duracion_estimada_minutos} min
+                {instance.duracionEstimadaMinutos} min
               </span>
-              {!instance.es_obligatorio && (
+              {!instance.esObligatorio && (
                 <Badge variant="outline" className="text-xs">
                   Opcional
                 </Badge>
               )}
             </div>
 
-            {instance.consideraciones_contexto && (
+            {instance.consideracionesContexto && (
               <div className="mt-3 p-3 bg-muted/50 rounded-md">
                 <p className="text-xs text-muted-foreground">
-                  <strong>Consideraciones:</strong> {instance.consideraciones_contexto}
+                  <strong>Consideraciones:</strong> {instance.consideracionesContexto}
                 </p>
+              </div>
+            )}
+
+            {instance.estadoContenido === "error" && (
+              <div className="mt-3 flex items-center gap-2 text-xs text-destructive">
+                <AlertCircle className="h-4 w-4" />
+                Hubo un error al generar el contenido. Intenta nuevamente.
               </div>
             )}
           </div>
@@ -683,22 +660,22 @@ function ExerciseInstanceCard({
               <Edit3 className="h-4 w-4" />
             </Button>
 
-            {/* Generar: solo cuando no tiene contenido */}
-            {instance.estado_contenido === "sin_generar" && !isGenerating && (
+            {/* Generar: disponible para estados que necesitan contenido */}
+            {needsRegeneration && !isGenerating && (
               <Button size="sm" onClick={onGenerate} title="Generar contenido con IA">
                 <Zap className="h-4 w-4" />
               </Button>
             )}
 
             {/* Previsualizar: cuando tiene contenido generado */}
-            {(instance.estado_contenido === "draft" || instance.estado_contenido === "publicado") && (
+            {canPreview && (
               <Button size="sm" variant="outline" onClick={onPreview} title="Previsualizar ejercicio">
                 <Eye className="h-4 w-4" />
               </Button>
             )}
 
-            {/* Publicar: solo en estado draft */}
-            {instance.estado_contenido === "draft" && onPublish && (
+            {/* Publicar: disponible en borrador o recién generado */}
+            {canPublish && onPublish && (
               <Button
                 size="sm"
                 className="bg-green-600 hover:bg-green-700"

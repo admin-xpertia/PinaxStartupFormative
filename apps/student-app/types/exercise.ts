@@ -12,7 +12,13 @@ export interface ExerciseInstance {
   orden: number
   duracionEstimada: number
   esObligatorio: boolean
-  estadoContenido: "sin_generar" | "generando" | "draft" | "publicado"
+  estadoContenido:
+    | "sin_generar"
+    | "generando"
+    | "generado"
+    | "draft"
+    | "publicado"
+    | "error"
   contenido?: ExerciseContent
   configuracion: any
 }

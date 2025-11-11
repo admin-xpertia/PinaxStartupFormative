@@ -56,18 +56,27 @@ export class ExerciseInstanceRepository implements IExerciseInstanceRepository {
    */
   async save(instance: ExerciseInstance): Promise<ExerciseInstance> {
     try {
-      const data = this.mapper.instanceToPersistence(instance);
-      const id = instance.getId().toString();
+      const persistenceData = this.mapper.instanceToPersistence(instance);
+      const { id: _ignoredId, ...payload } = persistenceData;
+      const thing = instance.getId().toString();
 
       // Check if exists
       const exists = await this.exists(instance.getId());
 
       if (exists) {
-        // Update existing
-        await this.db.update(id, data);
+        // Update existing record while letting SurrealDB refresh updated_at
+        const updateQuery = `
+          UPDATE type::thing($thing) MERGE $data;
+          UPDATE type::thing($thing) SET updated_at = time::now();
+        `;
+
+        await this.db.query(updateQuery, {
+          thing,
+          data: payload,
+        });
       } else {
         // Create new
-        await this.db.create(id, data);
+        await this.db.create(thing, payload);
       }
 
       // Return the saved instance

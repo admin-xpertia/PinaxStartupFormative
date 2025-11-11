@@ -6,13 +6,6 @@
 -- Fecha: 2024-11-06
 -- ============================================================================
 
--- Configuración de la base de datos
-DEFINE NAMESPACE IF NOT EXISTS xpertia;
-USE NS xpertia;
-
-DEFINE DATABASE IF NOT EXISTS plataforma;
-USE DB plataforma;
-
 -- ============================================================================
 -- BOUNDED CONTEXT 1: PROGRAM DESIGN
 -- ============================================================================
@@ -133,7 +126,7 @@ DEFINE FIELD consideraciones_contexto ON exercise_instance TYPE string DEFAULT '
 DEFINE FIELD configuracion_personalizada ON exercise_instance TYPE object DEFAULT {};
 DEFINE FIELD orden ON exercise_instance TYPE number ASSERT $value >= 0;
 DEFINE FIELD duracion_estimada_minutos ON exercise_instance TYPE number ASSERT $value > 0;
-DEFINE FIELD estado_contenido ON exercise_instance TYPE string ASSERT $value IN ['sin_generar', 'generando', 'draft', 'publicado'] DEFAULT 'sin_generar';
+DEFINE FIELD estado_contenido ON exercise_instance TYPE string ASSERT $value IN ['sin_generar', 'generando', 'generado', 'draft', 'publicado', 'error'] DEFAULT 'sin_generar';
 DEFINE FIELD contenido_actual ON exercise_instance TYPE option<record<exercise_content>>;
 DEFINE FIELD es_obligatorio ON exercise_instance TYPE bool DEFAULT true;
 DEFINE FIELD created_at ON exercise_instance TYPE datetime DEFAULT time::now();

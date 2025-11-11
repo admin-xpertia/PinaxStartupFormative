@@ -6,13 +6,6 @@
 -- Fecha: 2025-11-04
 -- ============================================================================
 
--- Configuración de la base de datos
-DEFINE NAMESPACE IF NOT EXISTS xpertia;
-USE NS xpertia;
-
-DEFINE DATABASE IF NOT EXISTS plataforma;
-USE DB plataforma;
-
 -- ============================================================================
 -- MENSAJE DE INICIO
 -- ============================================================================

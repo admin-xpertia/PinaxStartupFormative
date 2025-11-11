@@ -5,9 +5,6 @@
 -- Ejecutar después de aplicar el schema principal
 -- ============================================================================
 
-USE NS xpertia;
-USE DB plataforma;
-
 -- 1. LECCIONES INTERACTIVAS
 CREATE exercise_template:leccion_interactiva SET
   nombre = 'Lección Interactiva',

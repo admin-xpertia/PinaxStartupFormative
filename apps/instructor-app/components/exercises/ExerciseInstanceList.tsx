@@ -57,10 +57,11 @@ export function ExerciseInstanceList({ proofPointId, onExerciseDeleted }: Exerci
       toast.loading("Generando contenido con IA...", { id: exerciseId })
       await exerciseInstancesApi.generateContent(exerciseId)
       toast.success("Contenido generado exitosamente", { id: exerciseId })
-      loadExercises() // Refresh list
     } catch (error: any) {
       console.error("Error generating content:", error)
       toast.error(error.message || "Error al generar contenido", { id: exerciseId })
+    } finally {
+      loadExercises()
     }
   }
 
@@ -80,6 +81,13 @@ export function ExerciseInstanceList({ proofPointId, onExerciseDeleted }: Exerci
           icon: Sparkles,
           color: "text-blue-500",
         }
+      case "generado":
+        return {
+          label: "Generado",
+          variant: "secondary" as const,
+          icon: Sparkles,
+          color: "text-primary",
+        }
       case "draft":
         return {
           label: "Borrador",
@@ -93,6 +101,13 @@ export function ExerciseInstanceList({ proofPointId, onExerciseDeleted }: Exerci
           variant: "default" as const,
           icon: CheckCircle,
           color: "text-green-500",
+        }
+      case "error":
+        return {
+          label: "Error",
+          variant: "destructive" as const,
+          icon: AlertCircle,
+          color: "text-destructive",
         }
       default:
         return {
@@ -165,7 +180,7 @@ export function ExerciseInstanceList({ proofPointId, onExerciseDeleted }: Exerci
                   </div>
                 </div>
                 <div className="flex gap-1">
-                  {exercise.estadoContenido === "sin_generar" && (
+                  {(exercise.estadoContenido === "sin_generar" || exercise.estadoContenido === "error") && (
                     <Button
                       variant="outline"
                       size="sm"

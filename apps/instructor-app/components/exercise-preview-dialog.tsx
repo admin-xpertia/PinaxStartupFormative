@@ -17,6 +17,7 @@ import { Loader2, FileText, CheckCircle2, AlertCircle, Eye } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import ReactMarkdown from "react-markdown"
 import { apiClient } from "@/services/api/client"
+import type { ExerciseInstanceResponse, ExerciseTemplateResponse } from "@/types/api"
 
 interface ExerciseContent {
   id: string
@@ -26,23 +27,6 @@ interface ExerciseContent {
   modelo: string
   created_at: string
   updated_at: string
-}
-
-interface ExerciseInstance {
-  id: string
-  nombre: string
-  descripcion_breve?: string
-  duracion_estimada_minutos: number
-  es_obligatorio: boolean
-  estado_contenido: "sin_generar" | "generando" | "draft" | "publicado"
-  template: {
-    id: string
-    nombre: string
-    categoria: string
-    icono: string
-    color: string
-    descripcion: string
-  }
 }
 
 interface ExercisePreviewDialogProps {
@@ -60,10 +44,14 @@ export function ExercisePreviewDialog({
 }: ExercisePreviewDialogProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
-  const [instance, setInstance] = useState<ExerciseInstance | null>(null)
+  const [instance, setInstance] = useState<ExerciseInstanceResponse | null>(null)
+  const [templateMetadata, setTemplateMetadata] = useState<ExerciseTemplateResponse | null>(null)
   const [content, setContent] = useState<ExerciseContent | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [publishing, setPublishing] = useState(false)
+  const templateIcon = templateMetadata?.icono ?? "📘"
+  const templateColor = templateMetadata?.color ?? "#94a3b8"
+  const templateCategory = templateMetadata?.categoria ?? "sin_categoria"
 
   useEffect(() => {
     if (open && instanceId) {
@@ -76,13 +64,25 @@ export function ExercisePreviewDialog({
 
     setLoading(true)
     setError(null)
+    setContent(null)
+    setTemplateMetadata(null)
 
     try {
       // Fetch instance details
-      const instanceData = await apiClient.get<ExerciseInstance>(
+      const instanceData = await apiClient.get<ExerciseInstanceResponse>(
         `/exercises/${encodeURIComponent(instanceId)}`
       )
       setInstance(instanceData)
+
+      // Fetch template metadata for richer preview context
+      try {
+        const templateData = await apiClient.get<ExerciseTemplateResponse>(
+          `/exercise-templates/${encodeURIComponent(instanceData.template)}`
+        )
+        setTemplateMetadata(templateData)
+      } catch {
+        setTemplateMetadata(null)
+      }
 
       // Fetch generated content
       try {
@@ -198,7 +198,9 @@ export function ExercisePreviewDialog({
       )
     }
 
-    if (!content || (instance.estado_contenido !== "draft" && instance.estado_contenido !== "publicado")) {
+    const hasApprovedContent = ["generado", "draft", "publicado"].includes(instance.estadoContenido)
+
+    if (!content || !hasApprovedContent) {
       return (
         <div className="flex flex-col items-center justify-center py-12 gap-3">
           <FileText className="h-12 w-12 text-muted-foreground" />
@@ -206,7 +208,7 @@ export function ExercisePreviewDialog({
             Este ejercicio aún no tiene contenido generado
           </p>
           <p className="text-xs text-muted-foreground">
-            Estado: <Badge variant="outline">{instance.estado_contenido}</Badge>
+            Estado: <Badge variant="outline">{instance.estadoContenido}</Badge>
           </p>
         </div>
       )
@@ -232,19 +234,19 @@ export function ExercisePreviewDialog({
             <div className="bg-background rounded-lg shadow-sm border p-6 mb-4">
               <div className="flex items-start gap-4 mb-4">
                 <div className="p-3 rounded-lg bg-primary/10">
-                  <span style={{ fontSize: "2rem" }}>{instance.template.icono}</span>
+                  <span style={{ fontSize: "2rem" }}>{templateIcon}</span>
                 </div>
                 <div className="flex-1">
                   <h2 className="text-2xl font-bold mb-2">{instance.nombre}</h2>
-                  {instance.descripcion_breve && (
-                    <p className="text-muted-foreground mb-3">{instance.descripcion_breve}</p>
+                  {instance.descripcionBreve && (
+                    <p className="text-muted-foreground mb-3">{instance.descripcionBreve}</p>
                   )}
                   <div className="flex gap-2 flex-wrap">
                     <Badge variant="outline" className="gap-1">
                       <span>⏱️</span>
-                      {instance.duracion_estimada_minutos} minutos
+                      {instance.duracionEstimadaMinutos} minutos
                     </Badge>
-                    {instance.es_obligatorio && (
+                    {instance.esObligatorio && (
                       <Badge variant="secondary">Obligatorio</Badge>
                     )}
                   </div>
@@ -341,23 +343,20 @@ export function ExercisePreviewDialog({
 
         <TabsContent value="contenido" className="space-y-4 mt-4">
           <div className="flex items-start gap-3 pb-4 border-b">
-            <div
-              className="p-3 rounded-lg"
-              style={{ backgroundColor: `${instance.template.color}20` }}
-            >
-              <span style={{ fontSize: "2rem" }}>{instance.template.icono}</span>
+            <div className="p-3 rounded-lg" style={{ backgroundColor: `${templateColor}20` }}>
+              <span style={{ fontSize: "2rem" }}>{templateIcon}</span>
             </div>
             <div className="flex-1">
               <h3 className="font-semibold text-lg mb-1">{instance.nombre}</h3>
-              {instance.descripcion_breve && (
+              {instance.descripcionBreve && (
                 <p className="text-sm text-muted-foreground mb-2">
-                  {instance.descripcion_breve}
+                  {instance.descripcionBreve}
                 </p>
               )}
               <div className="flex gap-2">
-                <Badge variant="outline">{instance.duracion_estimada_minutos} minutos</Badge>
-                <Badge variant="outline">{instance.template.categoria}</Badge>
-                {instance.es_obligatorio && <Badge variant="secondary">Obligatorio</Badge>}
+                <Badge variant="outline">{instance.duracionEstimadaMinutos} minutos</Badge>
+                <Badge variant="outline">{templateCategory}</Badge>
+                {instance.esObligatorio && <Badge variant="secondary">Obligatorio</Badge>}
                 <Badge variant="default" className="gap-1">
                   <CheckCircle2 className="h-3 w-3" />
                   Generado
@@ -433,7 +432,7 @@ export function ExercisePreviewDialog({
         <DialogFooter>
           <div className="flex justify-between items-center w-full">
             <div className="flex gap-2">
-              {instance && instance.estado_contenido === "draft" && onPublish && (
+              {instance && ["generado", "draft"].includes(instance.estadoContenido) && onPublish && (
                 <Button
                   onClick={handlePublish}
                   disabled={publishing}
@@ -452,7 +451,7 @@ export function ExercisePreviewDialog({
                   )}
                 </Button>
               )}
-              {instance && instance.estado_contenido === "publicado" && (
+              {instance && instance.estadoContenido === "publicado" && (
                 <Badge variant="default" className="bg-green-500 px-3 py-1">
                   <CheckCircle2 className="mr-1 h-3 w-3" />
                   Publicado

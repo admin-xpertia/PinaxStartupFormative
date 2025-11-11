@@ -174,17 +174,26 @@ export class GenerateExerciseContentUseCase
     } catch (error) {
       this.logger.error('❌ Failed to generate exercise content', error);
 
-      // Update instance status to "error" if it exists
+      // Update instance status to "error" if it exists (fallback to sin_generar if unsupported)
       try {
         const instanceId = RecordId.fromString(request.exerciseInstanceId);
         const instance = await this.instanceRepository.findById(instanceId);
 
         if (instance) {
-          instance.updateEstadoContenido(ContentStatus.error());
-          await this.instanceRepository.save(instance);
+          try {
+            instance.updateEstadoContenido(ContentStatus.error());
+            await this.instanceRepository.save(instance);
+          } catch (statusError) {
+            this.logger.error(
+              'Failed to set status to error, reverting to sin_generar',
+              statusError,
+            );
+            instance.updateEstadoContenido(ContentStatus.sinGenerar());
+            await this.instanceRepository.save(instance);
+          }
         }
       } catch (updateError) {
-        this.logger.error('Failed to update instance status to error', updateError);
+        this.logger.error('Failed to update instance status after error', updateError);
       }
 
       return Result.fail(error as Error);
