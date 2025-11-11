@@ -30,10 +30,13 @@ export default function ExercisePage() {
     exerciseId ? `exercise-${exerciseId}` : null,
     async () => {
       const exerciseData = await exercisesApi.getById(exerciseId)
-      const content = await exercisesApi.getContent(exerciseId)
+      const contentResponse = await exercisesApi.getContent(exerciseId)
 
       // Extract exercise type from template (format: "template:exercise_type")
       const tipo = (exerciseData as any).template?.split(":")[1] || "leccion_interactiva"
+
+      // Extract contenido_generado from the response
+      const content = (contentResponse as any)?.contenido_generado || contentResponse
 
       return { ...exerciseData, content, tipo }
     }
