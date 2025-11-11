@@ -100,12 +100,28 @@ export default function ExercisePage() {
     )
   }
 
+  // Check if content is available
+  if (!exercise.content) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground mb-4">El contenido del ejercicio no está disponible</p>
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="text-primary hover:underline"
+          >
+            Volver al Dashboard
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   // Select the appropriate player based on exercise type
-  const playerProps = {
+  const baseProps = {
     exerciseId: exercise.id,
     exerciseName: exercise.nombre,
-    proofPointName: exercise.proofPointName,
-    content: exercise.content,
+    proofPointName: exercise.proofPointName ?? "Proof Point",
     savedData: exercise.savedData,
     onSave: handleSave,
     onComplete: handleComplete,
@@ -115,34 +131,34 @@ export default function ExercisePage() {
   // Player selection logic
   switch (exercise.tipo) {
     case "leccion_interactiva":
-      return <LeccionInteractivaPlayer {...playerProps} />
+      return <LeccionInteractivaPlayer {...baseProps} content={exercise.content as any} />
 
     case "cuaderno_trabajo":
-      return <CuadernoTrabajoPlayer {...playerProps} />
+      return <CuadernoTrabajoPlayer {...baseProps} content={exercise.content as any} />
 
     case "simulacion_interaccion":
-      return <SimulacionInteraccionPlayer {...playerProps} />
+      return <SimulacionInteraccionPlayer {...baseProps} content={exercise.content as any} />
 
     case "mentor_ia":
-      return <MentorIAPlayer {...playerProps} />
+      return <MentorIAPlayer {...baseProps} content={exercise.content as any} />
 
     case "herramienta_analisis":
-      return <HerramientaAnalisisPlayer {...playerProps} />
+      return <HerramientaAnalisisPlayer {...baseProps} content={exercise.content as any} />
 
     case "herramienta_creacion":
-      return <HerramientaCreacionPlayer {...playerProps} />
+      return <HerramientaCreacionPlayer {...baseProps} content={exercise.content as any} />
 
     case "sistema_tracking":
-      return <SistemaTrackingPlayer {...playerProps} />
+      return <SistemaTrackingPlayer {...baseProps} content={exercise.content as any} />
 
     case "herramienta_revision":
-      return <HerramientaRevisionPlayer {...playerProps} />
+      return <HerramientaRevisionPlayer {...baseProps} content={exercise.content as any} />
 
     case "simulador_entorno":
-      return <SimuladorEntornoPlayer {...playerProps} />
+      return <SimuladorEntornoPlayer {...baseProps} content={exercise.content as any} />
 
     case "sistema_progresion":
-      return <SistemaProgresionPlayer {...playerProps} />
+      return <SistemaProgresionPlayer {...baseProps} content={exercise.content as any} />
 
     default:
       return (

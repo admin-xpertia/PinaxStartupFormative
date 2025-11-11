@@ -41,6 +41,7 @@ export class FaseRepository implements IFaseRepository {
    */
   async findAll(criteria?: any): Promise<Fase[]> {
     try {
+      void criteria; // filters not implemented yet
       const result = await this.db.select<any>("fase");
       return result.map((raw) => this.mapper.faseToDomain(raw));
     } catch (error) {

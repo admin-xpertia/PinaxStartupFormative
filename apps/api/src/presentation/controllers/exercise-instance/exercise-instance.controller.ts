@@ -23,15 +23,18 @@ import {
 import { AddExerciseToProofPointUseCase } from "../../../application/exercise-instance/use-cases/AddExerciseToProofPoint/AddExerciseToProofPointUseCase";
 import { GenerateExerciseContentUseCase } from "../../../application/exercise-instance/use-cases/GenerateExerciseContent/GenerateExerciseContentUseCase";
 import { IExerciseInstanceRepository } from "../../../domain/exercise-instance/repositories/IExerciseInstanceRepository";
-import { RecordId } from "../../../domain/shared/value-objects/RecordId";
+import {
+  ContentStatus,
+  ContentStatusType,
+} from "../../../domain/exercise-instance/value-objects/ContentStatus";
 import {
   AddExerciseToProofPointRequestDto,
   ExerciseInstanceResponseDto,
   GenerateContentRequestDto,
   GenerateContentResponseDto,
-  UpdateExerciseStatusDto,
 } from "../../dtos/exercise-instance";
 import { SurrealDbService } from "../../../core/database/surrealdb.service";
+import { Public } from "../../../core/decorators";
 
 /**
  * ExerciseInstanceController
@@ -466,7 +469,7 @@ export class ExerciseInstanceController {
   @ApiResponse({ status: 404, description: "Exercise not found" })
   @ApiResponse({
     status: 400,
-    description: "Exercise must be in draft state to publish",
+    description: "Exercise must be in a publishable state (generado or draft)",
   })
   async publishExercise(
     @Param("id") id: string,
@@ -490,9 +493,13 @@ export class ExerciseInstanceController {
       throw new NotFoundException(`Exercise not found: ${id}`);
     }
 
-    if (exercise.estado_contenido !== "draft") {
+    const contentStatus = ContentStatus.create(
+      exercise.estado_contenido as ContentStatusType,
+    );
+
+    if (!contentStatus.canPublish()) {
       throw new BadRequestException(
-        `Exercise must be in draft state to publish. Current state: ${exercise.estado_contenido}`,
+        `Exercise must be in a publishable state (generado or draft) to publish. Current state: ${exercise.estado_contenido}`,
       );
     }
 
@@ -577,6 +584,7 @@ export class ExerciseInstanceController {
   /**
    * Get published exercises for a proof point (Student endpoint)
    */
+  @Public()
   @Get("student/proof-points/:proofPointId/exercises")
   @ApiOperation({
     summary: "Get published exercises for students",
@@ -644,6 +652,7 @@ export class ExerciseInstanceController {
   /**
    * Get published exercise by ID (Student endpoint)
    */
+  @Public()
   @Get("student/exercises/:id")
   @ApiOperation({
     summary: "Get published exercise for student",
@@ -710,6 +719,7 @@ export class ExerciseInstanceController {
   /**
    * Get published exercise content (Student endpoint)
    */
+  @Public()
   @Get("student/exercises/:id/content")
   @ApiOperation({
     summary: "Get published exercise content for student",

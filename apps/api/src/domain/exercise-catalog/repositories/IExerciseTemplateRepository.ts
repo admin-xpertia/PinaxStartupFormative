@@ -1,7 +1,6 @@
 import { IRepository } from "../../shared/repositories/IRepository";
 import { ExerciseTemplate } from "../entities/ExerciseTemplate";
 import { ExerciseCategory } from "../value-objects/ExerciseCategory";
-import { RecordId } from "../../shared/value-objects/RecordId";
 
 /**
  * IExerciseTemplateRepository

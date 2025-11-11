@@ -11,6 +11,7 @@ import { IProgramRepository } from "../../../../domain/program-design/repositori
 import type { Enrollment } from "../../../../types/enrollment";
 import type { ProgramStructure } from "../../../../types/enrollment";
 import { SurrealDbService } from "../../../../core/database/surrealdb.service";
+import { CohortStructureService } from "../../services/CohortStructureService";
 
 export interface StudentEnrollmentItem extends Enrollment {
   id: string;
@@ -36,6 +37,7 @@ export class GetStudentEnrollmentsQuery
     @Inject("IProgramRepository")
     private readonly programRepository: IProgramRepository,
     private readonly db: SurrealDbService,
+    private readonly cohortStructureService: CohortStructureService,
   ) {}
 
   async execute(
@@ -80,9 +82,14 @@ export class GetStudentEnrollmentsQuery
           continue;
         }
 
-        const structure = await this.getSnapshotStructure(
+        const snapshotStructure = await this.getSnapshotStructure(
           cohorte.getSnapshotPrograma(),
         );
+        const structure =
+          await this.cohortStructureService.ensureStructureForCohorte(
+            cohorte,
+            snapshotStructure,
+          );
         const totalProofPoints =
           structure?.phases.reduce(
             (acc, phase) => acc + phase.proofPoints.length,

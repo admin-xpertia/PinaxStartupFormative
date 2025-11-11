@@ -44,6 +44,7 @@ export class ProofPointRepository implements IProofPointRepository {
    */
   async findAll(criteria?: any): Promise<ProofPoint[]> {
     try {
+      void criteria; // filters not implemented yet
       const result = await this.db.select<any>("proof_point");
       return result.map((raw) => this.mapper.proofPointToDomain(raw));
     } catch (error) {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import useSWR, { mutate } from 'swr';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 
 // ============================================================================
@@ -130,18 +130,11 @@ export function useCrearPlantilla() {
       // Revalidar la lista de plantillas
       mutate((key: string) => typeof key === 'string' && key.startsWith('/api/v1/prompt-templates'));
 
-      toast({
-        title: 'Plantilla creada',
-        description: 'La plantilla se ha creado correctamente.',
-      });
+      toast.success('La plantilla se ha creado correctamente.');
 
       return plantilla;
     } catch (error: any) {
-      toast({
-        title: 'Error al crear',
-        description: error.message,
-        variant: 'destructive',
-      });
+      toast.error(`Error al crear: ${error.message}`);
       throw error;
     } finally {
       setIsCreando(false);
@@ -188,18 +181,11 @@ export function useActualizarPlantilla() {
       mutate(`/api/v1/prompt-templates/${plantillaId}`);
       mutate((key: string) => typeof key === 'string' && key.startsWith('/api/v1/prompt-templates'));
 
-      toast({
-        title: 'Plantilla actualizada',
-        description: 'La plantilla se ha actualizado correctamente.',
-      });
+      toast.success('La plantilla se ha actualizado correctamente.');
 
       return plantilla;
     } catch (error: any) {
-      toast({
-        title: 'Error al actualizar',
-        description: error.message,
-        variant: 'destructive',
-      });
+      toast.error(`Error al actualizar: ${error.message}`);
       throw error;
     } finally {
       setIsActualizando(false);
@@ -238,16 +224,9 @@ export function useEliminarPlantilla() {
       // Revalidar la lista de plantillas
       mutate((key: string) => typeof key === 'string' && key.startsWith('/api/v1/prompt-templates'));
 
-      toast({
-        title: 'Plantilla eliminada',
-        description: 'La plantilla se ha eliminado correctamente.',
-      });
+      toast.success('La plantilla se ha eliminado correctamente.');
     } catch (error: any) {
-      toast({
-        title: 'Error al eliminar',
-        description: error.message,
-        variant: 'destructive',
-      });
+      toast.error(`Error al eliminar: ${error.message}`);
       throw error;
     } finally {
       setIsEliminando(false);
@@ -293,18 +272,11 @@ export function useClonarPlantilla() {
       // Revalidar la lista de plantillas
       mutate((key: string) => typeof key === 'string' && key.startsWith('/api/v1/prompt-templates'));
 
-      toast({
-        title: 'Plantilla clonada',
-        description: 'La plantilla se ha clonado correctamente.',
-      });
+      toast.success('La plantilla se ha clonado correctamente.');
 
       return plantilla;
     } catch (error: any) {
-      toast({
-        title: 'Error al clonar',
-        description: error.message,
-        variant: 'destructive',
-      });
+      toast.error(`Error al clonar: ${error.message}`);
       throw error;
     } finally {
       setIsClonando(false);
@@ -352,11 +324,7 @@ export function useRenderizarPlantilla() {
 
       return promptRenderizado;
     } catch (error: any) {
-      toast({
-        title: 'Error al renderizar',
-        description: error.message,
-        variant: 'destructive',
-      });
+      toast.error(`Error al renderizar: ${error.message}`);
       throw error;
     } finally {
       setIsRenderizando(false);

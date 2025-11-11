@@ -8,6 +8,7 @@ import {
   CohortEnrollmentRepository,
 } from "../infrastructure/database/repositories";
 import { ProgramSnapshotService } from "../application/cohort/services/ProgramSnapshotService";
+import { CohortStructureService } from "../application/cohort/services/CohortStructureService";
 import { CreateCohortUseCase } from "../application/cohort/use-cases/CreateCohort/CreateCohortUseCase";
 import { EnrollStudentUseCase } from "../application/cohort/use-cases/EnrollStudent/EnrollStudentUseCase";
 import { ListCohortsQuery } from "../application/cohort/queries/ListCohorts/ListCohortsQuery";
@@ -21,6 +22,7 @@ import { StudentEnrollmentsController } from "../presentation/controllers/cohort
   providers: [
     CohortMapper,
     ProgramSnapshotService,
+    CohortStructureService,
     {
       provide: "ICohortRepository",
       useClass: CohortRepository,
@@ -40,6 +42,7 @@ import { StudentEnrollmentsController } from "../presentation/controllers/cohort
     "ICohortRepository",
     "IEnrollmentRepository",
     ProgramSnapshotService,
+    CohortStructureService,
     CreateCohortUseCase,
     EnrollStudentUseCase,
     ListCohortsQuery,

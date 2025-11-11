@@ -6,6 +6,7 @@ export interface ExerciseInstance {
   id: string
   templateId: string
   proofPointId: string
+  proofPointName?: string
   nombre: string
   descripcion: string
   tipo: ExerciseType
@@ -20,6 +21,8 @@ export interface ExerciseInstance {
     | "publicado"
     | "error"
   contenido?: ExerciseContent
+  content?: ExerciseContent
+  savedData?: any
   configuracion: any
 }
 

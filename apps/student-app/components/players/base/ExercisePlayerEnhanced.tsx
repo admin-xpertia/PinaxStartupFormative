@@ -79,8 +79,8 @@ export function ExercisePlayerEnhanced({
   const [aiMessages, setAiMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([])
   const [aiInput, setAiInput] = useState("")
   const [aiLoading, setAiLoading] = useState(false)
-  const autoSaveTimerRef = useRef<NodeJS.Timeout>()
-  const timeTrackerRef = useRef<NodeJS.Timeout>()
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | undefined>(undefined)
+  const timeTrackerRef = useRef<NodeJS.Timeout | undefined>(undefined)
   const startTimeRef = useRef<Date>(new Date())
 
   const progress = (currentStep / totalSteps) * 100

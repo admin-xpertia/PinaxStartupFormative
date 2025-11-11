@@ -150,9 +150,8 @@ const exercisesApi = {
     /**
    * Obtener progreso del ejercicio
    */ async getProgress (exerciseId, params) {
-        return __TURBOPACK__imported__module__$5b$project$5d2f$services$2f$api$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["apiClient"].get(`/student/exercises/${encodeURIComponent(exerciseId)}/progress`, {
-            params
-        });
+        const query = `?estudianteId=${encodeURIComponent(params.estudianteId)}&cohorteId=${encodeURIComponent(params.cohorteId)}`;
+        return __TURBOPACK__imported__module__$5b$project$5d2f$services$2f$api$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["apiClient"].get(`/student/exercises/${encodeURIComponent(exerciseId)}/progress${query}`);
     },
     /**
    * Marcar ejercicio como iniciado
@@ -173,10 +172,12 @@ const exercisesApi = {
    * Auto-guardar progreso (fire-and-forget)
    */ async autoSave (exerciseId, params) {
         // No espera respuesta, solo envía
-        return __TURBOPACK__imported__module__$5b$project$5d2f$services$2f$api$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["apiClient"].put(`/student/exercises/${encodeURIComponent(exerciseId)}/progress`, params).catch((error)=>{
+        try {
+            await __TURBOPACK__imported__module__$5b$project$5d2f$services$2f$api$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["apiClient"].put(`/student/exercises/${encodeURIComponent(exerciseId)}/progress`, params);
+        } catch (error) {
             // Log pero no interrumpe la experiencia
             console.warn("Auto-save failed:", error);
-        });
+        }
     }
 };
 if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
@@ -228,10 +229,11 @@ const progressApi = {
     /**
    * Get student progress summary
    */ async getProgressSummary (estudianteId, cohorteId) {
-        return __TURBOPACK__imported__module__$5b$project$5d2f$services$2f$api$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["apiClient"].get("/student/progress/summary", {
+        const query = new URLSearchParams({
             estudianteId,
             cohorteId
         });
+        return __TURBOPACK__imported__module__$5b$project$5d2f$services$2f$api$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["apiClient"].get(`/student/progress/summary?${query.toString()}`);
     }
 };
 if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
@@ -2221,15 +2223,15 @@ function DashboardPage() {
     const { data: structure } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$swr$40$2$2e$3$2e$6_react$40$19$2e$2$2e$0$2f$node_modules$2f$swr$2f$dist$2f$index$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$locals$3e$__["default"])(activeEnrollment ? [
         "enrollment-structure",
         activeEnrollment.id
-    ] : null, {
+    ] : null, activeEnrollment ? ({
         "DashboardPage.useSWR": ()=>__TURBOPACK__imported__module__$5b$project$5d2f$services$2f$api$2f$enrollments$2e$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["enrollmentsApi"].getStructure(activeEnrollment.id)
-    }["DashboardPage.useSWR"]);
+    })["DashboardPage.useSWR"] : null);
     const { data: continuePoint } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$swr$40$2$2e$3$2e$6_react$40$19$2e$2$2e$0$2f$node_modules$2f$swr$2f$dist$2f$index$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$locals$3e$__["default"])(activeEnrollment ? [
         "continue-point",
         activeEnrollment.id
-    ] : null, {
+    ] : null, activeEnrollment ? ({
         "DashboardPage.useSWR": ()=>__TURBOPACK__imported__module__$5b$project$5d2f$services$2f$api$2f$enrollments$2e$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["enrollmentsApi"].getContinuePoint(activeEnrollment.id)
-    }["DashboardPage.useSWR"]);
+    })["DashboardPage.useSWR"] : null);
     const phases = structure?.phases ?? [];
     const selectedPhase = phases[selectedPhaseIdx];
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$0_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({

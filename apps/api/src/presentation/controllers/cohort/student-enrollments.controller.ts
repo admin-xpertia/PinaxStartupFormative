@@ -22,6 +22,7 @@ import type {
 } from "../../../application/cohort/queries/GetStudentEnrollments/GetStudentEnrollmentsQuery";
 import type { ProgramStructure } from "../../../types/enrollment";
 import { Public } from "../../../core/decorators";
+import { CohortStructureService } from "../../../application/cohort/services/CohortStructureService";
 
 interface ContinuePointDto {
   exerciseId: string;
@@ -40,6 +41,7 @@ interface ContinuePointDto {
 export class StudentEnrollmentsController {
   constructor(
     private readonly getStudentEnrollmentsQuery: GetStudentEnrollmentsQuery,
+    private readonly cohortStructureService: CohortStructureService,
   ) {}
 
   @Public()
@@ -114,14 +116,14 @@ export class StudentEnrollmentsController {
   @ApiOperation({
     summary: "Obtener punto de continuación del estudiante",
   })
-  async getContinuePoint(@Param("id") id: string): Promise<ContinuePointDto> {
+  async getContinuePoint(
+    @Param("id") id: string,
+  ): Promise<ContinuePointDto | null> {
     const enrollment = await this.fetchEnrollmentById({ enrollmentId: id });
     const structure = enrollment.snapshotStructure;
 
     if (!structure || structure.phases.length === 0) {
-      throw new NotFoundException(
-        "No hay ejercicios publicados para continuar",
-      );
+      return null;
     }
 
     for (const phase of structure.phases) {
@@ -133,6 +135,10 @@ export class StudentEnrollmentsController {
         const exercise = proofPoint.exercises.sort(
           (a, b) => a.orden - b.orden,
         )[0];
+
+        if (!exercise) {
+          continue;
+        }
 
         return {
           exerciseId: exercise.id,
@@ -146,7 +152,7 @@ export class StudentEnrollmentsController {
       }
     }
 
-    throw new NotFoundException("No se encontraron ejercicios para continuar");
+    return null;
   }
 
   private resolveStudentId(param?: string): string {
@@ -158,7 +164,7 @@ export class StudentEnrollmentsController {
   ): Promise<StudentEnrollmentItem> {
     const result = await this.getStudentEnrollmentsQuery.execute(params);
 
-    return result.match({
+    const enrollment = result.match({
       ok: (items) => {
         if (!items.length) {
           throw new NotFoundException("Inscripción no encontrada");
@@ -169,6 +175,17 @@ export class StudentEnrollmentsController {
         throw new BadRequestException(error.message);
       },
     });
+
+    const structure =
+      await this.cohortStructureService.ensureStructureByCohortId(
+        enrollment.cohortId,
+        enrollment.snapshotStructure,
+      );
+
+    return {
+      ...enrollment,
+      snapshotStructure: structure,
+    };
   }
 
   private mapEnrollment(

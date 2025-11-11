@@ -9,3 +9,9 @@ export { authApi } from "./auth.api"
 export { proofPointsApi } from "./proof-points.api"
 export type { LoginCredentials, RegisterData, AuthResponse, User } from "./auth.api"
 export type { PublishedExercise } from "./proof-points.api"
+export type {
+  StartExerciseParams,
+  SaveProgressParams,
+  CompleteExerciseParams,
+  CompleteExerciseResponse
+} from "./exercises.api"

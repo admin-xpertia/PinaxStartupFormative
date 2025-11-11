@@ -45,6 +45,7 @@ export class ProgramRepository implements IProgramRepository {
    */
   async findAll(criteria?: any): Promise<Programa[]> {
     try {
+      void criteria; // filters not implemented yet
       const result = await this.db.select<any>("programa");
       return result.map((raw) => this.mapper.programaToDomain(raw));
     } catch (error) {
@@ -210,11 +211,11 @@ export class ProgramRepository implements IProgramRepository {
       if (faseIds.length > 0) {
         const ppQuery = `
           SELECT * FROM proof_point
-          WHERE fase IN [$faseIds]
+          WHERE fase IN $faseIds
           ORDER BY orden_en_fase ASC
         `;
         const ppResult = await this.db.query<any[]>(ppQuery, {
-          faseIds: faseIds,
+          faseIds,
         });
         proofPoints = ppResult.map((raw) =>
           this.mapper.proofPointToDomain(raw),

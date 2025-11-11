@@ -39,12 +39,12 @@ export default function DashboardPage() {
 
   const { data: structure } = useSWR(
     activeEnrollment ? ["enrollment-structure", activeEnrollment.id] : null,
-    () => enrollmentsApi.getStructure(activeEnrollment.id)
+    activeEnrollment ? () => enrollmentsApi.getStructure(activeEnrollment.id) : null
   )
 
   const { data: continuePoint } = useSWR(
     activeEnrollment ? ["continue-point", activeEnrollment.id] : null,
-    () => enrollmentsApi.getContinuePoint(activeEnrollment.id)
+    activeEnrollment ? () => enrollmentsApi.getContinuePoint(activeEnrollment.id) : null
   )
 
   const phases = structure?.phases ?? []

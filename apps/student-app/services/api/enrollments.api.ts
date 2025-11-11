@@ -2,6 +2,7 @@
 
 import { apiClient } from "./client"
 import type { Enrollment, ProgramStructure } from "@/types/enrollment"
+import type { ContinuePoint } from "@/types/progress"
 
 export const enrollmentsApi = {
   /**
@@ -31,7 +32,7 @@ export const enrollmentsApi = {
   /**
    * Obtener el punto de continuación (último ejercicio accedido)
    */
-  async getContinuePoint(enrollmentId: string) {
-    return apiClient.get(`/student/enrollments/${enrollmentId}/continue`)
+  async getContinuePoint(enrollmentId: string): Promise<ContinuePoint | null> {
+    return apiClient.get<ContinuePoint | null>(`/student/enrollments/${enrollmentId}/continue`)
   },
 }

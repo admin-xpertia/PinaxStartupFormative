@@ -10,6 +10,7 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
+  Query,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -28,6 +29,7 @@ import {
   ExerciseProgressResponseDto,
   StudentProgressSummaryDto,
 } from "../../dtos/exercise-progress";
+import { Public } from "../../../core/decorators";
 
 /**
  * ExerciseProgressController
@@ -47,6 +49,7 @@ export class ExerciseProgressController {
   /**
    * Start an exercise (mark as started)
    */
+  @Public()
   @Post("student/exercises/:exerciseId/start")
   @ApiOperation({
     summary: "Start an exercise",
@@ -166,6 +169,7 @@ export class ExerciseProgressController {
   /**
    * Save exercise progress
    */
+  @Public()
   @Put("student/exercises/:exerciseId/progress")
   @ApiOperation({
     summary: "Save exercise progress",
@@ -255,6 +259,7 @@ export class ExerciseProgressController {
   /**
    * Complete an exercise
    */
+  @Public()
   @Post("student/exercises/:exerciseId/complete")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -376,6 +381,7 @@ export class ExerciseProgressController {
   /**
    * Get exercise progress for a student
    */
+  @Public()
   @Get("student/exercises/:exerciseId/progress")
   @ApiOperation({
     summary: "Get exercise progress",
@@ -394,9 +400,18 @@ export class ExerciseProgressController {
   @ApiResponse({ status: 404, description: "Progress not found" })
   async getProgress(
     @Param("exerciseId") exerciseId: string,
-    @Body() body: { estudianteId: string; cohorteId: string },
+    @Query("estudianteId") estudianteId?: string,
+    @Query("cohorteId") cohorteId?: string,
   ): Promise<ExerciseProgressResponseDto> {
     const decodedId = decodeURIComponent(exerciseId);
+    const resolvedEstudianteId = estudianteId?.trim();
+    const resolvedCohorteId = cohorteId?.trim();
+
+    if (!resolvedEstudianteId || !resolvedCohorteId) {
+      throw new BadRequestException(
+        "Los parámetros estudianteId y cohorteId son requeridos",
+      );
+    }
 
     const query = `
       SELECT * FROM exercise_progress
@@ -408,8 +423,8 @@ export class ExerciseProgressController {
 
     const result = await this.db.query(query, {
       exerciseId: decodedId,
-      estudianteId: body.estudianteId,
-      cohorteId: body.cohorteId,
+      estudianteId: resolvedEstudianteId,
+      cohorteId: resolvedCohorteId,
     });
 
     let progress: any;
@@ -431,6 +446,7 @@ export class ExerciseProgressController {
   /**
    * Get student progress summary
    */
+  @Public()
   @Get("student/progress/summary")
   @ApiOperation({
     summary: "Get student progress summary",
@@ -443,8 +459,14 @@ export class ExerciseProgressController {
     type: StudentProgressSummaryDto,
   })
   async getProgressSummary(
-    @Body() body: { estudianteId: string; cohorteId: string },
+    @Query("estudianteId") estudianteId?: string,
+    @Query("cohorteId") cohorteId?: string,
   ): Promise<StudentProgressSummaryDto> {
+    if (!estudianteId || !cohorteId) {
+      throw new BadRequestException(
+        "Los parámetros estudianteId y cohorteId son requeridos",
+      );
+    }
     // Get all progress records for student
     const progressQuery = `
       SELECT
@@ -460,8 +482,8 @@ export class ExerciseProgressController {
     `;
 
     const progressResult = await this.db.query(progressQuery, {
-      estudianteId: body.estudianteId,
-      cohorteId: body.cohorteId,
+      estudianteId,
+      cohorteId,
     });
 
     let progressRecords: any[] = [];
@@ -480,7 +502,7 @@ export class ExerciseProgressController {
     `;
 
     const exercisesResult = await this.db.query(exercisesQuery, {
-      cohorteId: body.cohorteId,
+      cohorteId,
     });
 
     let allExercises: any[] = [];
@@ -603,8 +625,8 @@ export class ExerciseProgressController {
     `;
 
     const recentResult = await this.db.query(recentCompletedQuery, {
-      estudianteId: body.estudianteId,
-      cohorteId: body.cohorteId,
+      estudianteId,
+      cohorteId,
     });
 
     let recentRecords: any[] = [];

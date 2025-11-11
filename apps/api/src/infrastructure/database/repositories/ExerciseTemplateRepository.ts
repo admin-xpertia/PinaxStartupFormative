@@ -45,6 +45,7 @@ export class ExerciseTemplateRepository implements IExerciseTemplateRepository {
    */
   async findAll(criteria?: any): Promise<ExerciseTemplate[]> {
     try {
+      void criteria; // filters not implemented yet
       const result = await this.db.select<any>("exercise_template");
       return result.map((raw) => this.mapper.templateToDomain(raw));
     } catch (error) {

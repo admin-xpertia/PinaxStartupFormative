@@ -46,6 +46,7 @@ export class ExerciseInstanceRepository implements IExerciseInstanceRepository {
    */
   async findAll(criteria?: any): Promise<ExerciseInstance[]> {
     try {
+      void criteria; // filters not implemented yet
       const result = await this.db.select<any>("exercise_instance");
       return result.map((raw) => this.mapper.instanceToDomain(raw));
     } catch (error) {
@@ -60,7 +61,8 @@ export class ExerciseInstanceRepository implements IExerciseInstanceRepository {
   async save(instance: ExerciseInstance): Promise<ExerciseInstance> {
     try {
       const persistenceData = this.mapper.instanceToPersistence(instance);
-      const { id: _ignoredId, ...payload } = persistenceData;
+      const payload = { ...persistenceData };
+      delete payload.id;
       const thing = instance.getId().toString();
 
       // Check if exists
@@ -135,7 +137,7 @@ export class ExerciseInstanceRepository implements IExerciseInstanceRepository {
     try {
       const query = `
         SELECT * FROM exercise_instance
-        WHERE proof_point = $proofPointId
+        WHERE proof_point = type::thing($proofPointId)
         ORDER BY orden ASC
       `;
 
@@ -226,7 +228,7 @@ export class ExerciseInstanceRepository implements IExerciseInstanceRepository {
     try {
       const query = `
         SELECT * FROM exercise_instance
-        WHERE proof_point = $proofPointId AND estado_contenido = $estado
+        WHERE proof_point = type::thing($proofPointId) AND estado_contenido = $estado
         ORDER BY orden ASC
       `;
 
@@ -280,7 +282,7 @@ export class ExerciseInstanceRepository implements IExerciseInstanceRepository {
     try {
       const query = `
         SELECT count() AS total FROM exercise_instance
-        WHERE proof_point = $proofPointId
+        WHERE proof_point = type::thing($proofPointId)
         GROUP ALL
       `;
 

@@ -42,8 +42,8 @@ export class CohortMapper {
       programa: cohorte.getPrograma().toString(),
       estado: cohorte.getEstado().getValue(),
       fecha_inicio: cohorte.getFechaInicio().toISOString(),
-      fecha_fin: (cohorte.getFechaFinEstimada() ??
-        cohorte.getFechaInicio().addDays(60)
+      fecha_fin: (
+        cohorte.getFechaFinEstimada() ?? cohorte.getFechaInicio().addDays(60)
       ).toISOString(),
       configuracion: cohorte.getConfiguracion(),
       snapshot_programa: cohorte.getSnapshotPrograma()

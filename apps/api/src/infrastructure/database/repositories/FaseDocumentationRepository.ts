@@ -46,6 +46,7 @@ export class FaseDocumentationRepository
    */
   async findAll(criteria?: any): Promise<FaseDocumentation[]> {
     try {
+      void criteria; // filters not implemented yet
       const result = await this.db.select<any>("fase_documentation");
       return result.map((raw) => this.mapper.faseDocumentationToDomain(raw));
     } catch (error) {
@@ -175,7 +176,7 @@ export class FaseDocumentationRepository
       // Then get documentation for those fases
       const docsQuery = `
         SELECT * FROM fase_documentation
-        WHERE fase IN [$faseIds]
+        WHERE fase IN $faseIds
       `;
 
       const docsResult = await this.db.query<any[]>(docsQuery, {

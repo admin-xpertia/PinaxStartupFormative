@@ -41,6 +41,7 @@ export class ExerciseContentRepository implements IExerciseContentRepository {
    */
   async findAll(criteria?: any): Promise<ExerciseContent[]> {
     try {
+      void criteria; // filters not implemented yet
       const result = await this.db.select<any>("exercise_content");
       return result.map((raw) => this.mapper.contentToDomain(raw));
     } catch (error) {

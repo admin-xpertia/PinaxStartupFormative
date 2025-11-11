@@ -23,7 +23,7 @@ export function useAutoSave({
   onError,
 }: UseAutoSaveOptions) {
   const lastSavedData = useRef<string>("")
-  const saveTimeoutRef = useRef<NodeJS.Timeout>()
+  const saveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
   const isSavingRef = useRef(false)
 
   const save = useCallback(async () => {

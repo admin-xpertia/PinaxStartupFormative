@@ -1,79 +1,123 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "tw-animate-css";
 
-@layer base {
-  :root {
-    --background: 210 40% 98%;
-    --foreground: 222.2 47.4% 11.2%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 47.4% 11.2%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 47.4% 11.2%;
-    --primary: 198 93% 60%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 222 89% 63%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 189 80% 90%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 198 93% 60%;
-    --radius: 0.5rem;
-  }
+@custom-variant dark (&:is(.dark *));
 
-  .dark {
-    --background: 222.2 47.4% 11.2%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 47.4% 16%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 47.4% 16%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 198 93% 60%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 222 89% 63%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 222.2 47.4% 16%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 189 80% 70%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 72.2% 50.6%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 198 93% 60%;
-  }
+:root {
+  /* Updated theme for Xpertia with cyan/turquoise primary colors */
+  --background: oklch(0.99 0 0);
+  --foreground: oklch(0.25 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.25 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.25 0 0);
+  --primary: oklch(0.58 0.15 210); /* cyan-600 */
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.52 0.18 245); /* blue-600 */
+  --secondary-foreground: oklch(1 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.55 0 0);
+  --accent: oklch(0.62 0.14 195); /* teal-500 */
+  --accent-foreground: oklch(1 0 0);
+  --destructive: oklch(0.58 0.22 15); /* rose-600 */
+  --destructive-foreground: oklch(1 0 0);
+  --success: oklch(0.58 0.15 155); /* emerald-600 */
+  --success-foreground: oklch(1 0 0);
+  --warning: oklch(0.72 0.15 75); /* amber-500 */
+  --warning-foreground: oklch(0.2 0 0);
+  --border: oklch(0.92 0 0);
+  --input: oklch(0.92 0 0);
+  --ring: oklch(0.58 0.15 210);
+  --radius: 0.5rem;
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.25 0 0);
+  --sidebar-primary: oklch(0.58 0.15 210);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.25 0 0);
+  --sidebar-border: oklch(0.92 0 0);
+  --sidebar-ring: oklch(0.58 0.15 210);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.58 0.15 210);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.52 0.18 245);
+  --secondary-foreground: oklch(1 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.62 0.14 195);
+  --accent-foreground: oklch(1 0 0);
+  --destructive: oklch(0.58 0.22 15);
+  --destructive-foreground: oklch(1 0 0);
+  --success: oklch(0.58 0.15 155);
+  --success-foreground: oklch(1 0 0);
+  --warning: oklch(0.72 0.15 75);
+  --warning-foreground: oklch(0.2 0 0);
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+  --ring: oklch(0.439 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.58 0.15 210);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.269 0 0);
+  --sidebar-ring: oklch(0.439 0 0);
+}
+
+@theme inline {
+  --font-sans: "Geist", "Geist Fallback";
+  --font-mono: "Geist Mono", "Geist Mono Fallback";
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
 @layer base {
   * {
-    border-color: hsl(var(--border));
+    @apply border-border outline-ring/50;
   }
   body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
-    @apply antialiased;
-  }
-
-  .scroll-area::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  .scroll-area::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .scroll-area::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--muted-foreground) / 0.3);
-    border-radius: 9999px;
-  }
-
-  .scroll-area::-webkit-scrollbar-thumb:hover {
-    background-color: hsl(var(--muted-foreground) / 0.5);
+    @apply bg-background text-foreground;
   }
 }

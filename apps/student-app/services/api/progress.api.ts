@@ -86,9 +86,13 @@ export const progressApi = {
     estudianteId: string,
     cohorteId: string
   ): Promise<StudentProgressSummary> {
-    return apiClient.get<StudentProgressSummary>("/student/progress/summary", {
+    const query = new URLSearchParams({
       estudianteId,
       cohorteId,
     })
+
+    return apiClient.get<StudentProgressSummary>(
+      `/student/progress/summary?${query.toString()}`
+    )
   },
 }

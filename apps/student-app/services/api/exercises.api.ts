@@ -30,6 +30,8 @@ export interface CompleteExerciseResponse {
   scoreFinal?: number
   feedback?: string
   completado: boolean
+  nextExerciseId?: string
+  proofPointCompleted?: boolean
 }
 
 export const exercisesApi = {
@@ -51,9 +53,9 @@ export const exercisesApi = {
    * Obtener progreso del ejercicio
    */
   async getProgress(exerciseId: string, params: { estudianteId: string; cohorteId: string }): Promise<ExerciseProgress> {
+    const query = `?estudianteId=${encodeURIComponent(params.estudianteId)}&cohorteId=${encodeURIComponent(params.cohorteId)}`
     return apiClient.get<ExerciseProgress>(
-      `/student/exercises/${encodeURIComponent(exerciseId)}/progress`,
-      { params }
+      `/student/exercises/${encodeURIComponent(exerciseId)}/progress${query}`
     )
   },
 
@@ -92,10 +94,11 @@ export const exercisesApi = {
    */
   async autoSave(exerciseId: string, params: SaveProgressParams): Promise<void> {
     // No espera respuesta, solo envía
-    return apiClient.put(`/student/exercises/${encodeURIComponent(exerciseId)}/progress`, params)
-      .catch((error) => {
-        // Log pero no interrumpe la experiencia
-        console.warn("Auto-save failed:", error)
-      })
+    try {
+      await apiClient.put(`/student/exercises/${encodeURIComponent(exerciseId)}/progress`, params)
+    } catch (error) {
+      // Log pero no interrumpe la experiencia
+      console.warn("Auto-save failed:", error)
+    }
   },
 }

@@ -1,10 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import OpenAI from 'openai';
-import { ExerciseTemplate } from '../../domain/exercise-catalog/entities/ExerciseTemplate';
-import { ProofPoint } from '../../domain/program-design/entities/ProofPoint';
-import { Fase } from '../../domain/program-design/entities/Fase';
-import { Programa } from '../../domain/program-design/entities/Programa';
+import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import OpenAI from "openai";
+import { ExerciseTemplate } from "../../domain/exercise-catalog/entities/ExerciseTemplate";
+import { ProofPoint } from "../../domain/program-design/entities/ProofPoint";
+import { Fase } from "../../domain/program-design/entities/Fase";
+import { Programa } from "../../domain/program-design/entities/Programa";
 
 /**
  * Request for generating exercise content
@@ -48,31 +48,31 @@ export class OpenAIService {
   private readonly completionTokenMultiplier: number;
 
   constructor(private configService: ConfigService) {
-    const apiKey = this.configService.get<string>('OPENAI_API_KEY');
+    const apiKey = this.configService.get<string>("OPENAI_API_KEY");
 
     if (!apiKey) {
       this.logger.warn(
-        '⚠️  OPENAI_API_KEY not configured. AI generation will not work.',
+        "⚠️  OPENAI_API_KEY not configured. AI generation will not work.",
       );
     }
 
     this.client = new OpenAI({
-      apiKey: apiKey || 'dummy-key-for-testing',
+      apiKey: apiKey || "dummy-key-for-testing",
     });
 
     // Configuration
-    this.model = this.configService.get<string>('OPENAI_MODEL') || 'gpt-5-nano';
+    this.model = this.configService.get<string>("OPENAI_MODEL") || "gpt-5-nano";
     this.maxCompletionTokens =
-      this.configService.get<number>('OPENAI_MAX_TOKENS') || 12000;
+      this.configService.get<number>("OPENAI_MAX_TOKENS") || 12000;
     this.initialCompletionTokens = Math.min(
-      this.configService.get<number>('OPENAI_INITIAL_COMPLETION_TOKENS') ||
+      this.configService.get<number>("OPENAI_INITIAL_COMPLETION_TOKENS") ||
         4000,
       this.maxCompletionTokens,
     );
     this.completionRetryLimit =
-      this.configService.get<number>('OPENAI_COMPLETION_MAX_RETRIES') || 2;
+      this.configService.get<number>("OPENAI_COMPLETION_MAX_RETRIES") || 2;
     this.completionTokenMultiplier =
-      this.configService.get<number>('OPENAI_COMPLETION_TOKEN_MULTIPLIER') || 2;
+      this.configService.get<number>("OPENAI_COMPLETION_TOKEN_MULTIPLIER") || 2;
 
     this.logger.log(`🤖 OpenAI Service initialized`);
     this.logger.log(`   Model: ${this.model}`);
@@ -96,9 +96,9 @@ export class OpenAIService {
       const systemPrompt = this.buildSystemPrompt(request);
       const userPrompt = this.buildUserPrompt(request);
 
-      this.logger.debug('🔧 System Prompt:');
+      this.logger.debug("🔧 System Prompt:");
       this.logger.debug(systemPrompt);
-      this.logger.debug('💬 User Prompt:');
+      this.logger.debug("💬 User Prompt:");
       this.logger.debug(userPrompt);
 
       // Call OpenAI
@@ -112,7 +112,7 @@ export class OpenAIService {
 
       this.logger.log(`✅ Content generated in ${duration}ms`);
       this.logger.debug(
-        `   Tokens used: ${response.usage?.total_tokens || 'unknown'}`,
+        `   Tokens used: ${response.usage?.total_tokens || "unknown"}`,
       );
       this.logger.debug(`   Model: ${response.model}`);
 
@@ -128,10 +128,10 @@ export class OpenAIService {
 
       if (!rawContent) {
         this.logger.error(
-          '   Full response:',
+          "   Full response:",
           JSON.stringify(response, null, 2),
         );
-        throw new Error('OpenAI returned empty content');
+        throw new Error("OpenAI returned empty content");
       }
 
       // Parse and validate response
@@ -140,11 +140,11 @@ export class OpenAIService {
         content = JSON.parse(rawContent);
       } catch (parseError) {
         this.logger.error(
-          'Failed to parse JSON content from OpenAI',
+          "Failed to parse JSON content from OpenAI",
           parseError,
         );
         this.logger.debug(`Raw OpenAI content: ${rawContent}`);
-        throw new Error('OpenAI returned invalid JSON content');
+        throw new Error("OpenAI returned invalid JSON content");
       }
 
       // Validate against template's output schema if available
@@ -160,7 +160,7 @@ export class OpenAIService {
         generatedAt: new Date(),
       };
     } catch (error) {
-      this.logger.error('❌ Error generating content with OpenAI', error);
+      this.logger.error("❌ Error generating content with OpenAI", error);
       throw new Error(`Failed to generate content: ${error.message}`);
     }
   }
@@ -173,9 +173,9 @@ export class OpenAIService {
 
     const basePrompt = `Eres un diseñador instruccional experto especializado en crear contenido educativo de alta calidad para programas de emprendimiento e innovación.
 
-Tu rol específico es: ${template.getRolIA() || 'crear contenido educativo efectivo y atractivo'}.
+Tu rol específico es: ${template.getRolIA() || "crear contenido educativo efectivo y atractivo"}.
 
-Objetivo pedagógico: ${template.getObjetivoPedagogico() || 'facilitar el aprendizaje efectivo del estudiante'}.
+Objetivo pedagógico: ${template.getObjetivoPedagogico() || "facilitar el aprendizaje efectivo del estudiante"}.
 
 IMPORTANTE:
 - Genera contenido en español
@@ -200,16 +200,16 @@ IMPORTANTE:
 
     // Replace placeholders with actual context
     const replacements: Record<string, string> = {
-      '{programa_nombre}': context.programa.getNombre(),
-      '{programa_descripcion}': context.programa.getDescripcion(),
-      '{fase_nombre}': context.fase.getNombre(),
-      '{fase_descripcion}': context.fase.getDescripcion() || '',
-      '{fase_objetivos}': context.fase.getObjetivosAprendizaje().join(', '),
-      '{proof_point_nombre}': context.proofPoint.getNombre(),
-      '{proof_point_descripcion}': context.proofPoint.getDescripcion() || '',
-      '{proof_point_pregunta}': context.proofPoint.getPreguntaCentral() || '',
-      '{exercise_nombre}': context.exerciseName,
-      '{contexto_instructor}': context.customContext || '',
+      "{programa_nombre}": context.programa.getNombre(),
+      "{programa_descripcion}": context.programa.getDescripcion(),
+      "{fase_nombre}": context.fase.getNombre(),
+      "{fase_descripcion}": context.fase.getDescripcion() || "",
+      "{fase_objetivos}": context.fase.getObjetivosAprendizaje().join(", "),
+      "{proof_point_nombre}": context.proofPoint.getNombre(),
+      "{proof_point_descripcion}": context.proofPoint.getDescripcion() || "",
+      "{proof_point_pregunta}": context.proofPoint.getPreguntaCentral() || "",
+      "{exercise_nombre}": context.exerciseName,
+      "{contexto_instructor}": context.customContext || "",
     };
 
     // Add configuration values as replacements
@@ -219,7 +219,7 @@ IMPORTANTE:
 
     // Replace all placeholders
     Object.entries(replacements).forEach(([placeholder, value]) => {
-      prompt = prompt.replace(new RegExp(placeholder, 'g'), value);
+      prompt = prompt.replace(new RegExp(placeholder, "g"), value);
     });
 
     // Append output schema requirement
@@ -250,11 +250,11 @@ IMPORTANTE:
       const response = await this.client.chat.completions.create({
         model: this.model,
         messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
         ],
         max_completion_tokens: tokenBudget,
-        response_format: { type: 'json_object' },
+        response_format: { type: "json_object" },
       });
 
       lastResponse = response;
@@ -263,7 +263,7 @@ IMPORTANTE:
       const message = response.choices[0]?.message;
       const rawContent = this.extractMessageContent(message);
 
-      this.logger.debug(`   Finish reason: ${finishReason || 'unknown'}`);
+      this.logger.debug(`   Finish reason: ${finishReason || "unknown"}`);
 
       if (rawContent) {
         return { response, rawContent };
@@ -272,7 +272,7 @@ IMPORTANTE:
       const reachedRetryLimit = attempt >= this.completionRetryLimit;
       const hitMaxTokens = tokenBudget >= this.maxCompletionTokens;
       const shouldRetryWithMoreTokens =
-        finishReason === 'length' && !reachedRetryLimit && !hitMaxTokens;
+        finishReason === "length" && !reachedRetryLimit && !hitMaxTokens;
 
       if (!shouldRetryWithMoreTokens) {
         break;
@@ -296,10 +296,10 @@ IMPORTANTE:
     }
 
     if (!lastResponse) {
-      throw new Error('No response received from OpenAI');
+      throw new Error("No response received from OpenAI");
     }
 
-    return { response: lastResponse, rawContent: '' };
+    return { response: lastResponse, rawContent: "" };
   }
 
   /**
@@ -316,7 +316,7 @@ IMPORTANTE:
 
     if (missingFields.length > 0) {
       this.logger.warn(
-        `⚠️  Generated content is missing fields: ${missingFields.join(', ')}`,
+        `⚠️  Generated content is missing fields: ${missingFields.join(", ")}`,
       );
       // Don't throw error, just warn - we'll use what we got
     }
@@ -338,11 +338,11 @@ IMPORTANTE:
 
       // Add system prompt if provided
       if (options?.systemPrompt) {
-        messages.push({ role: 'system', content: options.systemPrompt });
+        messages.push({ role: "system", content: options.systemPrompt });
       }
 
       // Add user prompt
-      messages.push({ role: 'user', content: prompt });
+      messages.push({ role: "user", content: prompt });
 
       const response = await this.client.chat.completions.create({
         model: this.model,
@@ -352,7 +352,7 @@ IMPORTANTE:
 
       return this.extractMessageContent(response.choices[0]?.message);
     } catch (error) {
-      this.logger.error('❌ Error generating completion with OpenAI', error);
+      this.logger.error("❌ Error generating completion with OpenAI", error);
       throw new Error(`Failed to generate completion: ${error.message}`);
     }
   }
@@ -365,7 +365,7 @@ IMPORTANTE:
       const response = await this.client.chat.completions.create({
         model: this.model,
         messages: [
-          { role: 'user', content: 'Responde con "OK" si puedes leerme.' },
+          { role: "user", content: 'Responde con "OK" si puedes leerme.' },
         ],
         max_completion_tokens: 10,
       });
@@ -373,9 +373,9 @@ IMPORTANTE:
       const answer = this.extractMessageContent(response.choices[0]?.message)
         .trim()
         .toLowerCase();
-      return answer === 'ok';
+      return answer === "ok";
     } catch (error) {
-      this.logger.error('❌ OpenAI connection test failed', error);
+      this.logger.error("❌ OpenAI connection test failed", error);
       return false;
     }
   }
@@ -387,15 +387,15 @@ IMPORTANTE:
     message?: OpenAI.Chat.Completions.ChatCompletionMessage,
   ): string {
     if (!message) {
-      this.logger.debug('extractMessageContent: message is undefined/null');
-      return '';
+      this.logger.debug("extractMessageContent: message is undefined/null");
+      return "";
     }
 
     // Check for parsed content first (used with response_format: json_object)
     const potentialParsed = (message as any)?.parsed;
     if (potentialParsed) {
-      this.logger.debug('extractMessageContent: Found parsed content');
-      if (typeof potentialParsed === 'string') {
+      this.logger.debug("extractMessageContent: Found parsed content");
+      if (typeof potentialParsed === "string") {
         return potentialParsed.trim();
       }
 
@@ -407,24 +407,24 @@ IMPORTANTE:
         return stringified;
       } catch (error) {
         this.logger.warn(
-          'extractMessageContent: Failed to stringify parsed content',
+          "extractMessageContent: Failed to stringify parsed content",
           error,
         );
-        return '';
+        return "";
       }
     }
 
     // Check for regular content
     if (!message.content) {
       this.logger.debug(
-        'extractMessageContent: No content or parsed field found',
+        "extractMessageContent: No content or parsed field found",
       );
-      return '';
+      return "";
     }
 
     const content = message.content as any;
 
-    if (typeof content === 'string') {
+    if (typeof content === "string") {
       this.logger.debug(
         `extractMessageContent: String content (${content.length} chars)`,
       );
@@ -432,55 +432,55 @@ IMPORTANTE:
     }
 
     if (Array.isArray(content)) {
-      this.logger.debug('extractMessageContent: Array content');
+      this.logger.debug("extractMessageContent: Array content");
       return content
         .map((part: any) => {
-          if (!part) return '';
-          if (typeof part === 'string') {
+          if (!part) return "";
+          if (typeof part === "string") {
             return part;
           }
 
-          if (typeof part.text === 'string') {
+          if (typeof part.text === "string") {
             return part.text;
           }
 
-          if (part.type === 'json_object' && part.json_object) {
+          if (part.type === "json_object" && part.json_object) {
             return this.safeStringify(part.json_object);
           }
 
-          return '';
+          return "";
         })
         .filter(
-          (segment) => typeof segment === 'string' && segment.trim().length > 0,
+          (segment) => typeof segment === "string" && segment.trim().length > 0,
         )
-        .join('\n')
+        .join("\n")
         .trim();
     }
 
-    if (typeof content === 'object') {
-      this.logger.debug('extractMessageContent: Object content');
+    if (typeof content === "object") {
+      this.logger.debug("extractMessageContent: Object content");
       return this.safeStringify(content);
     }
 
     this.logger.debug(
-      'extractMessageContent: Fallback - returning empty string',
+      "extractMessageContent: Fallback - returning empty string",
     );
-    return '';
+    return "";
   }
 
   private safeStringify(value: unknown): string {
     if (!value) {
-      return '';
+      return "";
     }
 
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       return value;
     }
 
     try {
       return JSON.stringify(value);
     } catch {
-      return '';
+      return "";
     }
   }
 }

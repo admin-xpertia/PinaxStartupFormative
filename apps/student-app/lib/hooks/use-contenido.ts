@@ -15,7 +15,7 @@
 
 import { useState } from 'react';
 import useSWR, { mutate } from 'swr';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 
 // ============================================================================
@@ -97,18 +97,11 @@ export function useGuardarContenido(componenteId: string) {
       // Revalidar el contenido
       mutate(`/api/v1/componentes/${componenteId}/contenido`);
 
-      toast({
-        title: 'Contenido guardado',
-        description: 'El contenido se ha guardado correctamente como borrador.',
-      });
+      toast.success('Contenido guardado correctamente como borrador.');
 
       return resultado;
     } catch (error: any) {
-      toast({
-        title: 'Error al guardar',
-        description: error.message,
-        variant: 'destructive',
-      });
+      toast.error(`Error al guardar: ${error.message}`);
       throw error;
     } finally {
       setIsGuardando(false);
@@ -147,19 +140,11 @@ export function usePublicarContenido() {
       });
       const resultado = response.data;
 
-      toast({
-        title: 'Contenido publicado',
-        description:
-          'El contenido se ha publicado. Futuras ediciones crearán versiones automáticamente.',
-      });
+      toast.success('Contenido publicado. Futuras ediciones crearán versiones automáticamente.');
 
       return resultado;
     } catch (error: any) {
-      toast({
-        title: 'Error al publicar',
-        description: error.message,
-        variant: 'destructive',
-      });
+      toast.error(`Error al publicar: ${error.message}`);
       throw error;
     } finally {
       setIsPublicando(false);
@@ -232,18 +217,11 @@ export function useRestaurarVersion() {
       mutate(`/api/v1/componentes/${componenteId}/contenido`);
       mutate(`/api/v1/contenido/historial/${componenteId}`);
 
-      toast({
-        title: 'Versión restaurada',
-        description: 'Se ha restaurado la versión anterior correctamente.',
-      });
+      toast.success('Versión restaurada correctamente.');
 
       return resultado;
     } catch (error: any) {
-      toast({
-        title: 'Error al restaurar',
-        description: error.message,
-        variant: 'destructive',
-      });
+      toast.error(`Error al restaurar: ${error.message}`);
       throw error;
     } finally {
       setIsRestaurando(false);
