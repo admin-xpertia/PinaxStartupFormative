@@ -1,119 +1,120 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class ProgramResponseDto {
   @ApiProperty({
-    description: 'ID del programa',
-    example: 'programa:abc123',
+    description: "ID del programa",
+    example: "programa:abc123",
   })
   id: string;
 
   @ApiProperty({
-    description: 'Nombre del programa',
-    example: 'Programa de Desarrollo Web',
+    description: "Nombre del programa",
+    example: "Programa de Desarrollo Web",
   })
   nombre: string;
 
   @ApiPropertyOptional({
-    description: 'Descripción del programa',
-    example: 'Programa completo para aprender desarrollo web full-stack',
+    description: "Descripción del programa",
+    example: "Programa completo para aprender desarrollo web full-stack",
   })
   descripcion?: string;
 
   @ApiProperty({
-    description: 'Duración en semanas',
+    description: "Duración en semanas",
     example: 12,
   })
   duracionSemanas: number;
 
   @ApiProperty({
-    description: 'Estado del programa',
-    enum: ['borrador', 'publicado', 'archivado'],
-    example: 'borrador',
+    description: "Estado del programa",
+    enum: ["borrador", "publicado", "archivado"],
+    example: "borrador",
   })
   estado: string;
 
   @ApiProperty({
-    description: 'Versión actual',
-    example: '1.0.0',
+    description: "Versión actual",
+    example: "1.0.0",
   })
   versionActual: string;
 
   @ApiPropertyOptional({
-    description: 'Categoría del programa',
-    example: 'Tecnología',
+    description: "Categoría del programa",
+    example: "Tecnología",
   })
   categoria?: string;
 
   @ApiPropertyOptional({
-    description: 'Nivel de dificultad',
-    enum: ['principiante', 'intermedio', 'avanzado'],
-    example: 'intermedio',
+    description: "Nivel de dificultad",
+    enum: ["principiante", "intermedio", "avanzado"],
+    example: "intermedio",
   })
   nivelDificultad?: string;
 
   @ApiPropertyOptional({
-    description: 'URL de imagen de portada',
-    example: 'https://example.com/image.jpg',
+    description: "URL de imagen de portada",
+    example: "https://example.com/image.jpg",
   })
   imagenPortadaUrl?: string;
 
   @ApiPropertyOptional({
-    description: 'Objetivos de aprendizaje',
+    description: "Objetivos de aprendizaje",
     type: [String],
-    example: ['Dominar HTML y CSS', 'Crear aplicaciones con React'],
+    example: ["Dominar HTML y CSS", "Crear aplicaciones con React"],
   })
   objetivosAprendizaje?: string[];
 
   @ApiPropertyOptional({
-    description: 'Prerequisitos del programa',
+    description: "Prerequisitos del programa",
     type: [String],
-    example: ['Conocimientos básicos de programación'],
+    example: ["Conocimientos básicos de programación"],
   })
   prerequisitos?: string[];
 
   @ApiPropertyOptional({
-    description: 'Audiencia objetivo',
-    example: 'Estudiantes universitarios de carreras técnicas',
+    description: "Audiencia objetivo",
+    example: "Estudiantes universitarios de carreras técnicas",
   })
   audienciaObjetivo?: string;
 
   @ApiPropertyOptional({
-    description: 'Tags del programa',
+    description: "Tags del programa",
     type: [String],
-    example: ['web', 'frontend', 'backend', 'full-stack'],
+    example: ["web", "frontend", "backend", "full-stack"],
   })
   tags?: string[];
 
   @ApiProperty({
-    description: 'Visible para estudiantes',
+    description: "Visible para estudiantes",
     example: true,
   })
   visible: boolean;
 
   @ApiProperty({
-    description: 'ID del creador',
-    example: 'usuario:instructor123',
+    description: "ID del creador",
+    example: "usuario:instructor123",
   })
   creador: string;
 
   @ApiProperty({
-    description: 'Fecha de creación',
-    example: '2025-11-06T10:00:00Z',
+    description: "Fecha de creación",
+    example: "2025-11-06T10:00:00Z",
   })
   createdAt: string;
 
   @ApiProperty({
-    description: 'Fecha de última actualización',
-    example: '2025-11-06T12:30:00Z',
+    description: "Fecha de última actualización",
+    example: "2025-11-06T12:30:00Z",
   })
   updatedAt: string;
 
   @ApiPropertyOptional({
-    description: 'Estadísticas del programa (número de fases, proof points, etc.)',
+    description:
+      "Estadísticas del programa (número de fases, proof points, etc.)",
     example: {
       fases: 3,
       proof_points: 8,
-      duracion: '12 semanas',
+      duracion: "12 semanas",
       estudiantes: 0,
     },
   })

@@ -1,26 +1,26 @@
-import { Module } from '@nestjs/common';
-import { SurrealDbModule } from '../core/database/surrealdb.module';
+import { Module } from "@nestjs/common";
+import { SurrealDbModule } from "../core/database/surrealdb.module";
 
 // Import other modules for cross-module dependencies
-import { ExerciseCatalogModule } from './exercise-catalog.module';
-import { ProgramDesignModule } from './program-design.module';
+import { ExerciseCatalogModule } from "./exercise-catalog.module";
+import { ProgramDesignModule } from "./program-design.module";
 
 // Mappers (reuse from ExerciseCatalogModule)
-import { ExerciseMapper } from '../infrastructure/mappers/ExerciseMapper';
+import { ExerciseMapper } from "../infrastructure/mappers/ExerciseMapper";
 
 // Repositories
-import { ExerciseInstanceRepository } from '../infrastructure/database/repositories/ExerciseInstanceRepository';
-import { ExerciseContentRepository } from '../infrastructure/database/repositories/ExerciseContentRepository';
+import { ExerciseInstanceRepository } from "../infrastructure/database/repositories/ExerciseInstanceRepository";
+import { ExerciseContentRepository } from "../infrastructure/database/repositories/ExerciseContentRepository";
 
 // Use Cases
-import { AddExerciseToProofPointUseCase } from '../application/exercise-instance/use-cases/AddExerciseToProofPoint/AddExerciseToProofPointUseCase';
-import { GenerateExerciseContentUseCase } from '../application/exercise-instance/use-cases/GenerateExerciseContent/GenerateExerciseContentUseCase';
+import { AddExerciseToProofPointUseCase } from "../application/exercise-instance/use-cases/AddExerciseToProofPoint/AddExerciseToProofPointUseCase";
+import { GenerateExerciseContentUseCase } from "../application/exercise-instance/use-cases/GenerateExerciseContent/GenerateExerciseContentUseCase";
 
 // Services
-import { OpenAIService } from '../infrastructure/ai/OpenAIService';
+import { OpenAIService } from "../infrastructure/ai/OpenAIService";
 
 // Controllers
-import { ExerciseInstanceController } from '../presentation/controllers/exercise-instance/exercise-instance.controller';
+import { ExerciseInstanceController } from "../presentation/controllers/exercise-instance/exercise-instance.controller";
 
 /**
  * ExerciseInstanceModule
@@ -35,7 +35,7 @@ import { ExerciseInstanceController } from '../presentation/controllers/exercise
   imports: [
     SurrealDbModule,
     ExerciseCatalogModule, // For IExerciseTemplateRepository
-    ProgramDesignModule,   // For IProofPointRepository
+    ProgramDesignModule, // For IProofPointRepository
   ],
   providers: [
     // Mappers (shared with ExerciseCatalogModule)
@@ -43,11 +43,11 @@ import { ExerciseInstanceController } from '../presentation/controllers/exercise
 
     // Repositories - provided as their interface token for DI
     {
-      provide: 'IExerciseInstanceRepository',
+      provide: "IExerciseInstanceRepository",
       useClass: ExerciseInstanceRepository,
     },
     {
-      provide: 'IExerciseContentRepository',
+      provide: "IExerciseContentRepository",
       useClass: ExerciseContentRepository,
     },
 
@@ -64,8 +64,8 @@ import { ExerciseInstanceController } from '../presentation/controllers/exercise
   ],
   exports: [
     // Export repositories for use in other modules
-    'IExerciseInstanceRepository',
-    'IExerciseContentRepository',
+    "IExerciseInstanceRepository",
+    "IExerciseContentRepository",
 
     // Export services
     OpenAIService,

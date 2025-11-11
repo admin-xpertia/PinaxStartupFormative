@@ -13,7 +13,7 @@ import {
   BadRequestException,
   Logger,
   Inject,
-} from '@nestjs/common';
+} from "@nestjs/common";
 import {
   ApiTags,
   ApiOperation,
@@ -21,30 +21,30 @@ import {
   ApiParam,
   ApiQuery,
   ApiBearerAuth,
-} from '@nestjs/swagger';
-import { CreateProgramUseCase } from '../../../application/program-design/use-cases/CreateProgram/CreateProgramUseCase';
-import { PublishProgramUseCase } from '../../../application/program-design/use-cases/PublishProgram/PublishProgramUseCase';
-import { ArchiveProgramUseCase } from '../../../application/program-design/use-cases/ArchiveProgram/ArchiveProgramUseCase';
+} from "@nestjs/swagger";
+import { CreateProgramUseCase } from "../../../application/program-design/use-cases/CreateProgram/CreateProgramUseCase";
+import { PublishProgramUseCase } from "../../../application/program-design/use-cases/PublishProgram/PublishProgramUseCase";
+import { ArchiveProgramUseCase } from "../../../application/program-design/use-cases/ArchiveProgram/ArchiveProgramUseCase";
 import {
   IProgramRepository,
   IFaseRepository,
   IProofPointRepository,
-} from '../../../domain/program-design/repositories/IProgramRepository';
-import { RecordId } from '../../../domain/shared/value-objects/RecordId';
-import { ProgramStatus } from '../../../domain/program-design/value-objects/ProgramStatus';
+} from "../../../domain/program-design/repositories/IProgramRepository";
+import { RecordId } from "../../../domain/shared/value-objects/RecordId";
+import { ProgramStatus } from "../../../domain/program-design/value-objects/ProgramStatus";
 import {
   CreateProgramRequestDto,
   UpdateProgramRequestDto,
   ProgramResponseDto,
-} from '../../dtos/program-design';
+} from "../../dtos/program-design";
 
 /**
  * ProgramController
  * REST API endpoints for Program Design
  */
-@ApiTags('programs')
-@Controller('programs')
-@ApiBearerAuth('JWT-auth')
+@ApiTags("programs")
+@Controller("programs")
+@ApiBearerAuth("JWT-auth")
 export class ProgramController {
   private readonly logger = new Logger(ProgramController.name);
 
@@ -52,11 +52,11 @@ export class ProgramController {
     private readonly createProgramUseCase: CreateProgramUseCase,
     private readonly publishProgramUseCase: PublishProgramUseCase,
     private readonly archiveProgramUseCase: ArchiveProgramUseCase,
-    @Inject('IProgramRepository')
+    @Inject("IProgramRepository")
     private readonly programRepository: IProgramRepository,
-    @Inject('IFaseRepository')
+    @Inject("IFaseRepository")
     private readonly faseRepository: IFaseRepository,
-    @Inject('IProofPointRepository')
+    @Inject("IProofPointRepository")
     private readonly proofPointRepository: IProofPointRepository,
   ) {}
 
@@ -65,15 +65,15 @@ export class ProgramController {
    */
   @Post()
   @ApiOperation({
-    summary: 'Create a new educational program',
-    description: 'Creates a new program in draft state',
+    summary: "Create a new educational program",
+    description: "Creates a new program in draft state",
   })
   @ApiResponse({
     status: 201,
-    description: 'Program created successfully',
+    description: "Program created successfully",
     type: ProgramResponseDto,
   })
-  @ApiResponse({ status: 400, description: 'Bad request - validation failed' })
+  @ApiResponse({ status: 400, description: "Bad request - validation failed" })
   async createProgram(
     @Body() createDto: CreateProgramRequestDto,
   ): Promise<ProgramResponseDto> {
@@ -109,22 +109,22 @@ export class ProgramController {
    */
   @Get()
   @ApiOperation({
-    summary: 'List all programs',
-    description: 'Get all programs, optionally filtered by status',
+    summary: "List all programs",
+    description: "Get all programs, optionally filtered by status",
   })
   @ApiQuery({
-    name: 'status',
+    name: "status",
     required: false,
-    enum: ['borrador', 'publicado', 'archivado'],
-    description: 'Filter by program status',
+    enum: ["borrador", "publicado", "archivado"],
+    description: "Filter by program status",
   })
   @ApiResponse({
     status: 200,
-    description: 'List of programs',
+    description: "List of programs",
     type: [ProgramResponseDto],
   })
   async listPrograms(
-    @Query('status') status?: string,
+    @Query("status") status?: string,
   ): Promise<ProgramResponseDto[]> {
     let programs;
 
@@ -141,24 +141,26 @@ export class ProgramController {
   /**
    * Get program by ID
    */
-  @Get(':id')
+  @Get(":id")
   @ApiOperation({
-    summary: 'Get program by ID',
-    description: 'Retrieve detailed information about a specific program',
+    summary: "Get program by ID",
+    description: "Retrieve detailed information about a specific program",
   })
   @ApiParam({
-    name: 'id',
-    description: 'Program ID (e.g., programa:abc123)',
-    example: 'programa:abc123',
+    name: "id",
+    description: "Program ID (e.g., programa:abc123)",
+    example: "programa:abc123",
   })
   @ApiResponse({
     status: 200,
-    description: 'Program details',
+    description: "Program details",
     type: ProgramResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Program not found' })
-  async getProgram(@Param('id') id: string): Promise<ProgramResponseDto> {
-    const programa = await this.programRepository.findById(RecordId.fromString(id));
+  @ApiResponse({ status: 404, description: "Program not found" })
+  async getProgram(@Param("id") id: string): Promise<ProgramResponseDto> {
+    const programa = await this.programRepository.findById(
+      RecordId.fromString(id),
+    );
 
     if (!programa) {
       throw new NotFoundException(`Program not found: ${id}`);
@@ -170,38 +172,44 @@ export class ProgramController {
   /**
    * Update program
    */
-  @Put(':id')
+  @Put(":id")
   @ApiOperation({
-    summary: 'Update program',
-    description: 'Update program information (only for draft programs)',
+    summary: "Update program",
+    description: "Update program information (only for draft programs)",
   })
   @ApiParam({
-    name: 'id',
-    description: 'Program ID',
-    example: 'programa:abc123',
+    name: "id",
+    description: "Program ID",
+    example: "programa:abc123",
   })
   @ApiResponse({
     status: 200,
-    description: 'Program updated successfully',
+    description: "Program updated successfully",
     type: ProgramResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Program not found' })
+  @ApiResponse({ status: 404, description: "Program not found" })
   @ApiResponse({
     status: 400,
-    description: 'Cannot edit published program',
+    description: "Cannot edit published program",
   })
   async updateProgram(
-    @Param('id') id: string,
+    @Param("id") id: string,
     @Body() updateDto: UpdateProgramRequestDto,
   ): Promise<ProgramResponseDto> {
-    const programa = await this.programRepository.findById(RecordId.fromString(id));
+    const programa = await this.programRepository.findById(
+      RecordId.fromString(id),
+    );
 
     if (!programa) {
       throw new NotFoundException(`Program not found: ${id}`);
     }
 
     // Update program info
-    if (updateDto.nombre || updateDto.descripcion || updateDto.duracionSemanas) {
+    if (
+      updateDto.nombre ||
+      updateDto.descripcion ||
+      updateDto.duracionSemanas
+    ) {
       try {
         programa.updateInfo(
           updateDto.nombre,
@@ -243,28 +251,28 @@ export class ProgramController {
   /**
    * Publish program
    */
-  @Post(':id/publish')
+  @Post(":id/publish")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Publish program',
-    description: 'Makes program available for creating cohorts',
+    summary: "Publish program",
+    description: "Makes program available for creating cohorts",
   })
   @ApiParam({
-    name: 'id',
-    description: 'Program ID',
-    example: 'programa:abc123',
+    name: "id",
+    description: "Program ID",
+    example: "programa:abc123",
   })
   @ApiResponse({
     status: 200,
-    description: 'Program published successfully',
+    description: "Program published successfully",
     type: ProgramResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Program not found' })
+  @ApiResponse({ status: 404, description: "Program not found" })
   @ApiResponse({
     status: 400,
-    description: 'Program cannot be published',
+    description: "Program cannot be published",
   })
-  async publishProgram(@Param('id') id: string): Promise<ProgramResponseDto> {
+  async publishProgram(@Param("id") id: string): Promise<ProgramResponseDto> {
     const result = await this.publishProgramUseCase.execute({
       programaId: id,
     });
@@ -277,7 +285,7 @@ export class ProgramController {
         return await this.mapToResponseDto(programa!);
       },
       fail: (error) => {
-        if (error.message.includes('not found')) {
+        if (error.message.includes("not found")) {
           throw new NotFoundException(error.message);
         }
         throw new BadRequestException(error.message);
@@ -288,24 +296,24 @@ export class ProgramController {
   /**
    * Archive program
    */
-  @Post(':id/archive')
+  @Post(":id/archive")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Archive program',
-    description: 'Archives a program (soft delete)',
+    summary: "Archive program",
+    description: "Archives a program (soft delete)",
   })
   @ApiParam({
-    name: 'id',
-    description: 'Program ID',
-    example: 'programa:abc123',
+    name: "id",
+    description: "Program ID",
+    example: "programa:abc123",
   })
   @ApiResponse({
     status: 200,
-    description: 'Program archived successfully',
+    description: "Program archived successfully",
     type: ProgramResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Program not found' })
-  async archiveProgram(@Param('id') id: string): Promise<ProgramResponseDto> {
+  @ApiResponse({ status: 404, description: "Program not found" })
+  async archiveProgram(@Param("id") id: string): Promise<ProgramResponseDto> {
     const result = await this.archiveProgramUseCase.execute({
       programaId: id,
     });
@@ -318,7 +326,7 @@ export class ProgramController {
         return await this.mapToResponseDto(programa!);
       },
       fail: (error) => {
-        if (error.message.includes('not found')) {
+        if (error.message.includes("not found")) {
           throw new NotFoundException(error.message);
         }
         throw new BadRequestException(error.message);
@@ -329,21 +337,23 @@ export class ProgramController {
   /**
    * Delete program
    */
-  @Delete(':id')
+  @Delete(":id")
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
-    summary: 'Delete program',
-    description: 'Permanently delete a program (only drafts)',
+    summary: "Delete program",
+    description: "Permanently delete a program (only drafts)",
   })
   @ApiParam({
-    name: 'id',
-    description: 'Program ID',
-    example: 'programa:abc123',
+    name: "id",
+    description: "Program ID",
+    example: "programa:abc123",
   })
-  @ApiResponse({ status: 204, description: 'Program deleted successfully' })
-  @ApiResponse({ status: 404, description: 'Program not found' })
-  async deleteProgram(@Param('id') id: string): Promise<void> {
-    const deleted = await this.programRepository.delete(RecordId.fromString(id));
+  @ApiResponse({ status: 204, description: "Program deleted successfully" })
+  @ApiResponse({ status: 404, description: "Program not found" })
+  async deleteProgram(@Param("id") id: string): Promise<void> {
+    const deleted = await this.programRepository.delete(
+      RecordId.fromString(id),
+    );
 
     if (!deleted) {
       throw new NotFoundException(`Program not found: ${id}`);
@@ -363,12 +373,14 @@ export class ProgramController {
     // Count total proof points across all fases
     let numProofPoints = 0;
     for (const fase of fases) {
-      const proofPoints = await this.proofPointRepository.findByFase(fase.getId());
+      const proofPoints = await this.proofPointRepository.findByFase(
+        fase.getId(),
+      );
       numProofPoints += proofPoints.length;
     }
 
     const duracionSemanas = programa.getDuracion().toWeeks();
-    const duracionTexto = `${duracionSemanas} semana${duracionSemanas !== 1 ? 's' : ''}`;
+    const duracionTexto = `${duracionSemanas} semana${duracionSemanas !== 1 ? "s" : ""}`;
 
     return {
       id: programaId.toString(),

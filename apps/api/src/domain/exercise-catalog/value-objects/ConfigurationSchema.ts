@@ -1,15 +1,15 @@
-import { ValueObject } from '../../shared/types/ValueObject';
+import { ValueObject } from "../../shared/types/ValueObject";
 
 /**
  * Field types supported in configuration schemas
  */
 export type ConfigFieldType =
-  | 'number'
-  | 'boolean'
-  | 'string'
-  | 'select'
-  | 'multiselect'
-  | 'text';
+  | "number"
+  | "boolean"
+  | "string"
+  | "select"
+  | "multiselect"
+  | "text";
 
 /**
  * Minimal subset of JSON Schema used by templates
@@ -79,12 +79,14 @@ export class ConfigurationSchema extends ValueObject<{
     }
 
     // If the schema uses JSON Schema format, convert it to internal representation
-    if ('properties' in schema) {
+    if ("properties" in schema) {
       const converted = this.fromJsonSchema(schema as JsonSchema);
       return new ConfigurationSchema(converted.fields, converted.sourceSchema);
     }
 
-    return new ConfigurationSchema(schema as Record<string, ConfigurationField>);
+    return new ConfigurationSchema(
+      schema as Record<string, ConfigurationField>,
+    );
   }
 
   static empty(): ConfigurationSchema {
@@ -110,7 +112,10 @@ export class ConfigurationSchema extends ValueObject<{
   /**
    * Validates a configuration object against this schema
    */
-  validateConfiguration(config: Record<string, any>): { valid: boolean; errors: string[] } {
+  validateConfiguration(config: Record<string, any>): {
+    valid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
 
     for (const [fieldName, fieldDef] of Object.entries(this.props.fields)) {
@@ -129,8 +134,8 @@ export class ConfigurationSchema extends ValueObject<{
 
       // Type validation
       switch (fieldDef.type) {
-        case 'number':
-          if (typeof value !== 'number') {
+        case "number":
+          if (typeof value !== "number") {
             errors.push(`Field "${fieldName}" must be a number`);
           } else {
             if (fieldDef.min !== undefined && value < fieldDef.min) {
@@ -142,35 +147,37 @@ export class ConfigurationSchema extends ValueObject<{
           }
           break;
 
-        case 'boolean':
-          if (typeof value !== 'boolean') {
+        case "boolean":
+          if (typeof value !== "boolean") {
             errors.push(`Field "${fieldName}" must be a boolean`);
           }
           break;
 
-        case 'string':
-        case 'text':
-          if (typeof value !== 'string') {
+        case "string":
+        case "text":
+          if (typeof value !== "string") {
             errors.push(`Field "${fieldName}" must be a string`);
           }
           break;
 
-        case 'select':
+        case "select":
           if (fieldDef.options && !fieldDef.options.includes(value)) {
             errors.push(
-              `Field "${fieldName}" must be one of: ${fieldDef.options.join(', ')}`,
+              `Field "${fieldName}" must be one of: ${fieldDef.options.join(", ")}`,
             );
           }
           break;
 
-        case 'multiselect':
+        case "multiselect":
           if (!Array.isArray(value)) {
             errors.push(`Field "${fieldName}" must be an array`);
           } else if (fieldDef.options) {
-            const invalidOptions = value.filter(v => !fieldDef.options!.includes(v));
+            const invalidOptions = value.filter(
+              (v) => !fieldDef.options!.includes(v),
+            );
             if (invalidOptions.length > 0) {
               errors.push(
-                `Field "${fieldName}" contains invalid options: ${invalidOptions.join(', ')}`,
+                `Field "${fieldName}" contains invalid options: ${invalidOptions.join(", ")}`,
               );
             }
           }
@@ -211,16 +218,20 @@ export class ConfigurationSchema extends ValueObject<{
         throw new Error(`Field "${fieldName}" must have a label`);
       }
 
-      if (fieldDef.type === 'select' && !fieldDef.options) {
+      if (fieldDef.type === "select" && !fieldDef.options) {
         throw new Error(`Select field "${fieldName}" must have options`);
       }
     }
   }
 
-  equals(vo?: ValueObject<{ fields: Record<string, ConfigurationField> }>): boolean {
+  equals(
+    vo?: ValueObject<{ fields: Record<string, ConfigurationField> }>,
+  ): boolean {
     if (!vo) return false;
     const other = vo as ConfigurationSchema;
-    return JSON.stringify(this.props.fields) === JSON.stringify(other.props.fields);
+    return (
+      JSON.stringify(this.props.fields) === JSON.stringify(other.props.fields)
+    );
   }
 
   toJSON(): JsonSchema {
@@ -250,10 +261,10 @@ export class ConfigurationSchema extends ValueObject<{
       }
 
       if (fieldDef.options && fieldDef.options.length > 0) {
-        if (fieldDef.type === 'multiselect') {
-          property.type = 'array';
+        if (fieldDef.type === "multiselect") {
+          property.type = "array";
           property.items = {
-            type: 'string',
+            type: "string",
             enum: fieldDef.options,
           };
         } else {
@@ -269,7 +280,7 @@ export class ConfigurationSchema extends ValueObject<{
     }
 
     const schema: JsonSchema = {
-      type: 'object',
+      type: "object",
       properties,
     };
 
@@ -290,13 +301,12 @@ export class ConfigurationSchema extends ValueObject<{
     for (const [fieldName, fieldSchema] of Object.entries(
       schema.properties || {},
     )) {
-      if (!fieldSchema || typeof fieldSchema !== 'object') {
+      if (!fieldSchema || typeof fieldSchema !== "object") {
         continue;
       }
 
       const mappedType = this.mapJsonTypeToConfigType(fieldSchema);
-      const options =
-        fieldSchema.enum || fieldSchema.items?.enum || undefined;
+      const options = fieldSchema.enum || fieldSchema.items?.enum || undefined;
 
       fields[fieldName] = {
         type: mappedType,
@@ -316,49 +326,51 @@ export class ConfigurationSchema extends ValueObject<{
     };
   }
 
-  private static mapJsonTypeToConfigType(fieldSchema: JsonSchemaProperty): ConfigFieldType {
+  private static mapJsonTypeToConfigType(
+    fieldSchema: JsonSchemaProperty,
+  ): ConfigFieldType {
     if (fieldSchema.enum && fieldSchema.enum.length > 0) {
-      return 'select';
+      return "select";
     }
 
     if (
-      fieldSchema.type === 'array' &&
+      fieldSchema.type === "array" &&
       fieldSchema.items &&
       fieldSchema.items.enum &&
       fieldSchema.items.enum.length > 0
     ) {
-      return 'multiselect';
+      return "multiselect";
     }
 
     switch (fieldSchema.type) {
-      case 'number':
-      case 'integer':
-        return 'number';
-      case 'boolean':
-        return 'boolean';
-      case 'array':
-        return 'multiselect';
-      case 'object':
-        return 'text';
-      case 'string':
+      case "number":
+      case "integer":
+        return "number";
+      case "boolean":
+        return "boolean";
+      case "array":
+        return "multiselect";
+      case "object":
+        return "text";
+      case "string":
       default:
-        return 'string';
+        return "string";
     }
   }
 
   private mapConfigTypeToJsonType(type: ConfigFieldType): string {
     switch (type) {
-      case 'number':
-        return 'number';
-      case 'boolean':
-        return 'boolean';
-      case 'multiselect':
-        return 'array';
-      case 'text':
-      case 'string':
-      case 'select':
+      case "number":
+        return "number";
+      case "boolean":
+        return "boolean";
+      case "multiselect":
+        return "array";
+      case "text":
+      case "string":
+      case "select":
       default:
-        return 'string';
+        return "string";
     }
   }
 }

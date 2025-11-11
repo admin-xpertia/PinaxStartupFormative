@@ -1,13 +1,14 @@
-import { IRepository } from '../../shared/repositories/IRepository';
-import { ExerciseContent } from '../entities/ExerciseContent';
-import { RecordId } from '../../shared/value-objects/RecordId';
+import { IRepository } from "../../shared/repositories/IRepository";
+import { ExerciseContent } from "../entities/ExerciseContent";
+import { RecordId } from "../../shared/value-objects/RecordId";
 
 /**
  * Exercise Content Repository Interface
  *
  * Manages exercise content (AI-generated content for exercise instances)
  */
-export interface IExerciseContentRepository extends IRepository<ExerciseContent> {
+export interface IExerciseContentRepository
+  extends IRepository<ExerciseContent> {
   /**
    * Finds content by exercise instance
    * Returns the current (latest) content for an instance

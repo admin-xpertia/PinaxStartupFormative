@@ -12,35 +12,41 @@ import {
   BadRequestException,
   Logger,
   Inject,
-} from '@nestjs/common';
+} from "@nestjs/common";
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiParam,
   ApiBearerAuth,
-} from '@nestjs/swagger';
-import { AddExerciseToProofPointUseCase } from '../../../application/exercise-instance/use-cases/AddExerciseToProofPoint/AddExerciseToProofPointUseCase';
-import { GenerateExerciseContentUseCase } from '../../../application/exercise-instance/use-cases/GenerateExerciseContent/GenerateExerciseContentUseCase';
-import { IExerciseInstanceRepository } from '../../../domain/exercise-instance/repositories/IExerciseInstanceRepository';
-import { RecordId } from '../../../domain/shared/value-objects/RecordId';
-import { AddExerciseToProofPointRequestDto, ExerciseInstanceResponseDto, GenerateContentRequestDto, GenerateContentResponseDto, UpdateExerciseStatusDto } from '../../dtos/exercise-instance';
-import { SurrealDbService } from '../../../core/database/surrealdb.service';
+} from "@nestjs/swagger";
+import { AddExerciseToProofPointUseCase } from "../../../application/exercise-instance/use-cases/AddExerciseToProofPoint/AddExerciseToProofPointUseCase";
+import { GenerateExerciseContentUseCase } from "../../../application/exercise-instance/use-cases/GenerateExerciseContent/GenerateExerciseContentUseCase";
+import { IExerciseInstanceRepository } from "../../../domain/exercise-instance/repositories/IExerciseInstanceRepository";
+import { RecordId } from "../../../domain/shared/value-objects/RecordId";
+import {
+  AddExerciseToProofPointRequestDto,
+  ExerciseInstanceResponseDto,
+  GenerateContentRequestDto,
+  GenerateContentResponseDto,
+  UpdateExerciseStatusDto,
+} from "../../dtos/exercise-instance";
+import { SurrealDbService } from "../../../core/database/surrealdb.service";
 
 /**
  * ExerciseInstanceController
  * REST API endpoints for Exercise Instance Management
  */
-@ApiTags('exercise-instances')
+@ApiTags("exercise-instances")
 @Controller()
-@ApiBearerAuth('JWT-auth')
+@ApiBearerAuth("JWT-auth")
 export class ExerciseInstanceController {
   private readonly logger = new Logger(ExerciseInstanceController.name);
 
   constructor(
     private readonly addExerciseUseCase: AddExerciseToProofPointUseCase,
     private readonly generateContentUseCase: GenerateExerciseContentUseCase,
-    @Inject('IExerciseInstanceRepository')
+    @Inject("IExerciseInstanceRepository")
     private readonly exerciseInstanceRepository: IExerciseInstanceRepository,
     private readonly db: SurrealDbService,
   ) {}
@@ -48,25 +54,25 @@ export class ExerciseInstanceController {
   /**
    * Add exercise to proof point
    */
-  @Post('proof-points/:proofPointId/exercises')
+  @Post("proof-points/:proofPointId/exercises")
   @ApiOperation({
-    summary: 'Add exercise to proof point',
-    description: 'Creates a new exercise instance within a proof point',
+    summary: "Add exercise to proof point",
+    description: "Creates a new exercise instance within a proof point",
   })
   @ApiParam({
-    name: 'proofPointId',
-    description: 'ProofPoint ID',
-    example: 'proof_point:abc123',
+    name: "proofPointId",
+    description: "ProofPoint ID",
+    example: "proof_point:abc123",
   })
   @ApiResponse({
     status: 201,
-    description: 'Exercise created successfully',
+    description: "Exercise created successfully",
     type: ExerciseInstanceResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'ProofPoint or Template not found' })
-  @ApiResponse({ status: 400, description: 'Invalid configuration' })
+  @ApiResponse({ status: 404, description: "ProofPoint or Template not found" })
+  @ApiResponse({ status: 400, description: "Invalid configuration" })
   async addExercise(
-    @Param('proofPointId') proofPointId: string,
+    @Param("proofPointId") proofPointId: string,
     @Body() addExerciseDto: AddExerciseToProofPointRequestDto,
   ): Promise<ExerciseInstanceResponseDto> {
     const decodedProofPointId = decodeURIComponent(proofPointId);
@@ -83,8 +89,10 @@ export class ExerciseInstanceController {
     return result.match({
       ok: async (response) => {
         // Query the exercise directly from database to avoid mapper issues
-        const query = 'SELECT * FROM type::thing($id)';
-        const dbResult = await this.db.query(query, { id: response.exerciseInstanceId });
+        const query = "SELECT * FROM type::thing($id)";
+        const dbResult = await this.db.query(query, {
+          id: response.exerciseInstanceId,
+        });
 
         let exercise: any;
         if (Array.isArray(dbResult) && dbResult.length > 0) {
@@ -96,7 +104,9 @@ export class ExerciseInstanceController {
         }
 
         if (!exercise) {
-          throw new NotFoundException(`Exercise not found: ${response.exerciseInstanceId}`);
+          throw new NotFoundException(
+            `Exercise not found: ${response.exerciseInstanceId}`,
+          );
         }
 
         // Map manually to DTO
@@ -118,7 +128,7 @@ export class ExerciseInstanceController {
         };
       },
       fail: (error) => {
-        if (error.message.includes('not found')) {
+        if (error.message.includes("not found")) {
           throw new NotFoundException(error.message);
         }
         throw new BadRequestException(error.message);
@@ -129,23 +139,23 @@ export class ExerciseInstanceController {
   /**
    * List exercises by proof point
    */
-  @Get('proof-points/:proofPointId/exercises')
+  @Get("proof-points/:proofPointId/exercises")
   @ApiOperation({
-    summary: 'List proof point exercises',
-    description: 'Get all exercises for a specific proof point',
+    summary: "List proof point exercises",
+    description: "Get all exercises for a specific proof point",
   })
   @ApiParam({
-    name: 'proofPointId',
-    description: 'ProofPoint ID',
-    example: 'proof_point:abc123',
+    name: "proofPointId",
+    description: "ProofPoint ID",
+    example: "proof_point:abc123",
   })
   @ApiResponse({
     status: 200,
-    description: 'List of exercises',
+    description: "List of exercises",
     type: [ExerciseInstanceResponseDto],
   })
   async listExercisesByProofPoint(
-    @Param('proofPointId') proofPointId: string,
+    @Param("proofPointId") proofPointId: string,
   ): Promise<ExerciseInstanceResponseDto[]> {
     const decodedProofPointId = decodeURIComponent(proofPointId);
 
@@ -194,30 +204,32 @@ export class ExerciseInstanceController {
   /**
    * Get exercise by ID
    */
-  @Get('exercises/:id')
+  @Get("exercises/:id")
   @ApiOperation({
-    summary: 'Get exercise by ID',
-    description: 'Retrieve detailed information about a specific exercise instance',
+    summary: "Get exercise by ID",
+    description:
+      "Retrieve detailed information about a specific exercise instance",
   })
   @ApiParam({
-    name: 'id',
-    description: 'ExerciseInstance ID',
-    example: 'exercise_instance:abc123',
+    name: "id",
+    description: "ExerciseInstance ID",
+    example: "exercise_instance:abc123",
   })
   @ApiResponse({
     status: 200,
-    description: 'Exercise details',
+    description: "Exercise details",
     type: ExerciseInstanceResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Exercise not found' })
-  async getExercise(@Param('id') id: string): Promise<ExerciseInstanceResponseDto> {
+  @ApiResponse({ status: 404, description: "Exercise not found" })
+  async getExercise(
+    @Param("id") id: string,
+  ): Promise<ExerciseInstanceResponseDto> {
     const decodedId = decodeURIComponent(id);
 
     // Query database directly
-    const result = await this.db.query(
-      'SELECT * FROM type::thing($id)',
-      { id: decodedId }
-    );
+    const result = await this.db.query("SELECT * FROM type::thing($id)", {
+      id: decodedId,
+    });
 
     let exercise: any;
     if (Array.isArray(result) && result.length > 0) {
@@ -253,26 +265,27 @@ export class ExerciseInstanceController {
   /**
    * Generate AI content for exercise
    */
-  @Post('exercises/:id/generate')
+  @Post("exercises/:id/generate")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Generate AI content',
-    description: 'Generates AI-powered content for an exercise instance using GPT',
+    summary: "Generate AI content",
+    description:
+      "Generates AI-powered content for an exercise instance using GPT",
   })
   @ApiParam({
-    name: 'id',
-    description: 'ExerciseInstance ID',
-    example: 'exercise_instance:abc123',
+    name: "id",
+    description: "ExerciseInstance ID",
+    example: "exercise_instance:abc123",
   })
   @ApiResponse({
     status: 200,
-    description: 'Content generated successfully',
+    description: "Content generated successfully",
     type: GenerateContentResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Exercise not found' })
-  @ApiResponse({ status: 400, description: 'Content generation failed' })
+  @ApiResponse({ status: 404, description: "Exercise not found" })
+  @ApiResponse({ status: 400, description: "Content generation failed" })
   async generateContent(
-    @Param('id') id: string,
+    @Param("id") id: string,
     @Body() generateDto: GenerateContentRequestDto,
   ): Promise<GenerateContentResponseDto> {
     const result = await this.generateContentUseCase.execute({
@@ -290,7 +303,7 @@ export class ExerciseInstanceController {
         generatedAt: response.generatedAt,
       }),
       fail: (error) => {
-        if (error.message.includes('not found')) {
+        if (error.message.includes("not found")) {
           throw new NotFoundException(error.message);
         }
         throw new BadRequestException(error.message);
@@ -301,22 +314,22 @@ export class ExerciseInstanceController {
   /**
    * Get exercise content
    */
-  @Get('exercises/:id/content')
+  @Get("exercises/:id/content")
   @ApiOperation({
-    summary: 'Get exercise content',
-    description: 'Get the generated AI content for an exercise instance',
+    summary: "Get exercise content",
+    description: "Get the generated AI content for an exercise instance",
   })
   @ApiParam({
-    name: 'id',
-    description: 'ExerciseInstance ID',
-    example: 'exercise_instance:abc123',
+    name: "id",
+    description: "ExerciseInstance ID",
+    example: "exercise_instance:abc123",
   })
   @ApiResponse({
     status: 200,
-    description: 'Exercise content',
+    description: "Exercise content",
   })
-  @ApiResponse({ status: 404, description: 'Exercise or content not found' })
-  async getExerciseContent(@Param('id') id: string): Promise<any> {
+  @ApiResponse({ status: 404, description: "Exercise or content not found" })
+  async getExerciseContent(@Param("id") id: string): Promise<any> {
     const decodedId = decodeURIComponent(id);
 
     // Query exercise content from database
@@ -358,24 +371,24 @@ export class ExerciseInstanceController {
   /**
    * Update exercise
    */
-  @Put('exercises/:id')
+  @Put("exercises/:id")
   @ApiOperation({
-    summary: 'Update exercise',
-    description: 'Update an existing exercise instance',
+    summary: "Update exercise",
+    description: "Update an existing exercise instance",
   })
   @ApiParam({
-    name: 'id',
-    description: 'ExerciseInstance ID',
-    example: 'exercise_instance:abc123',
+    name: "id",
+    description: "ExerciseInstance ID",
+    example: "exercise_instance:abc123",
   })
   @ApiResponse({
     status: 200,
-    description: 'Exercise updated successfully',
+    description: "Exercise updated successfully",
     type: ExerciseInstanceResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Exercise not found' })
+  @ApiResponse({ status: 404, description: "Exercise not found" })
   async updateExercise(
-    @Param('id') id: string,
+    @Param("id") id: string,
     @Body() updateDto: AddExerciseToProofPointRequestDto,
   ): Promise<ExerciseInstanceResponseDto> {
     const decodedId = decodeURIComponent(id);
@@ -395,8 +408,8 @@ export class ExerciseInstanceController {
     const result = await this.db.query(query, {
       id: decodedId,
       nombre: updateDto.nombre,
-      descripcionBreve: updateDto.descripcionBreve || '',
-      consideracionesContexto: updateDto.consideracionesContexto || '',
+      descripcionBreve: updateDto.descripcionBreve || "",
+      consideracionesContexto: updateDto.consideracionesContexto || "",
       configuracionPersonalizada: updateDto.configuracionPersonalizada || {},
       duracionEstimadaMinutos: updateDto.duracionEstimadaMinutos,
     });
@@ -435,28 +448,33 @@ export class ExerciseInstanceController {
   /**
    * Publish exercise (change status to published)
    */
-  @Put('exercises/:id/publish')
+  @Put("exercises/:id/publish")
   @ApiOperation({
-    summary: 'Publish exercise',
-    description: 'Change exercise content status to published',
+    summary: "Publish exercise",
+    description: "Change exercise content status to published",
   })
   @ApiParam({
-    name: 'id',
-    description: 'ExerciseInstance ID',
-    example: 'exercise_instance:abc123',
+    name: "id",
+    description: "ExerciseInstance ID",
+    example: "exercise_instance:abc123",
   })
   @ApiResponse({
     status: 200,
-    description: 'Exercise published successfully',
+    description: "Exercise published successfully",
     type: ExerciseInstanceResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Exercise not found' })
-  @ApiResponse({ status: 400, description: 'Exercise must be in draft state to publish' })
-  async publishExercise(@Param('id') id: string): Promise<ExerciseInstanceResponseDto> {
+  @ApiResponse({ status: 404, description: "Exercise not found" })
+  @ApiResponse({
+    status: 400,
+    description: "Exercise must be in draft state to publish",
+  })
+  async publishExercise(
+    @Param("id") id: string,
+  ): Promise<ExerciseInstanceResponseDto> {
     const decodedId = decodeURIComponent(id);
 
     // First, check if exercise exists and is in draft state
-    const checkQuery = 'SELECT * FROM type::thing($id)';
+    const checkQuery = "SELECT * FROM type::thing($id)";
     const checkResult = await this.db.query(checkQuery, { id: decodedId });
 
     let exercise: any;
@@ -472,9 +490,9 @@ export class ExerciseInstanceController {
       throw new NotFoundException(`Exercise not found: ${id}`);
     }
 
-    if (exercise.estado_contenido !== 'draft') {
+    if (exercise.estado_contenido !== "draft") {
       throw new BadRequestException(
-        `Exercise must be in draft state to publish. Current state: ${exercise.estado_contenido}`
+        `Exercise must be in draft state to publish. Current state: ${exercise.estado_contenido}`,
       );
     }
 
@@ -522,24 +540,24 @@ export class ExerciseInstanceController {
   /**
    * Delete exercise
    */
-  @Delete('exercises/:id')
+  @Delete("exercises/:id")
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
-    summary: 'Delete exercise',
-    description: 'Permanently delete an exercise instance',
+    summary: "Delete exercise",
+    description: "Permanently delete an exercise instance",
   })
   @ApiParam({
-    name: 'id',
-    description: 'ExerciseInstance ID',
-    example: 'exercise_instance:abc123',
+    name: "id",
+    description: "ExerciseInstance ID",
+    example: "exercise_instance:abc123",
   })
-  @ApiResponse({ status: 204, description: 'Exercise deleted successfully' })
-  @ApiResponse({ status: 404, description: 'Exercise not found' })
-  async deleteExercise(@Param('id') id: string): Promise<void> {
+  @ApiResponse({ status: 204, description: "Exercise deleted successfully" })
+  @ApiResponse({ status: 404, description: "Exercise not found" })
+  async deleteExercise(@Param("id") id: string): Promise<void> {
     const decodedId = decodeURIComponent(id);
 
     // Delete using direct database query
-    const query = 'DELETE type::thing($id) RETURN BEFORE';
+    const query = "DELETE type::thing($id) RETURN BEFORE";
     const result = await this.db.query(query, { id: decodedId });
 
     let deleted: any;
@@ -559,23 +577,24 @@ export class ExerciseInstanceController {
   /**
    * Get published exercises for a proof point (Student endpoint)
    */
-  @Get('student/proof-points/:proofPointId/exercises')
+  @Get("student/proof-points/:proofPointId/exercises")
   @ApiOperation({
-    summary: 'Get published exercises for students',
-    description: 'Get all published exercises for a specific proof point (student view)',
+    summary: "Get published exercises for students",
+    description:
+      "Get all published exercises for a specific proof point (student view)",
   })
   @ApiParam({
-    name: 'proofPointId',
-    description: 'ProofPoint ID',
-    example: 'proof_point:abc123',
+    name: "proofPointId",
+    description: "ProofPoint ID",
+    example: "proof_point:abc123",
   })
   @ApiResponse({
     status: 200,
-    description: 'List of published exercises',
+    description: "List of published exercises",
     type: [ExerciseInstanceResponseDto],
   })
   async getPublishedExercisesByProofPoint(
-    @Param('proofPointId') proofPointId: string,
+    @Param("proofPointId") proofPointId: string,
   ): Promise<ExerciseInstanceResponseDto[]> {
     const decodedProofPointId = decodeURIComponent(proofPointId);
 
@@ -610,7 +629,7 @@ export class ExerciseInstanceController {
       proofPoint: exercise.proof_point,
       nombre: exercise.nombre,
       descripcionBreve: exercise.descripcion_breve,
-      consideracionesContexto: '', // Don't expose to students
+      consideracionesContexto: "", // Don't expose to students
       configuracionPersonalizada: exercise.configuracion_personalizada,
       orden: exercise.orden,
       duracionEstimadaMinutos: exercise.duracion_estimada_minutos,
@@ -625,23 +644,28 @@ export class ExerciseInstanceController {
   /**
    * Get published exercise by ID (Student endpoint)
    */
-  @Get('student/exercises/:id')
+  @Get("student/exercises/:id")
   @ApiOperation({
-    summary: 'Get published exercise for student',
-    description: 'Get a specific exercise if it is published',
+    summary: "Get published exercise for student",
+    description: "Get a specific exercise if it is published",
   })
   @ApiParam({
-    name: 'id',
-    description: 'ExerciseInstance ID',
-    example: 'exercise_instance:abc123',
+    name: "id",
+    description: "ExerciseInstance ID",
+    example: "exercise_instance:abc123",
   })
   @ApiResponse({
     status: 200,
-    description: 'Exercise details',
+    description: "Exercise details",
     type: ExerciseInstanceResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Exercise not found or not published' })
-  async getPublishedExercise(@Param('id') id: string): Promise<ExerciseInstanceResponseDto> {
+  @ApiResponse({
+    status: 404,
+    description: "Exercise not found or not published",
+  })
+  async getPublishedExercise(
+    @Param("id") id: string,
+  ): Promise<ExerciseInstanceResponseDto> {
     const decodedId = decodeURIComponent(id);
 
     // Query database for published exercise only
@@ -671,7 +695,7 @@ export class ExerciseInstanceController {
       proofPoint: exercise.proof_point,
       nombre: exercise.nombre,
       descripcionBreve: exercise.descripcion_breve,
-      consideracionesContexto: '', // Don't expose to students
+      consideracionesContexto: "", // Don't expose to students
       configuracionPersonalizada: exercise.configuracion_personalizada,
       orden: exercise.orden,
       duracionEstimadaMinutos: exercise.duracion_estimada_minutos,
@@ -686,22 +710,22 @@ export class ExerciseInstanceController {
   /**
    * Get published exercise content (Student endpoint)
    */
-  @Get('student/exercises/:id/content')
+  @Get("student/exercises/:id/content")
   @ApiOperation({
-    summary: 'Get published exercise content for student',
-    description: 'Get the content of a published exercise',
+    summary: "Get published exercise content for student",
+    description: "Get the content of a published exercise",
   })
   @ApiParam({
-    name: 'id',
-    description: 'ExerciseInstance ID',
-    example: 'exercise_instance:abc123',
+    name: "id",
+    description: "ExerciseInstance ID",
+    example: "exercise_instance:abc123",
   })
   @ApiResponse({
     status: 200,
-    description: 'Exercise content',
+    description: "Exercise content",
   })
-  @ApiResponse({ status: 404, description: 'Exercise or content not found' })
-  async getPublishedExerciseContent(@Param('id') id: string): Promise<any> {
+  @ApiResponse({ status: 404, description: "Exercise or content not found" })
+  async getPublishedExerciseContent(@Param("id") id: string): Promise<any> {
     const decodedId = decodeURIComponent(id);
 
     // First verify the exercise is published
@@ -710,7 +734,9 @@ export class ExerciseInstanceController {
       WHERE estado_contenido = 'publicado'
     `;
 
-    const exerciseResult = await this.db.query(exerciseQuery, { id: decodedId });
+    const exerciseResult = await this.db.query(exerciseQuery, {
+      id: decodedId,
+    });
 
     let exercise: any;
     if (Array.isArray(exerciseResult) && exerciseResult.length > 0) {

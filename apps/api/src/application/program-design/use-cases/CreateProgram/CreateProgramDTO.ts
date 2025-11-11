@@ -8,7 +8,7 @@ export interface CreateProgramDTO {
   duracionSemanas: number;
   creadorId: string;
   categoria?: string;
-  nivelDificultad?: 'principiante' | 'intermedio' | 'avanzado';
+  nivelDificultad?: "principiante" | "intermedio" | "avanzado";
   imagenPortadaUrl?: string;
   objetivosAprendizaje?: string[];
   prerequisitos?: string[];

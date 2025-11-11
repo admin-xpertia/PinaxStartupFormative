@@ -1,13 +1,13 @@
-import { Entity } from '../../shared/types/Entity';
-import { RecordId } from '../../shared/value-objects/RecordId';
-import { Timestamp } from '../../shared/value-objects/Timestamp';
+import { Entity } from "../../shared/types/Entity";
+import { RecordId } from "../../shared/value-objects/RecordId";
+import { Timestamp } from "../../shared/value-objects/Timestamp";
 
 /**
  * ExerciseContent Entity
  * Represents the generated content for an exercise instance
  */
 
-export type ExerciseContentState = 'draft' | 'publicado';
+export type ExerciseContentState = "draft" | "publicado";
 
 export interface ExerciseContentProps {
   exerciseInstance: RecordId;
@@ -34,16 +34,17 @@ export class ExerciseContent extends Entity<ExerciseContentProps> {
     id?: RecordId,
   ): ExerciseContent {
     const contentId =
-      id || RecordId.create('exercise_content', `${Date.now()}_${Math.random()}`);
+      id ||
+      RecordId.create("exercise_content", `${Date.now()}_${Math.random()}`);
 
     if (!contenido || Object.keys(contenido).length === 0) {
-      throw new Error('Content cannot be empty');
+      throw new Error("Content cannot be empty");
     }
 
     const content = new ExerciseContent(contentId, {
       exerciseInstance: exerciseInstanceId,
       contenido,
-      estado: 'draft',
+      estado: "draft",
       generacionRequest: generacionRequestId,
       version: 1,
       createdAt: Timestamp.now(),
@@ -56,7 +57,10 @@ export class ExerciseContent extends Entity<ExerciseContentProps> {
   /**
    * Reconstitutes ExerciseContent from persistence
    */
-  static reconstitute(id: RecordId, props: ExerciseContentProps): ExerciseContent {
+  static reconstitute(
+    id: RecordId,
+    props: ExerciseContentProps,
+  ): ExerciseContent {
     return new ExerciseContent(id, props);
   }
 
@@ -91,11 +95,11 @@ export class ExerciseContent extends Entity<ExerciseContentProps> {
   }
 
   isDraft(): boolean {
-    return this.props.estado === 'draft';
+    return this.props.estado === "draft";
   }
 
   isPublicado(): boolean {
-    return this.props.estado === 'publicado';
+    return this.props.estado === "publicado";
   }
 
   // ========== Business Methods ==========
@@ -105,11 +109,11 @@ export class ExerciseContent extends Entity<ExerciseContentProps> {
    */
   updateContenido(contenido: Record<string, any>): void {
     if (!this.isDraft()) {
-      throw new Error('Cannot update published content');
+      throw new Error("Cannot update published content");
     }
 
     if (!contenido || Object.keys(contenido).length === 0) {
-      throw new Error('Content cannot be empty');
+      throw new Error("Content cannot be empty");
     }
 
     this.props.contenido = { ...contenido };
@@ -122,7 +126,7 @@ export class ExerciseContent extends Entity<ExerciseContentProps> {
    */
   updateField(fieldName: string, value: any): void {
     if (!this.isDraft()) {
-      throw new Error('Cannot update published content');
+      throw new Error("Cannot update published content");
     }
 
     this.props.contenido[fieldName] = value;
@@ -134,10 +138,10 @@ export class ExerciseContent extends Entity<ExerciseContentProps> {
    */
   publish(): void {
     if (this.isPublicado()) {
-      throw new Error('Content is already published');
+      throw new Error("Content is already published");
     }
 
-    this.props.estado = 'publicado';
+    this.props.estado = "publicado";
     this.props.updatedAt = Timestamp.now();
   }
 
@@ -146,17 +150,20 @@ export class ExerciseContent extends Entity<ExerciseContentProps> {
    */
   unpublish(): void {
     if (this.isDraft()) {
-      throw new Error('Content is already in draft state');
+      throw new Error("Content is already in draft state");
     }
 
-    this.props.estado = 'draft';
+    this.props.estado = "draft";
     this.props.updatedAt = Timestamp.now();
   }
 
   /**
    * Validates content against a schema
    */
-  validateAgainstSchema(schema: Record<string, any>): { valid: boolean; errors: string[] } {
+  validateAgainstSchema(schema: Record<string, any>): {
+    valid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
 
     // Basic validation: check required fields from schema
@@ -196,7 +203,7 @@ export class ExerciseContent extends Entity<ExerciseContentProps> {
     return {
       id: this.getId().toString(),
       exercise_instance: this.props.exerciseInstance.toString(),
-      contenido: this.props.contenido,
+      contenido_generado: this.props.contenido,
       estado: this.props.estado,
       generacion_request: this.props.generacionRequest?.toString(),
       version: this.props.version,

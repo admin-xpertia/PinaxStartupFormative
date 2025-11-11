@@ -1,1 +1,1 @@
-export * from './exercise-template-response.dto';
+export * from "./exercise-template-response.dto";

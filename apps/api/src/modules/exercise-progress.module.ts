@@ -1,11 +1,11 @@
-import { Module } from '@nestjs/common';
-import { SurrealDbModule } from '../core/database/surrealdb.module';
+import { Module } from "@nestjs/common";
+import { SurrealDbModule } from "../core/database/surrealdb.module";
 
 // Controllers
-import { ExerciseProgressController } from '../presentation/controllers/exercise-progress/exercise-progress.controller';
+import { ExerciseProgressController } from "../presentation/controllers/exercise-progress/exercise-progress.controller";
 
 // Services
-import { OpenAIService } from '../infrastructure/ai/OpenAIService';
+import { OpenAIService } from "../infrastructure/ai/OpenAIService";
 
 /**
  * ExerciseProgressModule

@@ -1,8 +1,8 @@
-import { Entity } from '../../shared/types/Entity';
-import { RecordId } from '../../shared/value-objects/RecordId';
-import { Timestamp } from '../../shared/value-objects/Timestamp';
-import { ProofPointSlug } from '../value-objects/ProofPointSlug';
-import { Duration } from '../value-objects/Duration';
+import { Entity } from "../../shared/types/Entity";
+import { RecordId } from "../../shared/value-objects/RecordId";
+import { Timestamp } from "../../shared/value-objects/Timestamp";
+import { ProofPointSlug } from "../value-objects/ProofPointSlug";
+import { Duration } from "../value-objects/Duration";
 
 /**
  * ProofPoint Entity
@@ -41,18 +41,19 @@ export class ProofPoint extends Entity<ProofPointProps> {
     preguntaCentral?: string,
     id?: RecordId,
   ): ProofPoint {
-    const proofPointId = id || RecordId.create('proof_point', `${Date.now()}_${Math.random()}`);
+    const proofPointId =
+      id || RecordId.create("proof_point", `${Date.now()}_${Math.random()}`);
 
     if (nombre.trim().length < 3) {
-      throw new Error('ProofPoint name must be at least 3 characters');
+      throw new Error("ProofPoint name must be at least 3 characters");
     }
 
     if (ordenEnFase < 0) {
-      throw new Error('ProofPoint order cannot be negative');
+      throw new Error("ProofPoint order cannot be negative");
     }
 
     if (duracionHoras <= 0) {
-      throw new Error('Duration must be positive');
+      throw new Error("Duration must be positive");
     }
 
     const slug = ProofPointSlug.fromName(nombre);
@@ -65,7 +66,7 @@ export class ProofPoint extends Entity<ProofPointProps> {
       preguntaCentral,
       ordenEnFase,
       duracion: Duration.hours(duracionHoras),
-      documentacionContexto: '',
+      documentacionContexto: "",
       prerequisitos: [],
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
@@ -136,7 +137,7 @@ export class ProofPoint extends Entity<ProofPointProps> {
   ): void {
     if (nombre) {
       if (nombre.trim().length < 3) {
-        throw new Error('ProofPoint name must be at least 3 characters');
+        throw new Error("ProofPoint name must be at least 3 characters");
       }
       this.props.nombre = nombre;
       this.props.slug = ProofPointSlug.fromName(nombre);
@@ -152,7 +153,7 @@ export class ProofPoint extends Entity<ProofPointProps> {
 
     if (duracionHoras !== undefined) {
       if (duracionHoras <= 0) {
-        throw new Error('Duration must be positive');
+        throw new Error("Duration must be positive");
       }
       this.props.duracion = Duration.hours(duracionHoras);
     }
@@ -174,11 +175,13 @@ export class ProofPoint extends Entity<ProofPointProps> {
   addPrerequisite(prerequisitoId: RecordId): void {
     // Prevent self-prerequisite
     if (prerequisitoId.equals(this.getId())) {
-      throw new Error('ProofPoint cannot be a prerequisite of itself');
+      throw new Error("ProofPoint cannot be a prerequisite of itself");
     }
 
     // Check if already exists
-    const exists = this.props.prerequisitos.some(p => p.equals(prerequisitoId));
+    const exists = this.props.prerequisitos.some((p) =>
+      p.equals(prerequisitoId),
+    );
     if (!exists) {
       this.props.prerequisitos.push(prerequisitoId);
       this.props.updatedAt = Timestamp.now();
@@ -189,7 +192,9 @@ export class ProofPoint extends Entity<ProofPointProps> {
    * Removes a prerequisite proof point
    */
   removePrerequisite(prerequisitoId: RecordId): void {
-    const index = this.props.prerequisitos.findIndex(p => p.equals(prerequisitoId));
+    const index = this.props.prerequisitos.findIndex((p) =>
+      p.equals(prerequisitoId),
+    );
     if (index > -1) {
       this.props.prerequisitos.splice(index, 1);
       this.props.updatedAt = Timestamp.now();
@@ -207,7 +212,7 @@ export class ProofPoint extends Entity<ProofPointProps> {
    * Checks if a specific proof point is a prerequisite
    */
   hasPrerequisite(prerequisitoId: RecordId): boolean {
-    return this.props.prerequisitos.some(p => p.equals(prerequisitoId));
+    return this.props.prerequisitos.some((p) => p.equals(prerequisitoId));
   }
 
   /**
@@ -223,7 +228,7 @@ export class ProofPoint extends Entity<ProofPointProps> {
    */
   reorder(newOrden: number): void {
     if (newOrden < 0) {
-      throw new Error('Order cannot be negative');
+      throw new Error("Order cannot be negative");
     }
 
     this.props.ordenEnFase = newOrden;
@@ -248,7 +253,7 @@ export class ProofPoint extends Entity<ProofPointProps> {
       duracion_estimada_horas: this.props.duracion.toHours(),
       tipo_entregable_final: this.props.tipoEntregableFinal,
       documentacion_contexto: this.props.documentacionContexto,
-      prerequisitos: this.props.prerequisitos.map(p => p.toString()),
+      prerequisitos: this.props.prerequisitos.map((p) => p.toString()),
       // created_at and updated_at are handled by SurrealDB DEFAULT time::now()
     };
   }

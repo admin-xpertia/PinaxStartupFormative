@@ -43,12 +43,17 @@ export class OpenAIService {
   private readonly client: OpenAI;
   private readonly model: string;
   private readonly maxCompletionTokens: number;
+  private readonly initialCompletionTokens: number;
+  private readonly completionRetryLimit: number;
+  private readonly completionTokenMultiplier: number;
 
   constructor(private configService: ConfigService) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
 
     if (!apiKey) {
-      this.logger.warn('⚠️  OPENAI_API_KEY not configured. AI generation will not work.');
+      this.logger.warn(
+        '⚠️  OPENAI_API_KEY not configured. AI generation will not work.',
+      );
     }
 
     this.client = new OpenAI({
@@ -58,7 +63,16 @@ export class OpenAIService {
     // Configuration
     this.model = this.configService.get<string>('OPENAI_MODEL') || 'gpt-5-nano';
     this.maxCompletionTokens =
-      this.configService.get<number>('OPENAI_MAX_TOKENS') || 4000;
+      this.configService.get<number>('OPENAI_MAX_TOKENS') || 12000;
+    this.initialCompletionTokens = Math.min(
+      this.configService.get<number>('OPENAI_INITIAL_COMPLETION_TOKENS') ||
+        4000,
+      this.maxCompletionTokens,
+    );
+    this.completionRetryLimit =
+      this.configService.get<number>('OPENAI_COMPLETION_MAX_RETRIES') || 2;
+    this.completionTokenMultiplier =
+      this.configService.get<number>('OPENAI_COMPLETION_TOKEN_MULTIPLIER') || 2;
 
     this.logger.log(`🤖 OpenAI Service initialized`);
     this.logger.log(`   Model: ${this.model}`);
@@ -72,7 +86,9 @@ export class OpenAIService {
     request: GenerateContentRequest,
   ): Promise<GenerateContentResponse> {
     try {
-      this.logger.log(`📝 Generating content for exercise: ${request.context.exerciseName}`);
+      this.logger.log(
+        `📝 Generating content for exercise: ${request.context.exerciseName}`,
+      );
       this.logger.debug(`   Template: ${request.template.getNombre()}`);
       this.logger.debug(`   Category: ${request.template.getCategoria()}`);
 
@@ -87,25 +103,34 @@ export class OpenAIService {
 
       // Call OpenAI
       const startTime = Date.now();
-      const response = await this.client.chat.completions.create({
-        model: this.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        max_completion_tokens: this.maxCompletionTokens,
-        response_format: { type: 'json_object' },
-      });
+      const { response, rawContent } = await this.requestStructuredCompletion(
+        systemPrompt,
+        userPrompt,
+      );
 
       const duration = Date.now() - startTime;
 
       this.logger.log(`✅ Content generated in ${duration}ms`);
-      this.logger.debug(`   Tokens used: ${response.usage?.total_tokens || 'unknown'}`);
+      this.logger.debug(
+        `   Tokens used: ${response.usage?.total_tokens || 'unknown'}`,
+      );
       this.logger.debug(`   Model: ${response.model}`);
 
-      const rawContent = this.extractMessageContent(response.choices[0]?.message);
+      // Debug the response structure
+      const message = response.choices[0]?.message;
+      this.logger.debug(
+        `   Message structure: content=${!!message?.content}, parsed=${!!(message as any)?.parsed}`,
+      );
+
+      this.logger.debug(
+        `   Extracted content length: ${rawContent?.length || 0}`,
+      );
 
       if (!rawContent) {
+        this.logger.error(
+          '   Full response:',
+          JSON.stringify(response, null, 2),
+        );
         throw new Error('OpenAI returned empty content');
       }
 
@@ -114,7 +139,10 @@ export class OpenAIService {
       try {
         content = JSON.parse(rawContent);
       } catch (parseError) {
-        this.logger.error('Failed to parse JSON content from OpenAI', parseError);
+        this.logger.error(
+          'Failed to parse JSON content from OpenAI',
+          parseError,
+        );
         this.logger.debug(`Raw OpenAI content: ${rawContent}`);
         throw new Error('OpenAI returned invalid JSON content');
       }
@@ -203,6 +231,77 @@ IMPORTANTE:
     return prompt;
   }
 
+  private async requestStructuredCompletion(
+    systemPrompt: string,
+    userPrompt: string,
+  ): Promise<{
+    response: OpenAI.Chat.Completions.ChatCompletion;
+    rawContent: string;
+  }> {
+    let attempt = 0;
+    let tokenBudget = this.initialCompletionTokens;
+    let lastResponse: OpenAI.Chat.Completions.ChatCompletion | undefined;
+
+    while (attempt <= this.completionRetryLimit) {
+      this.logger.debug(
+        `🚀 OpenAI request attempt ${attempt + 1} with token budget ${tokenBudget}`,
+      );
+
+      const response = await this.client.chat.completions.create({
+        model: this.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        max_completion_tokens: tokenBudget,
+        response_format: { type: 'json_object' },
+      });
+
+      lastResponse = response;
+
+      const finishReason = response.choices[0]?.finish_reason;
+      const message = response.choices[0]?.message;
+      const rawContent = this.extractMessageContent(message);
+
+      this.logger.debug(`   Finish reason: ${finishReason || 'unknown'}`);
+
+      if (rawContent) {
+        return { response, rawContent };
+      }
+
+      const reachedRetryLimit = attempt >= this.completionRetryLimit;
+      const hitMaxTokens = tokenBudget >= this.maxCompletionTokens;
+      const shouldRetryWithMoreTokens =
+        finishReason === 'length' && !reachedRetryLimit && !hitMaxTokens;
+
+      if (!shouldRetryWithMoreTokens) {
+        break;
+      }
+
+      const nextBudget = Math.min(
+        Math.ceil(tokenBudget * this.completionTokenMultiplier),
+        this.maxCompletionTokens,
+      );
+
+      if (nextBudget === tokenBudget) {
+        break;
+      }
+
+      this.logger.warn(
+        `⚠️  OpenAI truncated response at ${tokenBudget} tokens (finish_reason: length). Retrying with ${nextBudget} tokens...`,
+      );
+
+      tokenBudget = nextBudget;
+      attempt += 1;
+    }
+
+    if (!lastResponse) {
+      throw new Error('No response received from OpenAI');
+    }
+
+    return { response: lastResponse, rawContent: '' };
+  }
+
   /**
    * Validates generated content against schema
    */
@@ -288,33 +387,52 @@ IMPORTANTE:
     message?: OpenAI.Chat.Completions.ChatCompletionMessage,
   ): string {
     if (!message) {
+      this.logger.debug('extractMessageContent: message is undefined/null');
       return '';
     }
 
+    // Check for parsed content first (used with response_format: json_object)
     const potentialParsed = (message as any)?.parsed;
-    if (!message.content && potentialParsed) {
+    if (potentialParsed) {
+      this.logger.debug('extractMessageContent: Found parsed content');
       if (typeof potentialParsed === 'string') {
         return potentialParsed.trim();
       }
 
       try {
-        return JSON.stringify(potentialParsed);
-      } catch {
+        const stringified = JSON.stringify(potentialParsed);
+        this.logger.debug(
+          `extractMessageContent: Stringified parsed content (${stringified.length} chars)`,
+        );
+        return stringified;
+      } catch (error) {
+        this.logger.warn(
+          'extractMessageContent: Failed to stringify parsed content',
+          error,
+        );
         return '';
       }
     }
 
+    // Check for regular content
     if (!message.content) {
+      this.logger.debug(
+        'extractMessageContent: No content or parsed field found',
+      );
       return '';
     }
 
     const content = message.content as any;
 
     if (typeof content === 'string') {
+      this.logger.debug(
+        `extractMessageContent: String content (${content.length} chars)`,
+      );
       return content.trim();
     }
 
     if (Array.isArray(content)) {
+      this.logger.debug('extractMessageContent: Array content');
       return content
         .map((part: any) => {
           if (!part) return '';
@@ -332,15 +450,21 @@ IMPORTANTE:
 
           return '';
         })
-        .filter((segment) => typeof segment === 'string' && segment.trim().length > 0)
+        .filter(
+          (segment) => typeof segment === 'string' && segment.trim().length > 0,
+        )
         .join('\n')
         .trim();
     }
 
     if (typeof content === 'object') {
+      this.logger.debug('extractMessageContent: Object content');
       return this.safeStringify(content);
     }
 
+    this.logger.debug(
+      'extractMessageContent: Fallback - returning empty string',
+    );
     return '';
   }
 

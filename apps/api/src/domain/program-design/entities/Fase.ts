@@ -1,7 +1,7 @@
-import { Entity } from '../../shared/types/Entity';
-import { RecordId } from '../../shared/value-objects/RecordId';
-import { Timestamp } from '../../shared/value-objects/Timestamp';
-import { Duration } from '../value-objects/Duration';
+import { Entity } from "../../shared/types/Entity";
+import { RecordId } from "../../shared/value-objects/RecordId";
+import { Timestamp } from "../../shared/value-objects/Timestamp";
+import { Duration } from "../value-objects/Duration";
 
 /**
  * Fase Entity
@@ -37,18 +37,19 @@ export class Fase extends Entity<FaseProps> {
     orden: number,
     id?: RecordId,
   ): Fase {
-    const faseId = id || RecordId.create('fase', `${Date.now()}_${Math.random()}`);
+    const faseId =
+      id || RecordId.create("fase", `${Date.now()}_${Math.random()}`);
 
     if (nombre.trim().length < 3) {
-      throw new Error('Fase name must be at least 3 characters');
+      throw new Error("Fase name must be at least 3 characters");
     }
 
     if (numeroFase < 0) {
-      throw new Error('Fase number cannot be negative');
+      throw new Error("Fase number cannot be negative");
     }
 
     if (orden < 0) {
-      throw new Error('Fase order cannot be negative');
+      throw new Error("Fase order cannot be negative");
     }
 
     const fase = new Fase(faseId, {
@@ -115,7 +116,7 @@ export class Fase extends Entity<FaseProps> {
   ): void {
     if (nombre) {
       if (nombre.trim().length < 3) {
-        throw new Error('Fase name must be at least 3 characters');
+        throw new Error("Fase name must be at least 3 characters");
       }
       this.props.nombre = nombre;
     }
@@ -126,7 +127,7 @@ export class Fase extends Entity<FaseProps> {
 
     if (duracionSemanas !== undefined) {
       if (duracionSemanas <= 0) {
-        throw new Error('Duration must be positive');
+        throw new Error("Duration must be positive");
       }
       this.props.duracion = Duration.weeks(duracionSemanas);
     }
@@ -147,7 +148,7 @@ export class Fase extends Entity<FaseProps> {
    */
   addObjetivoAprendizaje(objetivo: string): void {
     if (!objetivo || objetivo.trim().length === 0) {
-      throw new Error('Learning objective cannot be empty');
+      throw new Error("Learning objective cannot be empty");
     }
 
     if (!this.props.objetivosAprendizaje.includes(objetivo)) {
@@ -172,7 +173,7 @@ export class Fase extends Entity<FaseProps> {
    */
   reorder(newOrden: number): void {
     if (newOrden < 0) {
-      throw new Error('Order cannot be negative');
+      throw new Error("Order cannot be negative");
     }
 
     this.props.orden = newOrden;
@@ -184,7 +185,7 @@ export class Fase extends Entity<FaseProps> {
    */
   updateNumeroFase(numeroFase: number): void {
     if (numeroFase < 0) {
-      throw new Error('Fase number cannot be negative');
+      throw new Error("Fase number cannot be negative");
     }
 
     this.props.numeroFase = numeroFase;

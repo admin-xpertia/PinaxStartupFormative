@@ -1,10 +1,10 @@
-import { IRepository } from '../../shared/repositories/IRepository';
-import { Programa } from '../entities/Programa';
-import { Fase } from '../entities/Fase';
-import { ProofPoint } from '../entities/ProofPoint';
-import { FaseDocumentation } from '../entities/FaseDocumentation';
-import { RecordId } from '../../shared/value-objects/RecordId';
-import { ProgramStatus } from '../value-objects/ProgramStatus';
+import { IRepository } from "../../shared/repositories/IRepository";
+import { Programa } from "../entities/Programa";
+import { Fase } from "../entities/Fase";
+import { ProofPoint } from "../entities/ProofPoint";
+import { FaseDocumentation } from "../entities/FaseDocumentation";
+import { RecordId } from "../../shared/value-objects/RecordId";
+import { ProgramStatus } from "../value-objects/ProgramStatus";
 
 /**
  * IProgramRepository
@@ -54,12 +54,18 @@ export interface IFaseRepository extends IRepository<Fase> {
   /**
    * Finds a fase by its number within a program
    */
-  findByNumeroFase(programaId: RecordId, numeroFase: number): Promise<Fase | null>;
+  findByNumeroFase(
+    programaId: RecordId,
+    numeroFase: number,
+  ): Promise<Fase | null>;
 
   /**
    * Reorders fases within a program
    */
-  reorder(programaId: RecordId, faseOrders: Map<RecordId, number>): Promise<void>;
+  reorder(
+    programaId: RecordId,
+    faseOrders: Map<RecordId, number>,
+  ): Promise<void>;
 }
 
 /**
@@ -100,7 +106,8 @@ export interface IProofPointRepository extends IRepository<ProofPoint> {
  * IFaseDocumentationRepository
  * Repository interface for FaseDocumentation entity
  */
-export interface IFaseDocumentationRepository extends IRepository<FaseDocumentation> {
+export interface IFaseDocumentationRepository
+  extends IRepository<FaseDocumentation> {
   /**
    * Finds documentation for a specific fase
    */

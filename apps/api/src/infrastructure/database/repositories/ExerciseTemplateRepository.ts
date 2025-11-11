@@ -1,10 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { IExerciseTemplateRepository } from '../../../domain/exercise-catalog/repositories/IExerciseTemplateRepository';
-import { ExerciseTemplate } from '../../../domain/exercise-catalog/entities/ExerciseTemplate';
-import { ExerciseCategory } from '../../../domain/exercise-catalog/value-objects/ExerciseCategory';
-import { RecordId } from '../../../domain/shared/value-objects/RecordId';
-import { SurrealDbService } from '../../../core/database/surrealdb.service';
-import { ExerciseMapper } from '../../mappers/ExerciseMapper';
+import { Injectable, Logger } from "@nestjs/common";
+import { IExerciseTemplateRepository } from "../../../domain/exercise-catalog/repositories/IExerciseTemplateRepository";
+import { ExerciseTemplate } from "../../../domain/exercise-catalog/entities/ExerciseTemplate";
+import { ExerciseCategory } from "../../../domain/exercise-catalog/value-objects/ExerciseCategory";
+import { RecordId } from "../../../domain/shared/value-objects/RecordId";
+import { SurrealDbService } from "../../../core/database/surrealdb.service";
+import { ExerciseMapper } from "../../mappers/ExerciseMapper";
 
 /**
  * ExerciseTemplateRepository
@@ -32,7 +32,10 @@ export class ExerciseTemplateRepository implements IExerciseTemplateRepository {
 
       return this.mapper.templateToDomain(result[0]);
     } catch (error) {
-      this.logger.error(`Error finding template by id: ${id.toString()}`, error);
+      this.logger.error(
+        `Error finding template by id: ${id.toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -42,10 +45,10 @@ export class ExerciseTemplateRepository implements IExerciseTemplateRepository {
    */
   async findAll(criteria?: any): Promise<ExerciseTemplate[]> {
     try {
-      const result = await this.db.select<any>('exercise_template');
+      const result = await this.db.select<any>("exercise_template");
       return result.map((raw) => this.mapper.templateToDomain(raw));
     } catch (error) {
-      this.logger.error('Error finding all templates', error);
+      this.logger.error("Error finding all templates", error);
       throw error;
     }
   }
@@ -73,7 +76,10 @@ export class ExerciseTemplateRepository implements IExerciseTemplateRepository {
       const saved = await this.findById(template.getId());
       return saved!;
     } catch (error) {
-      this.logger.error(`Error saving template: ${template.getId().toString()}`, error);
+      this.logger.error(
+        `Error saving template: ${template.getId().toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -104,7 +110,10 @@ export class ExerciseTemplateRepository implements IExerciseTemplateRepository {
       const result = await this.findById(id);
       return result !== null;
     } catch (error) {
-      this.logger.error(`Error checking if template exists: ${id.toString()}`, error);
+      this.logger.error(
+        `Error checking if template exists: ${id.toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -123,7 +132,7 @@ export class ExerciseTemplateRepository implements IExerciseTemplateRepository {
       const result = await this.db.query<any[]>(query);
       return result.map((raw) => this.mapper.templateToDomain(raw));
     } catch (error) {
-      this.logger.error('Error finding active templates', error);
+      this.logger.error("Error finding active templates", error);
       throw error;
     }
   }
@@ -142,7 +151,7 @@ export class ExerciseTemplateRepository implements IExerciseTemplateRepository {
       const result = await this.db.query<any[]>(query);
       return result.map((raw) => this.mapper.templateToDomain(raw));
     } catch (error) {
-      this.logger.error('Error finding official templates', error);
+      this.logger.error("Error finding official templates", error);
       throw error;
     }
   }
@@ -150,7 +159,9 @@ export class ExerciseTemplateRepository implements IExerciseTemplateRepository {
   /**
    * Finds templates by category
    */
-  async findByCategory(category: ExerciseCategory): Promise<ExerciseTemplate[]> {
+  async findByCategory(
+    category: ExerciseCategory,
+  ): Promise<ExerciseTemplate[]> {
     try {
       const query = `
         SELECT * FROM exercise_template
@@ -164,7 +175,10 @@ export class ExerciseTemplateRepository implements IExerciseTemplateRepository {
 
       return result.map((raw) => this.mapper.templateToDomain(raw));
     } catch (error) {
-      this.logger.error(`Error finding templates by category: ${category.getValue()}`, error);
+      this.logger.error(
+        `Error finding templates by category: ${category.getValue()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -172,7 +186,9 @@ export class ExerciseTemplateRepository implements IExerciseTemplateRepository {
   /**
    * Finds templates grouped by category
    */
-  async findGroupedByCategory(): Promise<Map<ExerciseCategory, ExerciseTemplate[]>> {
+  async findGroupedByCategory(): Promise<
+    Map<ExerciseCategory, ExerciseTemplate[]>
+  > {
     try {
       const allTemplates = await this.findAll();
       const grouped = new Map<ExerciseCategory, ExerciseTemplate[]>();
@@ -197,7 +213,7 @@ export class ExerciseTemplateRepository implements IExerciseTemplateRepository {
 
       return grouped;
     } catch (error) {
-      this.logger.error('Error grouping templates by category', error);
+      this.logger.error("Error grouping templates by category", error);
       throw error;
     }
   }
@@ -215,21 +231,22 @@ export class ExerciseTemplateRepository implements IExerciseTemplateRepository {
       const params: Record<string, any> = {};
 
       if (filters.categoria) {
-        conditions.push('categoria = $categoria');
+        conditions.push("categoria = $categoria");
         params.categoria = filters.categoria.getValue();
       }
 
       if (filters.esOficial !== undefined) {
-        conditions.push('es_oficial = $esOficial');
+        conditions.push("es_oficial = $esOficial");
         params.esOficial = filters.esOficial;
       }
 
       if (filters.activo !== undefined) {
-        conditions.push('activo = $activo');
+        conditions.push("activo = $activo");
         params.activo = filters.activo;
       }
 
-      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+      const whereClause =
+        conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
       const query = `
         SELECT * FROM exercise_template
@@ -240,7 +257,7 @@ export class ExerciseTemplateRepository implements IExerciseTemplateRepository {
       const result = await this.db.query<any[]>(query, params);
       return result.map((raw) => this.mapper.templateToDomain(raw));
     } catch (error) {
-      this.logger.error('Error finding templates with filters', error);
+      this.logger.error("Error finding templates with filters", error);
       throw error;
     }
   }

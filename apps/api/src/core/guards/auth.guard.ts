@@ -48,13 +48,13 @@ export class AuthGuard implements CanActivate {
 
       // Decodificar el token para obtener el ID del usuario
       // Los tokens JWT de SurrealDB tienen el formato: header.payload.signature
-      const parts = token.split('.');
+      const parts = token.split(".");
       if (parts.length !== 3) {
         throw new UnauthorizedException("Token JWT inválido");
       }
 
       // Decodificar el payload (segunda parte)
-      const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+      const payload = JSON.parse(Buffer.from(parts[1], "base64").toString());
       this.logger.debug("Token payload:", JSON.stringify(payload, null, 2));
 
       // Extraer el ID del usuario del payload

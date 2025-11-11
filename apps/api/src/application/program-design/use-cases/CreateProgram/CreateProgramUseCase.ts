@@ -1,10 +1,10 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
-import { ICommand } from '../../../shared/interfaces/IUseCase';
-import { Result } from '../../../shared/types/Result';
-import { IProgramRepository } from '../../../../domain/program-design/repositories/IProgramRepository';
-import { Programa } from '../../../../domain/program-design/entities/Programa';
-import { RecordId } from '../../../../domain/shared/value-objects/RecordId';
-import { CreateProgramDTO } from './CreateProgramDTO';
+import { Injectable, Logger, Inject } from "@nestjs/common";
+import { ICommand } from "../../../shared/interfaces/IUseCase";
+import { Result } from "../../../shared/types/Result";
+import { IProgramRepository } from "../../../../domain/program-design/repositories/IProgramRepository";
+import { Programa } from "../../../../domain/program-design/entities/Programa";
+import { RecordId } from "../../../../domain/shared/value-objects/RecordId";
+import { CreateProgramDTO } from "./CreateProgramDTO";
 
 /**
  * CreateProgramUseCase
@@ -30,7 +30,7 @@ export class CreateProgramUseCase
   private readonly logger = new Logger(CreateProgramUseCase.name);
 
   constructor(
-    @Inject('IProgramRepository')
+    @Inject("IProgramRepository")
     private readonly programRepository: IProgramRepository,
   ) {}
 
@@ -41,7 +41,7 @@ export class CreateProgramUseCase
       // 1. Validate request
       const validation = this.validate(request);
       if (!validation.valid) {
-        return Result.fail(new Error(validation.errors.join(', ')));
+        return Result.fail(new Error(validation.errors.join(", ")));
       }
 
       // 2. Create domain entity
@@ -79,28 +79,31 @@ export class CreateProgramUseCase
         estado: savedPrograma.getEstado().getValue(),
       });
     } catch (error) {
-      this.logger.error('Failed to create program', error);
+      this.logger.error("Failed to create program", error);
       return Result.fail(error as Error);
     }
   }
 
-  private validate(request: CreateProgramDTO): { valid: boolean; errors: string[] } {
+  private validate(request: CreateProgramDTO): {
+    valid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
 
     if (!request.nombre || request.nombre.trim().length < 3) {
-      errors.push('Program name must be at least 3 characters');
+      errors.push("Program name must be at least 3 characters");
     }
 
     if (!request.descripcion || request.descripcion.trim().length === 0) {
-      errors.push('Program description is required');
+      errors.push("Program description is required");
     }
 
     if (!request.duracionSemanas || request.duracionSemanas <= 0) {
-      errors.push('Program duration must be positive');
+      errors.push("Program duration must be positive");
     }
 
     if (!request.creadorId) {
-      errors.push('Creator ID is required');
+      errors.push("Creator ID is required");
     }
 
     return {

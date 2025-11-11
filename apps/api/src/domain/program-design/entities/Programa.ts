@@ -1,9 +1,9 @@
-import { AggregateRoot } from '../../shared/types/AggregateRoot';
-import { RecordId } from '../../shared/value-objects/RecordId';
-import { Timestamp } from '../../shared/value-objects/Timestamp';
-import { ProgramStatus } from '../value-objects/ProgramStatus';
-import { Duration } from '../value-objects/Duration';
-import { ProgramPublishedEvent } from '../events/ProgramPublishedEvent';
+import { AggregateRoot } from "../../shared/types/AggregateRoot";
+import { RecordId } from "../../shared/value-objects/RecordId";
+import { Timestamp } from "../../shared/value-objects/Timestamp";
+import { ProgramStatus } from "../value-objects/ProgramStatus";
+import { Duration } from "../value-objects/Duration";
+import { ProgramPublishedEvent } from "../events/ProgramPublishedEvent";
 
 /**
  * Programa Entity (Aggregate Root)
@@ -17,7 +17,7 @@ export interface ProgramaProps {
   estado: ProgramStatus;
   versionActual: number;
   categoria?: string;
-  nivelDificultad?: 'principiante' | 'intermedio' | 'avanzado';
+  nivelDificultad?: "principiante" | "intermedio" | "avanzado";
   imagenPortadaUrl?: string;
   objetivosAprendizaje?: string[];
   prerequisitos?: string[];
@@ -45,7 +45,7 @@ export class Programa extends AggregateRoot<ProgramaProps> {
     id?: RecordId,
   ): Programa {
     const programaId =
-      id || RecordId.create('programa', `${Date.now()}_${Math.random()}`);
+      id || RecordId.create("programa", `${Date.now()}_${Math.random()}`);
 
     const programa = new Programa(programaId, {
       nombre,
@@ -99,7 +99,7 @@ export class Programa extends AggregateRoot<ProgramaProps> {
     return this.props.categoria;
   }
 
-  getNivelDificultad(): 'principiante' | 'intermedio' | 'avanzado' | undefined {
+  getNivelDificultad(): "principiante" | "intermedio" | "avanzado" | undefined {
     return this.props.nivelDificultad;
   }
 
@@ -165,7 +165,7 @@ export class Programa extends AggregateRoot<ProgramaProps> {
 
     if (nombre) {
       if (nombre.trim().length < 3) {
-        throw new Error('Program name must be at least 3 characters');
+        throw new Error("Program name must be at least 3 characters");
       }
       this.props.nombre = nombre;
     }
@@ -186,14 +186,14 @@ export class Programa extends AggregateRoot<ProgramaProps> {
    */
   updateMetadata(metadata: {
     categoria?: string;
-    nivelDificultad?: 'principiante' | 'intermedio' | 'avanzado';
+    nivelDificultad?: "principiante" | "intermedio" | "avanzado";
     objetivosAprendizaje?: string[];
     prerequisitos?: string[];
     audienciaObjetivo?: string;
     tags?: string[];
   }): void {
     if (!this.canEdit()) {
-      throw new Error('Cannot edit published program');
+      throw new Error("Cannot edit published program");
     }
 
     Object.assign(this.props, metadata);

@@ -30,7 +30,9 @@ async function bootstrap() {
   // Swagger documentation
   const config = new DocumentBuilder()
     .setTitle("Xpertia Classroom API")
-    .setDescription("AI-powered classroom management API - Domain-Driven Design Architecture")
+    .setDescription(
+      "AI-powered classroom management API - Domain-Driven Design Architecture",
+    )
     .setVersion("1.0")
     .addTag("programs", "Program Design - Educational Programs Management")
     .addTag("fases", "Program Fases/Phases Management")

@@ -1,14 +1,15 @@
-import { IRepository } from '../../shared/repositories/IRepository';
-import { ExerciseInstance } from '../entities/ExerciseInstance';
-import { ExerciseContent } from '../entities/ExerciseContent';
-import { RecordId } from '../../shared/value-objects/RecordId';
-import { ContentStatus } from '../value-objects/ContentStatus';
+import { IRepository } from "../../shared/repositories/IRepository";
+import { ExerciseInstance } from "../entities/ExerciseInstance";
+import { ExerciseContent } from "../entities/ExerciseContent";
+import { RecordId } from "../../shared/value-objects/RecordId";
+import { ContentStatus } from "../value-objects/ContentStatus";
 
 /**
  * IExerciseInstanceRepository
  * Repository interface for ExerciseInstance aggregate
  */
-export interface IExerciseInstanceRepository extends IRepository<ExerciseInstance> {
+export interface IExerciseInstanceRepository
+  extends IRepository<ExerciseInstance> {
   /**
    * Finds all exercise instances for a proof point
    */
@@ -30,12 +31,18 @@ export interface IExerciseInstanceRepository extends IRepository<ExerciseInstanc
   /**
    * Finds instances by content status
    */
-  findByStatus(proofPointId: RecordId, status: ContentStatus): Promise<ExerciseInstance[]>;
+  findByStatus(
+    proofPointId: RecordId,
+    status: ContentStatus,
+  ): Promise<ExerciseInstance[]>;
 
   /**
    * Reorders instances within a proof point
    */
-  reorder(proofPointId: RecordId, instanceOrders: Map<RecordId, number>): Promise<void>;
+  reorder(
+    proofPointId: RecordId,
+    instanceOrders: Map<RecordId, number>,
+  ): Promise<void>;
 
   /**
    * Counts instances by proof point
@@ -47,7 +54,8 @@ export interface IExerciseInstanceRepository extends IRepository<ExerciseInstanc
  * IExerciseContentRepository
  * Repository interface for ExerciseContent entity
  */
-export interface IExerciseContentRepository extends IRepository<ExerciseContent> {
+export interface IExerciseContentRepository
+  extends IRepository<ExerciseContent> {
   /**
    * Finds content for a specific exercise instance
    */

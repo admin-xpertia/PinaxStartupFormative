@@ -11,33 +11,33 @@ import {
   BadRequestException,
   Logger,
   Inject,
-} from '@nestjs/common';
+} from "@nestjs/common";
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiParam,
   ApiBearerAuth,
-} from '@nestjs/swagger';
-import { AddFaseToProgramUseCase } from '../../../application/program-design/use-cases/AddFaseToProgram/AddFaseToProgramUseCase';
-import { IFaseRepository } from '../../../domain/program-design/repositories/IProgramRepository';
-import { RecordId } from '../../../domain/shared/value-objects/RecordId';
-import { AddFaseRequestDto, FaseResponseDto } from '../../dtos/program-design';
-import { SurrealDbService } from '../../../core/database/surrealdb.service';
+} from "@nestjs/swagger";
+import { AddFaseToProgramUseCase } from "../../../application/program-design/use-cases/AddFaseToProgram/AddFaseToProgramUseCase";
+import { IFaseRepository } from "../../../domain/program-design/repositories/IProgramRepository";
+import { RecordId } from "../../../domain/shared/value-objects/RecordId";
+import { AddFaseRequestDto, FaseResponseDto } from "../../dtos/program-design";
+import { SurrealDbService } from "../../../core/database/surrealdb.service";
 
 /**
  * FaseController
  * REST API endpoints for Fase Management
  */
-@ApiTags('fases')
+@ApiTags("fases")
 @Controller()
-@ApiBearerAuth('JWT-auth')
+@ApiBearerAuth("JWT-auth")
 export class FaseController {
   private readonly logger = new Logger(FaseController.name);
 
   constructor(
     private readonly addFaseUseCase: AddFaseToProgramUseCase,
-    @Inject('IFaseRepository')
+    @Inject("IFaseRepository")
     private readonly faseRepository: IFaseRepository,
     private readonly db: SurrealDbService,
   ) {}
@@ -45,24 +45,24 @@ export class FaseController {
   /**
    * Add fase to program
    */
-  @Post('programs/:programId/fases')
+  @Post("programs/:programId/fases")
   @ApiOperation({
-    summary: 'Add fase to program',
-    description: 'Creates a new fase within a program',
+    summary: "Add fase to program",
+    description: "Creates a new fase within a program",
   })
   @ApiParam({
-    name: 'programId',
-    description: 'Program ID',
-    example: 'programa:abc123',
+    name: "programId",
+    description: "Program ID",
+    example: "programa:abc123",
   })
   @ApiResponse({
     status: 201,
-    description: 'Fase created successfully',
+    description: "Fase created successfully",
     type: FaseResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Program not found' })
+  @ApiResponse({ status: 404, description: "Program not found" })
   async addFase(
-    @Param('programId') programId: string,
+    @Param("programId") programId: string,
     @Body() addFaseDto: AddFaseRequestDto,
   ): Promise<FaseResponseDto> {
     const result = await this.addFaseUseCase.execute({
@@ -91,7 +91,7 @@ export class FaseController {
         };
       },
       fail: (error) => {
-        if (error.message.includes('not found')) {
+        if (error.message.includes("not found")) {
           throw new NotFoundException(error.message);
         }
         throw new BadRequestException(error.message);
@@ -102,23 +102,23 @@ export class FaseController {
   /**
    * List fases by program
    */
-  @Get('programs/:programId/fases')
+  @Get("programs/:programId/fases")
   @ApiOperation({
-    summary: 'List program fases',
-    description: 'Get all fases for a specific program',
+    summary: "List program fases",
+    description: "Get all fases for a specific program",
   })
   @ApiParam({
-    name: 'programId',
-    description: 'Program ID',
-    example: 'programa:abc123',
+    name: "programId",
+    description: "Program ID",
+    example: "programa:abc123",
   })
   @ApiResponse({
     status: 200,
-    description: 'List of fases',
+    description: "List of fases",
     type: [FaseResponseDto],
   })
   async listFasesByProgram(
-    @Param('programId') programId: string,
+    @Param("programId") programId: string,
   ): Promise<FaseResponseDto[]> {
     // Decode URL-encoded characters
     const decodedProgramId = decodeURIComponent(programId);
@@ -166,23 +166,23 @@ export class FaseController {
   /**
    * Get fase by ID
    */
-  @Get('fases/:id')
+  @Get("fases/:id")
   @ApiOperation({
-    summary: 'Get fase by ID',
-    description: 'Retrieve detailed information about a specific fase',
+    summary: "Get fase by ID",
+    description: "Retrieve detailed information about a specific fase",
   })
   @ApiParam({
-    name: 'id',
-    description: 'Fase ID',
-    example: 'fase:abc123',
+    name: "id",
+    description: "Fase ID",
+    example: "fase:abc123",
   })
   @ApiResponse({
     status: 200,
-    description: 'Fase details',
+    description: "Fase details",
     type: FaseResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Fase not found' })
-  async getFase(@Param('id') id: string): Promise<FaseResponseDto> {
+  @ApiResponse({ status: 404, description: "Fase not found" })
+  async getFase(@Param("id") id: string): Promise<FaseResponseDto> {
     const fase = await this.faseRepository.findById(RecordId.fromString(id));
 
     if (!fase) {
@@ -195,20 +195,20 @@ export class FaseController {
   /**
    * Delete fase
    */
-  @Delete('fases/:id')
+  @Delete("fases/:id")
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
-    summary: 'Delete fase',
-    description: 'Permanently delete a fase',
+    summary: "Delete fase",
+    description: "Permanently delete a fase",
   })
   @ApiParam({
-    name: 'id',
-    description: 'Fase ID',
-    example: 'fase:abc123',
+    name: "id",
+    description: "Fase ID",
+    example: "fase:abc123",
   })
-  @ApiResponse({ status: 204, description: 'Fase deleted successfully' })
-  @ApiResponse({ status: 404, description: 'Fase not found' })
-  async deleteFase(@Param('id') id: string): Promise<void> {
+  @ApiResponse({ status: 204, description: "Fase deleted successfully" })
+  @ApiResponse({ status: 404, description: "Fase not found" })
+  async deleteFase(@Param("id") id: string): Promise<void> {
     const deleted = await this.faseRepository.delete(RecordId.fromString(id));
 
     if (!deleted) {

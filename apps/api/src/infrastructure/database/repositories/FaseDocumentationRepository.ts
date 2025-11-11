@@ -1,16 +1,18 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { IFaseDocumentationRepository } from '../../../domain/program-design/repositories/IProgramRepository';
-import { FaseDocumentation } from '../../../domain/program-design/entities/FaseDocumentation';
-import { RecordId } from '../../../domain/shared/value-objects/RecordId';
-import { SurrealDbService } from '../../../core/database/surrealdb.service';
-import { ProgramMapper } from '../../mappers/ProgramMapper';
+import { Injectable, Logger } from "@nestjs/common";
+import { IFaseDocumentationRepository } from "../../../domain/program-design/repositories/IProgramRepository";
+import { FaseDocumentation } from "../../../domain/program-design/entities/FaseDocumentation";
+import { RecordId } from "../../../domain/shared/value-objects/RecordId";
+import { SurrealDbService } from "../../../core/database/surrealdb.service";
+import { ProgramMapper } from "../../mappers/ProgramMapper";
 
 /**
  * FaseDocumentationRepository
  * Concrete implementation of IFaseDocumentationRepository using SurrealDB
  */
 @Injectable()
-export class FaseDocumentationRepository implements IFaseDocumentationRepository {
+export class FaseDocumentationRepository
+  implements IFaseDocumentationRepository
+{
   private readonly logger = new Logger(FaseDocumentationRepository.name);
 
   constructor(
@@ -31,7 +33,10 @@ export class FaseDocumentationRepository implements IFaseDocumentationRepository
 
       return this.mapper.faseDocumentationToDomain(result[0]);
     } catch (error) {
-      this.logger.error(`Error finding documentation by id: ${id.toString()}`, error);
+      this.logger.error(
+        `Error finding documentation by id: ${id.toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -41,10 +46,10 @@ export class FaseDocumentationRepository implements IFaseDocumentationRepository
    */
   async findAll(criteria?: any): Promise<FaseDocumentation[]> {
     try {
-      const result = await this.db.select<any>('fase_documentation');
+      const result = await this.db.select<any>("fase_documentation");
       return result.map((raw) => this.mapper.faseDocumentationToDomain(raw));
     } catch (error) {
-      this.logger.error('Error finding all documentation', error);
+      this.logger.error("Error finding all documentation", error);
       throw error;
     }
   }
@@ -72,7 +77,10 @@ export class FaseDocumentationRepository implements IFaseDocumentationRepository
       const saved = await this.findById(documentation.getId());
       return saved!;
     } catch (error) {
-      this.logger.error(`Error saving documentation: ${documentation.getId().toString()}`, error);
+      this.logger.error(
+        `Error saving documentation: ${documentation.getId().toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -90,7 +98,10 @@ export class FaseDocumentationRepository implements IFaseDocumentationRepository
       await this.db.delete(id.toString());
       return true;
     } catch (error) {
-      this.logger.error(`Error deleting documentation: ${id.toString()}`, error);
+      this.logger.error(
+        `Error deleting documentation: ${id.toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -103,7 +114,10 @@ export class FaseDocumentationRepository implements IFaseDocumentationRepository
       const result = await this.findById(id);
       return result !== null;
     } catch (error) {
-      this.logger.error(`Error checking if documentation exists: ${id.toString()}`, error);
+      this.logger.error(
+        `Error checking if documentation exists: ${id.toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -129,7 +143,10 @@ export class FaseDocumentationRepository implements IFaseDocumentationRepository
 
       return this.mapper.faseDocumentationToDomain(result[0]);
     } catch (error) {
-      this.logger.error(`Error finding documentation by fase: ${faseId.toString()}`, error);
+      this.logger.error(
+        `Error finding documentation by fase: ${faseId.toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -165,9 +182,14 @@ export class FaseDocumentationRepository implements IFaseDocumentationRepository
         faseIds,
       });
 
-      return docsResult.map((raw) => this.mapper.faseDocumentationToDomain(raw));
+      return docsResult.map((raw) =>
+        this.mapper.faseDocumentationToDomain(raw),
+      );
     } catch (error) {
-      this.logger.error(`Error finding documentation by programa: ${programaId.toString()}`, error);
+      this.logger.error(
+        `Error finding documentation by programa: ${programaId.toString()}`,
+        error,
+      );
       throw error;
     }
   }

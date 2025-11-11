@@ -1,8 +1,8 @@
-import { AggregateRoot } from '../../shared/types/AggregateRoot';
-import { RecordId } from '../../shared/value-objects/RecordId';
-import { Timestamp } from '../../shared/value-objects/Timestamp';
-import { ContentStatus } from '../value-objects/ContentStatus';
-import { ExerciseContentGeneratedEvent } from '../events/ExerciseContentGeneratedEvent';
+import { AggregateRoot } from "../../shared/types/AggregateRoot";
+import { RecordId } from "../../shared/value-objects/RecordId";
+import { Timestamp } from "../../shared/value-objects/Timestamp";
+import { ContentStatus } from "../value-objects/ContentStatus";
+import { ExerciseContentGeneratedEvent } from "../events/ExerciseContentGeneratedEvent";
 
 /**
  * ExerciseInstance Entity (Aggregate Root)
@@ -44,25 +44,26 @@ export class ExerciseInstance extends AggregateRoot<ExerciseInstanceProps> {
     id?: RecordId,
   ): ExerciseInstance {
     const instanceId =
-      id || RecordId.create('exercise_instance', `${Date.now()}_${Math.random()}`);
+      id ||
+      RecordId.create("exercise_instance", `${Date.now()}_${Math.random()}`);
 
     if (nombre.trim().length < 3) {
-      throw new Error('Exercise instance name must be at least 3 characters');
+      throw new Error("Exercise instance name must be at least 3 characters");
     }
 
     if (orden < 0) {
-      throw new Error('Exercise order cannot be negative');
+      throw new Error("Exercise order cannot be negative");
     }
 
     if (duracionMinutos <= 0) {
-      throw new Error('Duration must be positive');
+      throw new Error("Duration must be positive");
     }
 
     const instance = new ExerciseInstance(instanceId, {
       template: templateId,
       proofPoint: proofPointId,
       nombre,
-      consideracionesContexto: consideraciones || '',
+      consideracionesContexto: consideraciones || "",
       configuracionPersonalizada: configuracion,
       orden,
       duracionEstimadaMinutos: duracionMinutos,
@@ -78,7 +79,10 @@ export class ExerciseInstance extends AggregateRoot<ExerciseInstanceProps> {
   /**
    * Reconstitutes an ExerciseInstance from persistence
    */
-  static reconstitute(id: RecordId, props: ExerciseInstanceProps): ExerciseInstance {
+  static reconstitute(
+    id: RecordId,
+    props: ExerciseInstanceProps,
+  ): ExerciseInstance {
     return new ExerciseInstance(id, props);
   }
 
@@ -149,7 +153,7 @@ export class ExerciseInstance extends AggregateRoot<ExerciseInstanceProps> {
   ): void {
     if (nombre) {
       if (nombre.trim().length < 3) {
-        throw new Error('Exercise instance name must be at least 3 characters');
+        throw new Error("Exercise instance name must be at least 3 characters");
       }
       this.props.nombre = nombre;
     }
@@ -160,7 +164,7 @@ export class ExerciseInstance extends AggregateRoot<ExerciseInstanceProps> {
 
     if (duracionMinutos !== undefined) {
       if (duracionMinutos <= 0) {
-        throw new Error('Duration must be positive');
+        throw new Error("Duration must be positive");
       }
       this.props.duracionEstimadaMinutos = duracionMinutos;
     }
@@ -189,7 +193,7 @@ export class ExerciseInstance extends AggregateRoot<ExerciseInstanceProps> {
    */
   reorder(newOrden: number): void {
     if (newOrden < 0) {
-      throw new Error('Order cannot be negative');
+      throw new Error("Order cannot be negative");
     }
 
     this.props.orden = newOrden;
@@ -223,7 +227,7 @@ export class ExerciseInstance extends AggregateRoot<ExerciseInstanceProps> {
    */
   setContentDraft(contenidoId: RecordId): void {
     if (!this.props.estadoContenido.isGenerando()) {
-      throw new Error('Content must be in generando state');
+      throw new Error("Content must be in generando state");
     }
 
     this.props.contenidoActual = contenidoId;
@@ -251,7 +255,7 @@ export class ExerciseInstance extends AggregateRoot<ExerciseInstanceProps> {
     }
 
     if (!this.props.contenidoActual) {
-      throw new Error('Cannot publish without content');
+      throw new Error("Cannot publish without content");
     }
 
     this.props.estadoContenido = ContentStatus.publicado();
@@ -263,7 +267,7 @@ export class ExerciseInstance extends AggregateRoot<ExerciseInstanceProps> {
    */
   unpublishContent(): void {
     if (!this.props.estadoContenido.isPublicado()) {
-      throw new Error('Content must be published to unpublish');
+      throw new Error("Content must be published to unpublish");
     }
 
     this.props.estadoContenido = ContentStatus.draft();

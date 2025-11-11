@@ -1,10 +1,13 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
-import { ICommand } from '../../../shared/interfaces/IUseCase';
-import { Result } from '../../../shared/types/Result';
-import { IFaseRepository, IProofPointRepository } from '../../../../domain/program-design/repositories/IProgramRepository';
-import { ProofPoint } from '../../../../domain/program-design/entities/ProofPoint';
-import { RecordId } from '../../../../domain/shared/value-objects/RecordId';
-import { ProofPointSlug } from '../../../../domain/program-design/value-objects/ProofPointSlug';
+import { Injectable, Logger, Inject } from "@nestjs/common";
+import { ICommand } from "../../../shared/interfaces/IUseCase";
+import { Result } from "../../../shared/types/Result";
+import {
+  IFaseRepository,
+  IProofPointRepository,
+} from "../../../../domain/program-design/repositories/IProgramRepository";
+import { ProofPoint } from "../../../../domain/program-design/entities/ProofPoint";
+import { RecordId } from "../../../../domain/shared/value-objects/RecordId";
+import { ProofPointSlug } from "../../../../domain/program-design/value-objects/ProofPointSlug";
 
 /**
  * AddProofPointToFase UseCase
@@ -45,9 +48,9 @@ export class AddProofPointToFaseUseCase
   private readonly logger = new Logger(AddProofPointToFaseUseCase.name);
 
   constructor(
-    @Inject('IFaseRepository')
+    @Inject("IFaseRepository")
     private readonly faseRepository: IFaseRepository,
-    @Inject('IProofPointRepository')
+    @Inject("IProofPointRepository")
     private readonly proofPointRepository: IProofPointRepository,
   ) {}
 
@@ -69,16 +72,22 @@ export class AddProofPointToFaseUseCase
         : ProofPointSlug.fromName(request.nombre);
 
       // Check slug uniqueness
-      const existingWithSlug = await this.proofPointRepository.findBySlug(slug.getValue());
+      const existingWithSlug = await this.proofPointRepository.findBySlug(
+        slug.getValue(),
+      );
       if (existingWithSlug) {
-        return Result.fail(new Error(`Slug already in use: ${slug.getValue()}`));
+        return Result.fail(
+          new Error(`Slug already in use: ${slug.getValue()}`),
+        );
       }
 
       // 3. Calculate ordenEnFase (get existing proof points and find max orden)
-      const existingProofPoints = await this.proofPointRepository.findByFase(faseId);
-      const maxOrden = existingProofPoints.length > 0
-        ? Math.max(...existingProofPoints.map(pp => pp.getOrdenEnFase()))
-        : 0;
+      const existingProofPoints =
+        await this.proofPointRepository.findByFase(faseId);
+      const maxOrden =
+        existingProofPoints.length > 0
+          ? Math.max(...existingProofPoints.map((pp) => pp.getOrdenEnFase()))
+          : 0;
       const newOrden = maxOrden + 1;
 
       // 4. Create ProofPoint entity
@@ -121,7 +130,7 @@ export class AddProofPointToFaseUseCase
         ordenEnFase: savedProofPoint.getOrdenEnFase(),
       });
     } catch (error) {
-      this.logger.error('Failed to add proof point to fase', error);
+      this.logger.error("Failed to add proof point to fase", error);
       return Result.fail(error as Error);
     }
   }

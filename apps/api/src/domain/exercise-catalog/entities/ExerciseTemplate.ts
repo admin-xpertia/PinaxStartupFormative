@@ -1,8 +1,8 @@
-import { AggregateRoot } from '../../shared/types/AggregateRoot';
-import { RecordId } from '../../shared/value-objects/RecordId';
-import { Timestamp } from '../../shared/value-objects/Timestamp';
-import { ExerciseCategory } from '../value-objects/ExerciseCategory';
-import { ConfigurationSchema } from '../value-objects/ConfigurationSchema';
+import { AggregateRoot } from "../../shared/types/AggregateRoot";
+import { RecordId } from "../../shared/value-objects/RecordId";
+import { Timestamp } from "../../shared/value-objects/Timestamp";
+import { ExerciseCategory } from "../value-objects/ExerciseCategory";
+import { ConfigurationSchema } from "../value-objects/ConfigurationSchema";
 
 /**
  * ExerciseTemplate Entity (Aggregate Root)
@@ -47,14 +47,15 @@ export class ExerciseTemplate extends AggregateRoot<ExerciseTemplateProps> {
     id?: RecordId,
   ): ExerciseTemplate {
     const templateId =
-      id || RecordId.create('exercise_template', `${Date.now()}_${Math.random()}`);
+      id ||
+      RecordId.create("exercise_template", `${Date.now()}_${Math.random()}`);
 
     if (nombre.trim().length < 3) {
-      throw new Error('Exercise template name must be at least 3 characters');
+      throw new Error("Exercise template name must be at least 3 characters");
     }
 
     if (!promptTemplate || promptTemplate.trim().length === 0) {
-      throw new Error('Prompt template cannot be empty');
+      throw new Error("Prompt template cannot be empty");
     }
 
     const template = new ExerciseTemplate(templateId, {
@@ -67,7 +68,7 @@ export class ExerciseTemplate extends AggregateRoot<ExerciseTemplateProps> {
       outputSchema,
       previewConfig: {},
       icono: categoria.getDefaultIcon(),
-      color: '#6366f1',
+      color: "#6366f1",
       esOficial: true,
       activo: true,
       createdAt: Timestamp.now(),
@@ -80,7 +81,10 @@ export class ExerciseTemplate extends AggregateRoot<ExerciseTemplateProps> {
   /**
    * Reconstitutes an ExerciseTemplate from persistence
    */
-  static reconstitute(id: RecordId, props: ExerciseTemplateProps): ExerciseTemplate {
+  static reconstitute(
+    id: RecordId,
+    props: ExerciseTemplateProps,
+  ): ExerciseTemplate {
     return new ExerciseTemplate(id, props);
   }
 
@@ -150,7 +154,7 @@ export class ExerciseTemplate extends AggregateRoot<ExerciseTemplateProps> {
   updateInfo(nombre?: string, descripcion?: string): void {
     if (nombre) {
       if (nombre.trim().length < 3) {
-        throw new Error('Exercise template name must be at least 3 characters');
+        throw new Error("Exercise template name must be at least 3 characters");
       }
       this.props.nombre = nombre;
     }
@@ -190,9 +194,10 @@ export class ExerciseTemplate extends AggregateRoot<ExerciseTemplateProps> {
    */
   updateConfiguracionDefault(config: Record<string, any>): void {
     // Validate against schema
-    const validation = this.props.configuracionSchema.validateConfiguration(config);
+    const validation =
+      this.props.configuracionSchema.validateConfiguration(config);
     if (!validation.valid) {
-      throw new Error(`Invalid configuration: ${validation.errors.join(', ')}`);
+      throw new Error(`Invalid configuration: ${validation.errors.join(", ")}`);
     }
 
     this.props.configuracionDefault = { ...config };
@@ -204,7 +209,7 @@ export class ExerciseTemplate extends AggregateRoot<ExerciseTemplateProps> {
    */
   updatePromptTemplate(template: string): void {
     if (!template || template.trim().length === 0) {
-      throw new Error('Prompt template cannot be empty');
+      throw new Error("Prompt template cannot be empty");
     }
 
     this.props.promptTemplate = template;
@@ -237,7 +242,7 @@ export class ExerciseTemplate extends AggregateRoot<ExerciseTemplateProps> {
 
     if (color !== undefined) {
       if (!/^#[0-9A-Fa-f]{6}$/.test(color)) {
-        throw new Error('Color must be a valid hex color (e.g., #6366f1)');
+        throw new Error("Color must be a valid hex color (e.g., #6366f1)");
       }
       this.props.color = color;
     }
@@ -264,7 +269,10 @@ export class ExerciseTemplate extends AggregateRoot<ExerciseTemplateProps> {
   /**
    * Validates a configuration against this template's schema
    */
-  validateConfiguration(config: Record<string, any>): { valid: boolean; errors: string[] } {
+  validateConfiguration(config: Record<string, any>): {
+    valid: boolean;
+    errors: string[];
+  } {
     return this.props.configuracionSchema.validateConfiguration(config);
   }
 
@@ -272,7 +280,8 @@ export class ExerciseTemplate extends AggregateRoot<ExerciseTemplateProps> {
    * Merges user configuration with defaults
    */
   mergeConfiguration(userConfig: Record<string, any>): Record<string, any> {
-    const withDefaults = this.props.configuracionSchema.mergeWithDefaults(userConfig);
+    const withDefaults =
+      this.props.configuracionSchema.mergeWithDefaults(userConfig);
     return {
       ...this.props.configuracionDefault,
       ...withDefaults,
@@ -286,7 +295,7 @@ export class ExerciseTemplate extends AggregateRoot<ExerciseTemplateProps> {
     let prompt = this.props.promptTemplate;
 
     for (const [key, value] of Object.entries(context)) {
-      const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+      const regex = new RegExp(`{{\\s*${key}\\s*}}`, "g");
       prompt = prompt.replace(regex, String(value));
     }
 

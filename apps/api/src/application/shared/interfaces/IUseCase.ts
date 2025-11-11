@@ -1,4 +1,4 @@
-import { Result } from '../types/Result';
+import { Result } from "../types/Result";
 
 /**
  * Base interface for all Use Cases

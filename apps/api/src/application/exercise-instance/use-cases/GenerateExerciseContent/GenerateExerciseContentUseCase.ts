@@ -1,22 +1,22 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
-import { ICommand } from '../../../shared/interfaces/IUseCase';
-import { Result } from '../../../shared/types/Result';
-import { IExerciseInstanceRepository } from '../../../../domain/exercise-instance/repositories/IExerciseInstanceRepository';
-import { IExerciseContentRepository } from '../../../../domain/exercise-instance/repositories/IExerciseContentRepository';
-import { IExerciseTemplateRepository } from '../../../../domain/exercise-catalog/repositories/IExerciseTemplateRepository';
+import { Injectable, Logger, Inject } from "@nestjs/common";
+import { ICommand } from "../../../shared/interfaces/IUseCase";
+import { Result } from "../../../shared/types/Result";
+import { IExerciseInstanceRepository } from "../../../../domain/exercise-instance/repositories/IExerciseInstanceRepository";
+import { IExerciseContentRepository } from "../../../../domain/exercise-instance/repositories/IExerciseContentRepository";
+import { IExerciseTemplateRepository } from "../../../../domain/exercise-catalog/repositories/IExerciseTemplateRepository";
 import {
   IProofPointRepository,
   IFaseRepository,
   IProgramRepository,
-} from '../../../../domain/program-design/repositories/IProgramRepository';
-import { ExerciseContent } from '../../../../domain/exercise-instance/entities/ExerciseContent';
-import { RecordId } from '../../../../domain/shared/value-objects/RecordId';
-import { ContentStatus } from '../../../../domain/exercise-instance/value-objects/ContentStatus';
-import { OpenAIService } from '../../../../infrastructure/ai/OpenAIService';
+} from "../../../../domain/program-design/repositories/IProgramRepository";
+import { ExerciseContent } from "../../../../domain/exercise-instance/entities/ExerciseContent";
+import { RecordId } from "../../../../domain/shared/value-objects/RecordId";
+import { ContentStatus } from "../../../../domain/exercise-instance/value-objects/ContentStatus";
+import { OpenAIService } from "../../../../infrastructure/ai/OpenAIService";
 import {
   GenerateExerciseContentRequest,
   GenerateExerciseContentResponse,
-} from './GenerateExerciseContentDTO';
+} from "./GenerateExerciseContentDTO";
 
 /**
  * GenerateExerciseContentUseCase
@@ -34,22 +34,23 @@ import {
 
 @Injectable()
 export class GenerateExerciseContentUseCase
-  implements ICommand<GenerateExerciseContentRequest, GenerateExerciseContentResponse>
+  implements
+    ICommand<GenerateExerciseContentRequest, GenerateExerciseContentResponse>
 {
   private readonly logger = new Logger(GenerateExerciseContentUseCase.name);
 
   constructor(
-    @Inject('IExerciseInstanceRepository')
+    @Inject("IExerciseInstanceRepository")
     private readonly instanceRepository: IExerciseInstanceRepository,
-    @Inject('IExerciseContentRepository')
+    @Inject("IExerciseContentRepository")
     private readonly contentRepository: IExerciseContentRepository,
-    @Inject('IExerciseTemplateRepository')
+    @Inject("IExerciseTemplateRepository")
     private readonly templateRepository: IExerciseTemplateRepository,
-    @Inject('IProofPointRepository')
+    @Inject("IProofPointRepository")
     private readonly proofPointRepository: IProofPointRepository,
-    @Inject('IFaseRepository')
+    @Inject("IFaseRepository")
     private readonly faseRepository: IFaseRepository,
-    @Inject('IProgramRepository')
+    @Inject("IProgramRepository")
     private readonly programRepository: IProgramRepository,
     private readonly openAIService: OpenAIService,
   ) {}
@@ -58,7 +59,9 @@ export class GenerateExerciseContentUseCase
     request: GenerateExerciseContentRequest,
   ): Promise<Result<GenerateExerciseContentResponse, Error>> {
     try {
-      this.logger.log(`🤖 Generating content for exercise: ${request.exerciseInstanceId}`);
+      this.logger.log(
+        `🤖 Generating content for exercise: ${request.exerciseInstanceId}`,
+      );
 
       // 1. Load exercise instance
       const instanceId = RecordId.fromString(request.exerciseInstanceId);
@@ -66,20 +69,23 @@ export class GenerateExerciseContentUseCase
 
       if (!instance) {
         return Result.fail(
-          new Error(`Exercise instance not found: ${request.exerciseInstanceId}`),
+          new Error(
+            `Exercise instance not found: ${request.exerciseInstanceId}`,
+          ),
         );
       }
 
       // 2. Check if content already exists (unless forceRegenerate)
       if (!request.forceRegenerate) {
-        const existingContent = await this.contentRepository.findByInstance(instanceId);
+        const existingContent =
+          await this.contentRepository.findByInstance(instanceId);
 
         if (existingContent) {
-          this.logger.log('Content already exists, returning existing content');
+          this.logger.log("Content already exists, returning existing content");
           return Result.ok({
             exerciseInstanceId: instance.getId().toString(),
             contentId: existingContent.getId().toString(),
-            status: 'generado',
+            status: "generado",
             contentPreview: existingContent.getContenido(),
             generatedAt: existingContent.getCreatedAt().toISOString(),
           });
@@ -87,7 +93,9 @@ export class GenerateExerciseContentUseCase
       }
 
       // 3. Load template
-      const template = await this.templateRepository.findById(instance.getTemplate());
+      const template = await this.templateRepository.findById(
+        instance.getTemplate(),
+      );
 
       if (!template) {
         return Result.fail(
@@ -102,7 +110,9 @@ export class GenerateExerciseContentUseCase
 
       if (!proofPoint) {
         return Result.fail(
-          new Error(`Proof point not found: ${instance.getProofPoint().toString()}`),
+          new Error(
+            `Proof point not found: ${instance.getProofPoint().toString()}`,
+          ),
         );
       }
 
@@ -116,7 +126,9 @@ export class GenerateExerciseContentUseCase
       }
 
       // 6. Load programa
-      const programa = await this.programRepository.findById(fase.getPrograma());
+      const programa = await this.programRepository.findById(
+        fase.getPrograma(),
+      );
 
       if (!programa) {
         return Result.fail(
@@ -128,22 +140,26 @@ export class GenerateExerciseContentUseCase
       instance.updateEstadoContenido(ContentStatus.generando());
       await this.instanceRepository.save(instance);
 
-      this.logger.log('Context loaded, calling OpenAI...');
+      this.logger.log("Context loaded, calling OpenAI...");
 
       // 8. Generate content with OpenAI
-      const generationResult = await this.openAIService.generateExerciseContent({
-        template,
-        configuration: instance.getConfiguracion(),
-        context: {
-          programa,
-          fase,
-          proofPoint,
-          exerciseName: instance.getNombre(),
-          customContext: instance.getConsideracionesContexto(),
+      const generationResult = await this.openAIService.generateExerciseContent(
+        {
+          template,
+          configuration: instance.getConfiguracion(),
+          context: {
+            programa,
+            fase,
+            proofPoint,
+            exerciseName: instance.getNombre(),
+            customContext: instance.getConsideracionesContexto(),
+          },
         },
-      });
+      );
 
-      this.logger.log(`✅ Content generated (${generationResult.tokensUsed} tokens)`);
+      this.logger.log(
+        `✅ Content generated (${generationResult.tokensUsed} tokens)`,
+      );
 
       // 9. Create ExerciseContent entity
       const content = ExerciseContent.create(
@@ -160,19 +176,19 @@ export class GenerateExerciseContentUseCase
       instance.setContenidoActual(savedContent.getId());
       await this.instanceRepository.save(instance);
 
-      this.logger.log('✅ Content generation complete');
+      this.logger.log("✅ Content generation complete");
 
       // 12. Return response
       return Result.ok({
         exerciseInstanceId: instance.getId().toString(),
         contentId: savedContent.getId().toString(),
-        status: 'generado',
+        status: "generado",
         contentPreview: savedContent.getContenido(),
         tokensUsed: generationResult.tokensUsed,
         generatedAt: savedContent.getCreatedAt().toISOString(),
       });
     } catch (error) {
-      this.logger.error('❌ Failed to generate exercise content', error);
+      this.logger.error("❌ Failed to generate exercise content", error);
 
       // Update instance status to "error" if it exists (fallback to sin_generar if unsupported)
       try {
@@ -185,7 +201,7 @@ export class GenerateExerciseContentUseCase
             await this.instanceRepository.save(instance);
           } catch (statusError) {
             this.logger.error(
-              'Failed to set status to error, reverting to sin_generar',
+              "Failed to set status to error, reverting to sin_generar",
               statusError,
             );
             instance.updateEstadoContenido(ContentStatus.sinGenerar());
@@ -193,7 +209,10 @@ export class GenerateExerciseContentUseCase
           }
         }
       } catch (updateError) {
-        this.logger.error('Failed to update instance status after error', updateError);
+        this.logger.error(
+          "Failed to update instance status after error",
+          updateError,
+        );
       }
 
       return Result.fail(error as Error);

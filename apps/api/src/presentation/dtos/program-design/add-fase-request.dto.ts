@@ -1,9 +1,17 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNumber, IsOptional, MinLength, Min, IsArray } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  MinLength,
+  Min,
+  IsArray,
+} from "class-validator";
 
 export class AddFaseRequestDto {
   @ApiPropertyOptional({
-    description: 'Número de la fase (opcional, se auto-calcula si no se provee)',
+    description:
+      "Número de la fase (opcional, se auto-calcula si no se provee)",
     example: 0,
     minimum: 0,
   })
@@ -13,8 +21,8 @@ export class AddFaseRequestDto {
   numeroFase?: number;
 
   @ApiProperty({
-    description: 'Nombre de la fase',
-    example: 'Fundamentos de Programación',
+    description: "Nombre de la fase",
+    example: "Fundamentos de Programación",
     minLength: 3,
   })
   @IsString()
@@ -22,16 +30,19 @@ export class AddFaseRequestDto {
   nombre: string;
 
   @ApiProperty({
-    description: 'Descripción de la fase',
-    example: 'Introducción a los conceptos básicos de programación',
+    description: "Descripción de la fase",
+    example: "Introducción a los conceptos básicos de programación",
   })
   @IsString()
   descripcion: string;
 
   @ApiPropertyOptional({
-    description: 'Objetivos de aprendizaje de la fase',
+    description: "Objetivos de aprendizaje de la fase",
     type: [String],
-    example: ['Entender variables y tipos de datos', 'Aprender estructuras de control'],
+    example: [
+      "Entender variables y tipos de datos",
+      "Aprender estructuras de control",
+    ],
   })
   @IsOptional()
   @IsArray()
@@ -39,7 +50,7 @@ export class AddFaseRequestDto {
   objetivosAprendizaje?: string[];
 
   @ApiProperty({
-    description: 'Duración estimada en semanas',
+    description: "Duración estimada en semanas",
     example: 3,
     minimum: 1,
   })

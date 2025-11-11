@@ -1,4 +1,4 @@
-import { Timestamp } from '../value-objects/Timestamp';
+import { Timestamp } from "../value-objects/Timestamp";
 
 /**
  * Base interface for all Domain Events

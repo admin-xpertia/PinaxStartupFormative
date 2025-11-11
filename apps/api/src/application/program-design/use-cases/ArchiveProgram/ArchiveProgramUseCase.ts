@@ -1,8 +1,8 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
-import { ICommand } from '../../../shared/interfaces/IUseCase';
-import { Result } from '../../../shared/types/Result';
-import { IProgramRepository } from '../../../../domain/program-design/repositories/IProgramRepository';
-import { RecordId } from '../../../../domain/shared/value-objects/RecordId';
+import { Injectable, Logger, Inject } from "@nestjs/common";
+import { ICommand } from "../../../shared/interfaces/IUseCase";
+import { Result } from "../../../shared/types/Result";
+import { IProgramRepository } from "../../../../domain/program-design/repositories/IProgramRepository";
+import { RecordId } from "../../../../domain/shared/value-objects/RecordId";
 
 /**
  * ArchiveProgramUseCase
@@ -32,7 +32,7 @@ export class ArchiveProgramUseCase
   private readonly logger = new Logger(ArchiveProgramUseCase.name);
 
   constructor(
-    @Inject('IProgramRepository')
+    @Inject("IProgramRepository")
     private readonly programRepository: IProgramRepository,
   ) {}
 
@@ -45,7 +45,9 @@ export class ArchiveProgramUseCase
       const programa = await this.programRepository.findById(programaId);
 
       if (!programa) {
-        return Result.fail(new Error(`Program not found: ${request.programaId}`));
+        return Result.fail(
+          new Error(`Program not found: ${request.programaId}`),
+        );
       }
 
       // 2. Archive program (domain logic)
@@ -65,7 +67,7 @@ export class ArchiveProgramUseCase
         estado: savedPrograma.getEstado().getValue(),
       });
     } catch (error) {
-      this.logger.error('Failed to archive program', error);
+      this.logger.error("Failed to archive program", error);
       return Result.fail(error as Error);
     }
   }

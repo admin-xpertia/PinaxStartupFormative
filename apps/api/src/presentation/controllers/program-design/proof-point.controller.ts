@@ -12,33 +12,36 @@ import {
   BadRequestException,
   Logger,
   Inject,
-} from '@nestjs/common';
+} from "@nestjs/common";
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiParam,
   ApiBearerAuth,
-} from '@nestjs/swagger';
-import { AddProofPointToFaseUseCase } from '../../../application/program-design/use-cases/AddProofPointToFase/AddProofPointToFaseUseCase';
-import { IProofPointRepository } from '../../../domain/program-design/repositories/IProgramRepository';
-import { RecordId } from '../../../domain/shared/value-objects/RecordId';
-import { AddProofPointRequestDto, ProofPointResponseDto } from '../../dtos/program-design';
-import { SurrealDbService } from '../../../core/database/surrealdb.service';
+} from "@nestjs/swagger";
+import { AddProofPointToFaseUseCase } from "../../../application/program-design/use-cases/AddProofPointToFase/AddProofPointToFaseUseCase";
+import { IProofPointRepository } from "../../../domain/program-design/repositories/IProgramRepository";
+import { RecordId } from "../../../domain/shared/value-objects/RecordId";
+import {
+  AddProofPointRequestDto,
+  ProofPointResponseDto,
+} from "../../dtos/program-design";
+import { SurrealDbService } from "../../../core/database/surrealdb.service";
 
 /**
  * ProofPointController
  * REST API endpoints for ProofPoint Management
  */
-@ApiTags('proof-points')
+@ApiTags("proof-points")
 @Controller()
-@ApiBearerAuth('JWT-auth')
+@ApiBearerAuth("JWT-auth")
 export class ProofPointController {
   private readonly logger = new Logger(ProofPointController.name);
 
   constructor(
     private readonly addProofPointUseCase: AddProofPointToFaseUseCase,
-    @Inject('IProofPointRepository')
+    @Inject("IProofPointRepository")
     private readonly proofPointRepository: IProofPointRepository,
     private readonly db: SurrealDbService,
   ) {}
@@ -46,25 +49,25 @@ export class ProofPointController {
   /**
    * Add proof point to fase
    */
-  @Post('fases/:faseId/proof-points')
+  @Post("fases/:faseId/proof-points")
   @ApiOperation({
-    summary: 'Add proof point to fase',
-    description: 'Creates a new proof point within a fase',
+    summary: "Add proof point to fase",
+    description: "Creates a new proof point within a fase",
   })
   @ApiParam({
-    name: 'faseId',
-    description: 'Fase ID',
-    example: 'fase:abc123',
+    name: "faseId",
+    description: "Fase ID",
+    example: "fase:abc123",
   })
   @ApiResponse({
     status: 201,
-    description: 'ProofPoint created successfully',
+    description: "ProofPoint created successfully",
     type: ProofPointResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Fase not found' })
-  @ApiResponse({ status: 400, description: 'Slug already in use' })
+  @ApiResponse({ status: 404, description: "Fase not found" })
+  @ApiResponse({ status: 400, description: "Slug already in use" })
   async addProofPoint(
-    @Param('faseId') faseId: string,
+    @Param("faseId") faseId: string,
     @Body() addProofPointDto: AddProofPointRequestDto,
   ): Promise<ProofPointResponseDto> {
     const result = await this.addProofPointUseCase.execute({
@@ -92,14 +95,14 @@ export class ProofPointController {
           ordenEnFase: response.ordenEnFase,
           duracionEstimadaHoras: addProofPointDto.duracionEstimadaHoras,
           tipoEntregableFinal: addProofPointDto.tipoEntregableFinal,
-          documentacionContexto: addProofPointDto.documentacionContexto || '',
+          documentacionContexto: addProofPointDto.documentacionContexto || "",
           prerequisitos: addProofPointDto.prerequisitos || [],
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
       },
       fail: (error) => {
-        if (error.message.includes('not found')) {
+        if (error.message.includes("not found")) {
           throw new NotFoundException(error.message);
         }
         throw new BadRequestException(error.message);
@@ -110,23 +113,23 @@ export class ProofPointController {
   /**
    * List proof points by fase
    */
-  @Get('fases/:faseId/proof-points')
+  @Get("fases/:faseId/proof-points")
   @ApiOperation({
-    summary: 'List fase proof points',
-    description: 'Get all proof points for a specific fase',
+    summary: "List fase proof points",
+    description: "Get all proof points for a specific fase",
   })
   @ApiParam({
-    name: 'faseId',
-    description: 'Fase ID',
-    example: 'fase:abc123',
+    name: "faseId",
+    description: "Fase ID",
+    example: "fase:abc123",
   })
   @ApiResponse({
     status: 200,
-    description: 'List of proof points',
+    description: "List of proof points",
     type: [ProofPointResponseDto],
   })
   async listProofPointsByFase(
-    @Param('faseId') faseId: string,
+    @Param("faseId") faseId: string,
   ): Promise<ProofPointResponseDto[]> {
     // Query database directly to get plain objects
     const query = `
@@ -164,7 +167,7 @@ export class ProofPointController {
       ordenEnFase: pp.orden_en_fase,
       duracionEstimadaHoras: pp.duracion_estimada_horas,
       tipoEntregableFinal: pp.tipo_entregable_final,
-      documentacionContexto: pp.documentacion_contexto || '',
+      documentacionContexto: pp.documentacion_contexto || "",
       prerequisitos: pp.prerequisitos || [],
       createdAt: pp.created_at,
       updatedAt: pp.updated_at,
@@ -174,31 +177,30 @@ export class ProofPointController {
   /**
    * Get proof point by ID
    */
-  @Get('proof-points/:id')
+  @Get("proof-points/:id")
   @ApiOperation({
-    summary: 'Get proof point by ID',
-    description: 'Retrieve detailed information about a specific proof point',
+    summary: "Get proof point by ID",
+    description: "Retrieve detailed information about a specific proof point",
   })
   @ApiParam({
-    name: 'id',
-    description: 'ProofPoint ID',
-    example: 'proof_point:abc123',
+    name: "id",
+    description: "ProofPoint ID",
+    example: "proof_point:abc123",
   })
   @ApiResponse({
     status: 200,
-    description: 'ProofPoint details',
+    description: "ProofPoint details",
     type: ProofPointResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'ProofPoint not found' })
-  async getProofPoint(@Param('id') id: string): Promise<ProofPointResponseDto> {
+  @ApiResponse({ status: 404, description: "ProofPoint not found" })
+  async getProofPoint(@Param("id") id: string): Promise<ProofPointResponseDto> {
     // Decode URL-encoded characters
     const decodedId = decodeURIComponent(id);
 
     // Query database directly
-    const result = await this.db.query(
-      'SELECT * FROM type::thing($id)',
-      { id: decodedId }
-    );
+    const result = await this.db.query("SELECT * FROM type::thing($id)", {
+      id: decodedId,
+    });
 
     // Extract proof point
     let proofPoint: any;
@@ -224,7 +226,7 @@ export class ProofPointController {
       ordenEnFase: proofPoint.orden_en_fase,
       duracionEstimadaHoras: proofPoint.duracion_estimada_horas,
       tipoEntregableFinal: proofPoint.tipo_entregable_final,
-      documentacionContexto: proofPoint.documentacion_contexto || '',
+      documentacionContexto: proofPoint.documentacion_contexto || "",
       prerequisitos: proofPoint.prerequisitos || [],
       createdAt: proofPoint.created_at,
       updatedAt: proofPoint.updated_at,
@@ -234,23 +236,25 @@ export class ProofPointController {
   /**
    * Get proof point by slug
    */
-  @Get('proof-points/slug/:slug')
+  @Get("proof-points/slug/:slug")
   @ApiOperation({
-    summary: 'Get proof point by slug',
-    description: 'Retrieve proof point by its URL slug',
+    summary: "Get proof point by slug",
+    description: "Retrieve proof point by its URL slug",
   })
   @ApiParam({
-    name: 'slug',
-    description: 'ProofPoint slug',
-    example: 'crear-mi-primera-variable',
+    name: "slug",
+    description: "ProofPoint slug",
+    example: "crear-mi-primera-variable",
   })
   @ApiResponse({
     status: 200,
-    description: 'ProofPoint details',
+    description: "ProofPoint details",
     type: ProofPointResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'ProofPoint not found' })
-  async getProofPointBySlug(@Param('slug') slug: string): Promise<ProofPointResponseDto> {
+  @ApiResponse({ status: 404, description: "ProofPoint not found" })
+  async getProofPointBySlug(
+    @Param("slug") slug: string,
+  ): Promise<ProofPointResponseDto> {
     const proofPoint = await this.proofPointRepository.findBySlug(slug);
 
     if (!proofPoint) {
@@ -263,24 +267,24 @@ export class ProofPointController {
   /**
    * Update proof point
    */
-  @Put('proof-points/:id')
+  @Put("proof-points/:id")
   @ApiOperation({
-    summary: 'Update proof point',
-    description: 'Update an existing proof point',
+    summary: "Update proof point",
+    description: "Update an existing proof point",
   })
   @ApiParam({
-    name: 'id',
-    description: 'ProofPoint ID',
-    example: 'proof_point:abc123',
+    name: "id",
+    description: "ProofPoint ID",
+    example: "proof_point:abc123",
   })
   @ApiResponse({
     status: 200,
-    description: 'ProofPoint updated successfully',
+    description: "ProofPoint updated successfully",
     type: ProofPointResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'ProofPoint not found' })
+  @ApiResponse({ status: 404, description: "ProofPoint not found" })
   async updateProofPoint(
-    @Param('id') id: string,
+    @Param("id") id: string,
     @Body() updateDto: AddProofPointRequestDto,
   ): Promise<ProofPointResponseDto> {
     // Decode URL-encoded characters
@@ -307,7 +311,7 @@ export class ProofPointController {
       preguntaCentral: updateDto.preguntaCentral,
       duracionEstimadaHoras: updateDto.duracionEstimadaHoras,
       tipoEntregableFinal: updateDto.tipoEntregableFinal || null,
-      documentacionContexto: updateDto.documentacionContexto || '',
+      documentacionContexto: updateDto.documentacionContexto || "",
       prerequisitos: updateDto.prerequisitos || [],
     });
 
@@ -335,7 +339,7 @@ export class ProofPointController {
       ordenEnFase: updated.orden_en_fase,
       duracionEstimadaHoras: updated.duracion_estimada_horas,
       tipoEntregableFinal: updated.tipo_entregable_final,
-      documentacionContexto: updated.documentacion_contexto || '',
+      documentacionContexto: updated.documentacion_contexto || "",
       prerequisitos: updated.prerequisitos || [],
       createdAt: updated.created_at,
       updatedAt: updated.updated_at,
@@ -345,21 +349,23 @@ export class ProofPointController {
   /**
    * Delete proof point
    */
-  @Delete('proof-points/:id')
+  @Delete("proof-points/:id")
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
-    summary: 'Delete proof point',
-    description: 'Permanently delete a proof point',
+    summary: "Delete proof point",
+    description: "Permanently delete a proof point",
   })
   @ApiParam({
-    name: 'id',
-    description: 'ProofPoint ID',
-    example: 'proof_point:abc123',
+    name: "id",
+    description: "ProofPoint ID",
+    example: "proof_point:abc123",
   })
-  @ApiResponse({ status: 204, description: 'ProofPoint deleted successfully' })
-  @ApiResponse({ status: 404, description: 'ProofPoint not found' })
-  async deleteProofPoint(@Param('id') id: string): Promise<void> {
-    const deleted = await this.proofPointRepository.delete(RecordId.fromString(id));
+  @ApiResponse({ status: 204, description: "ProofPoint deleted successfully" })
+  @ApiResponse({ status: 404, description: "ProofPoint not found" })
+  async deleteProofPoint(@Param("id") id: string): Promise<void> {
+    const deleted = await this.proofPointRepository.delete(
+      RecordId.fromString(id),
+    );
 
     if (!deleted) {
       throw new NotFoundException(`ProofPoint not found: ${id}`);
@@ -381,7 +387,7 @@ export class ProofPointController {
       duracionEstimadaHoras: proofPoint.getDuracion().toHours(),
       tipoEntregableFinal: proofPoint.getTipoEntregableFinal(),
       documentacionContexto: proofPoint.getDocumentacionContexto(),
-      prerequisitos: proofPoint.getPrerequisitos().map(p => p.toString()),
+      prerequisitos: proofPoint.getPrerequisitos().map((p) => p.toString()),
       createdAt: proofPoint.getCreatedAt().toISOString(),
       updatedAt: proofPoint.getUpdatedAt().toISOString(),
     };

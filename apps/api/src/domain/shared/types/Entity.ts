@@ -1,4 +1,4 @@
-import { RecordId } from '../value-objects/RecordId';
+import { RecordId } from "../value-objects/RecordId";
 
 /**
  * Base class for all Domain Entities

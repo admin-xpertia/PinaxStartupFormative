@@ -1,10 +1,18 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNumber, IsOptional, MinLength, Min, IsArray, IsEnum } from 'class-validator';
+import { ApiPropertyOptional } from "@nestjs/swagger";
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  MinLength,
+  Min,
+  IsArray,
+  IsEnum,
+} from "class-validator";
 
 export class UpdateProgramRequestDto {
   @ApiPropertyOptional({
-    description: 'Nombre del programa',
-    example: 'Programa de Desarrollo Web',
+    description: "Nombre del programa",
+    example: "Programa de Desarrollo Web",
     minLength: 3,
   })
   @IsOptional()
@@ -13,15 +21,15 @@ export class UpdateProgramRequestDto {
   nombre?: string;
 
   @ApiPropertyOptional({
-    description: 'Descripción del programa',
-    example: 'Programa completo para aprender desarrollo web full-stack',
+    description: "Descripción del programa",
+    example: "Programa completo para aprender desarrollo web full-stack",
   })
   @IsOptional()
   @IsString()
   descripcion?: string;
 
   @ApiPropertyOptional({
-    description: 'Duración en semanas',
+    description: "Duración en semanas",
     example: 12,
     minimum: 1,
   })
@@ -31,26 +39,26 @@ export class UpdateProgramRequestDto {
   duracionSemanas?: number;
 
   @ApiPropertyOptional({
-    description: 'Categoría del programa',
-    example: 'Tecnología',
+    description: "Categoría del programa",
+    example: "Tecnología",
   })
   @IsOptional()
   @IsString()
   categoria?: string;
 
   @ApiPropertyOptional({
-    description: 'Nivel de dificultad',
-    enum: ['principiante', 'intermedio', 'avanzado'],
-    example: 'intermedio',
+    description: "Nivel de dificultad",
+    enum: ["principiante", "intermedio", "avanzado"],
+    example: "intermedio",
   })
   @IsOptional()
-  @IsEnum(['principiante', 'intermedio', 'avanzado'])
-  nivelDificultad?: 'principiante' | 'intermedio' | 'avanzado';
+  @IsEnum(["principiante", "intermedio", "avanzado"])
+  nivelDificultad?: "principiante" | "intermedio" | "avanzado";
 
   @ApiPropertyOptional({
-    description: 'Objetivos de aprendizaje',
+    description: "Objetivos de aprendizaje",
     type: [String],
-    example: ['Dominar HTML y CSS', 'Crear aplicaciones con React'],
+    example: ["Dominar HTML y CSS", "Crear aplicaciones con React"],
   })
   @IsOptional()
   @IsArray()
@@ -58,9 +66,9 @@ export class UpdateProgramRequestDto {
   objetivosAprendizaje?: string[];
 
   @ApiPropertyOptional({
-    description: 'Prerequisitos del programa',
+    description: "Prerequisitos del programa",
     type: [String],
-    example: ['Conocimientos básicos de programación'],
+    example: ["Conocimientos básicos de programación"],
   })
   @IsOptional()
   @IsArray()
@@ -68,17 +76,17 @@ export class UpdateProgramRequestDto {
   prerequisitos?: string[];
 
   @ApiPropertyOptional({
-    description: 'Audiencia objetivo',
-    example: 'Estudiantes universitarios de carreras técnicas',
+    description: "Audiencia objetivo",
+    example: "Estudiantes universitarios de carreras técnicas",
   })
   @IsOptional()
   @IsString()
   audienciaObjetivo?: string;
 
   @ApiPropertyOptional({
-    description: 'Tags del programa',
+    description: "Tags del programa",
     type: [String],
-    example: ['web', 'frontend', 'backend', 'full-stack'],
+    example: ["web", "frontend", "backend", "full-stack"],
   })
   @IsOptional()
   @IsArray()

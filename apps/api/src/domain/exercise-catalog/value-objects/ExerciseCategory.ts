@@ -1,22 +1,24 @@
-import { ValueObject } from '../../shared/types/ValueObject';
+import { ValueObject } from "../../shared/types/ValueObject";
 
 /**
  * ExerciseCategory Value Object
  * Represents the 10 types of AI-mediated exercises
  */
 export type ExerciseCategoryType =
-  | 'leccion_interactiva'
-  | 'cuaderno_trabajo'
-  | 'simulacion_interaccion'
-  | 'mentor_asesor_ia'
-  | 'herramienta_analisis'
-  | 'herramienta_creacion'
-  | 'sistema_tracking'
-  | 'herramienta_revision'
-  | 'simulador_entorno'
-  | 'sistema_progresion';
+  | "leccion_interactiva"
+  | "cuaderno_trabajo"
+  | "simulacion_interaccion"
+  | "mentor_asesor_ia"
+  | "herramienta_analisis"
+  | "herramienta_creacion"
+  | "sistema_tracking"
+  | "herramienta_revision"
+  | "simulador_entorno"
+  | "sistema_progresion";
 
-export class ExerciseCategory extends ValueObject<{ value: ExerciseCategoryType }> {
+export class ExerciseCategory extends ValueObject<{
+  value: ExerciseCategoryType;
+}> {
   private constructor(value: ExerciseCategoryType) {
     super({ value });
   }
@@ -26,43 +28,43 @@ export class ExerciseCategory extends ValueObject<{ value: ExerciseCategoryType 
   }
 
   static leccionInteractiva(): ExerciseCategory {
-    return new ExerciseCategory('leccion_interactiva');
+    return new ExerciseCategory("leccion_interactiva");
   }
 
   static cuadernoTrabajo(): ExerciseCategory {
-    return new ExerciseCategory('cuaderno_trabajo');
+    return new ExerciseCategory("cuaderno_trabajo");
   }
 
   static simulacionInteraccion(): ExerciseCategory {
-    return new ExerciseCategory('simulacion_interaccion');
+    return new ExerciseCategory("simulacion_interaccion");
   }
 
   static mentorAsesorIA(): ExerciseCategory {
-    return new ExerciseCategory('mentor_asesor_ia');
+    return new ExerciseCategory("mentor_asesor_ia");
   }
 
   static herramientaAnalisis(): ExerciseCategory {
-    return new ExerciseCategory('herramienta_analisis');
+    return new ExerciseCategory("herramienta_analisis");
   }
 
   static herramientaCreacion(): ExerciseCategory {
-    return new ExerciseCategory('herramienta_creacion');
+    return new ExerciseCategory("herramienta_creacion");
   }
 
   static sistemaTracking(): ExerciseCategory {
-    return new ExerciseCategory('sistema_tracking');
+    return new ExerciseCategory("sistema_tracking");
   }
 
   static herramientaRevision(): ExerciseCategory {
-    return new ExerciseCategory('herramienta_revision');
+    return new ExerciseCategory("herramienta_revision");
   }
 
   static simuladorEntorno(): ExerciseCategory {
-    return new ExerciseCategory('simulador_entorno');
+    return new ExerciseCategory("simulador_entorno");
   }
 
   static sistemaProgresion(): ExerciseCategory {
-    return new ExerciseCategory('sistema_progresion');
+    return new ExerciseCategory("sistema_progresion");
   }
 
   getValue(): ExerciseCategoryType {
@@ -74,16 +76,16 @@ export class ExerciseCategory extends ValueObject<{ value: ExerciseCategoryType 
    */
   getDisplayName(): string {
     const names: Record<ExerciseCategoryType, string> = {
-      leccion_interactiva: 'Lección Interactiva',
-      cuaderno_trabajo: 'Cuaderno de Trabajo',
-      simulacion_interaccion: 'Simulación de Interacción',
-      mentor_asesor_ia: 'Mentor/Asesor IA',
-      herramienta_analisis: 'Herramienta de Análisis',
-      herramienta_creacion: 'Herramienta de Creación',
-      sistema_tracking: 'Sistema de Tracking',
-      herramienta_revision: 'Herramienta de Revisión',
-      simulador_entorno: 'Simulador de Entorno',
-      sistema_progresion: 'Sistema de Progresión',
+      leccion_interactiva: "Lección Interactiva",
+      cuaderno_trabajo: "Cuaderno de Trabajo",
+      simulacion_interaccion: "Simulación de Interacción",
+      mentor_asesor_ia: "Mentor/Asesor IA",
+      herramienta_analisis: "Herramienta de Análisis",
+      herramienta_creacion: "Herramienta de Creación",
+      sistema_tracking: "Sistema de Tracking",
+      herramienta_revision: "Herramienta de Revisión",
+      simulador_entorno: "Simulador de Entorno",
+      sistema_progresion: "Sistema de Progresión",
     };
 
     return names[this.props.value];
@@ -94,16 +96,16 @@ export class ExerciseCategory extends ValueObject<{ value: ExerciseCategoryType 
    */
   getDefaultIcon(): string {
     const icons: Record<ExerciseCategoryType, string> = {
-      leccion_interactiva: '📖',
-      cuaderno_trabajo: '📝',
-      simulacion_interaccion: '💬',
-      mentor_asesor_ia: '🤖',
-      herramienta_analisis: '🔍',
-      herramienta_creacion: '🎨',
-      sistema_tracking: '📊',
-      herramienta_revision: '✅',
-      simulador_entorno: '🌐',
-      sistema_progresion: '🎯',
+      leccion_interactiva: "📖",
+      cuaderno_trabajo: "📝",
+      simulacion_interaccion: "💬",
+      mentor_asesor_ia: "🤖",
+      herramienta_analisis: "🔍",
+      herramienta_creacion: "🎨",
+      sistema_tracking: "📊",
+      herramienta_revision: "✅",
+      simulador_entorno: "🌐",
+      sistema_progresion: "🎯",
     };
 
     return icons[this.props.value];

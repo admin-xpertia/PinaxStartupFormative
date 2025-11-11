@@ -1,5 +1,5 @@
 // Types
-export * from './types/Result';
+export * from "./types/Result";
 
 // Interfaces
-export * from './interfaces/IUseCase';
+export * from "./interfaces/IUseCase";

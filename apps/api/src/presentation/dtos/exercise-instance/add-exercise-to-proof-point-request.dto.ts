@@ -1,17 +1,24 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNumber, IsObject, IsOptional, MinLength, Min } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import {
+  IsString,
+  IsNumber,
+  IsObject,
+  IsOptional,
+  MinLength,
+  Min,
+} from "class-validator";
 
 export class AddExerciseToProofPointRequestDto {
   @ApiProperty({
-    description: 'ID del template de ejercicio a utilizar',
-    example: 'exercise_template:crear-primera-variable',
+    description: "ID del template de ejercicio a utilizar",
+    example: "exercise_template:crear-primera-variable",
   })
   @IsString()
   templateId: string;
 
   @ApiProperty({
-    description: 'Nombre del ejercicio',
-    example: 'Crear variable de saludo',
+    description: "Nombre del ejercicio",
+    example: "Crear variable de saludo",
     minLength: 3,
   })
   @IsString()
@@ -19,7 +26,7 @@ export class AddExerciseToProofPointRequestDto {
   nombre: string;
 
   @ApiPropertyOptional({
-    description: 'Descripción breve del ejercicio',
+    description: "Descripción breve del ejercicio",
     example: 'Crea una variable llamada saludo con el texto "Hola Mundo"',
   })
   @IsOptional()
@@ -27,18 +34,19 @@ export class AddExerciseToProofPointRequestDto {
   descripcionBreve?: string;
 
   @ApiProperty({
-    description: 'Consideraciones de contexto para el instructor',
-    example: 'Este es el primer ejercicio de la fase, los estudiantes no tienen experiencia previa',
+    description: "Consideraciones de contexto para el instructor",
+    example:
+      "Este es el primer ejercicio de la fase, los estudiantes no tienen experiencia previa",
   })
   @IsString()
   consideracionesContexto: string;
 
   @ApiProperty({
-    description: 'Configuración personalizada del ejercicio',
-    type: 'object',
+    description: "Configuración personalizada del ejercicio",
+    type: "object",
     example: {
-      lenguaje: 'python',
-      complejidad: 'basico',
+      lenguaje: "python",
+      complejidad: "basico",
       tiempoSugerido: 15,
     },
   })
@@ -46,7 +54,7 @@ export class AddExerciseToProofPointRequestDto {
   configuracionPersonalizada: Record<string, any>;
 
   @ApiProperty({
-    description: 'Duración estimada en minutos',
+    description: "Duración estimada en minutos",
     example: 30,
     minimum: 5,
   })
@@ -55,7 +63,7 @@ export class AddExerciseToProofPointRequestDto {
   duracionEstimadaMinutos: number;
 
   @ApiPropertyOptional({
-    description: 'Es obligatorio completar este ejercicio',
+    description: "Es obligatorio completar este ejercicio",
     example: true,
     default: true,
   })

@@ -1,26 +1,26 @@
-import { Module } from '@nestjs/common';
-import { SurrealDbModule } from '../core/database/surrealdb.module';
+import { Module } from "@nestjs/common";
+import { SurrealDbModule } from "../core/database/surrealdb.module";
 
 // Mappers
-import { ProgramMapper } from '../infrastructure/mappers/ProgramMapper';
+import { ProgramMapper } from "../infrastructure/mappers/ProgramMapper";
 
 // Repositories
-import { ProgramRepository } from '../infrastructure/database/repositories/ProgramRepository';
-import { FaseRepository } from '../infrastructure/database/repositories/FaseRepository';
-import { ProofPointRepository } from '../infrastructure/database/repositories/ProofPointRepository';
-import { FaseDocumentationRepository } from '../infrastructure/database/repositories/FaseDocumentationRepository';
+import { ProgramRepository } from "../infrastructure/database/repositories/ProgramRepository";
+import { FaseRepository } from "../infrastructure/database/repositories/FaseRepository";
+import { ProofPointRepository } from "../infrastructure/database/repositories/ProofPointRepository";
+import { FaseDocumentationRepository } from "../infrastructure/database/repositories/FaseDocumentationRepository";
 
 // Use Cases
-import { CreateProgramUseCase } from '../application/program-design/use-cases/CreateProgram/CreateProgramUseCase';
-import { PublishProgramUseCase } from '../application/program-design/use-cases/PublishProgram/PublishProgramUseCase';
-import { ArchiveProgramUseCase } from '../application/program-design/use-cases/ArchiveProgram/ArchiveProgramUseCase';
-import { AddFaseToProgramUseCase } from '../application/program-design/use-cases/AddFaseToProgram/AddFaseToProgramUseCase';
-import { AddProofPointToFaseUseCase } from '../application/program-design/use-cases/AddProofPointToFase/AddProofPointToFaseUseCase';
+import { CreateProgramUseCase } from "../application/program-design/use-cases/CreateProgram/CreateProgramUseCase";
+import { PublishProgramUseCase } from "../application/program-design/use-cases/PublishProgram/PublishProgramUseCase";
+import { ArchiveProgramUseCase } from "../application/program-design/use-cases/ArchiveProgram/ArchiveProgramUseCase";
+import { AddFaseToProgramUseCase } from "../application/program-design/use-cases/AddFaseToProgram/AddFaseToProgramUseCase";
+import { AddProofPointToFaseUseCase } from "../application/program-design/use-cases/AddProofPointToFase/AddProofPointToFaseUseCase";
 
 // Controllers
-import { ProgramController } from '../presentation/controllers/program-design/program.controller';
-import { FaseController } from '../presentation/controllers/program-design/fase.controller';
-import { ProofPointController } from '../presentation/controllers/program-design/proof-point.controller';
+import { ProgramController } from "../presentation/controllers/program-design/program.controller";
+import { FaseController } from "../presentation/controllers/program-design/fase.controller";
+import { ProofPointController } from "../presentation/controllers/program-design/proof-point.controller";
 
 /**
  * ProgramDesignModule
@@ -40,19 +40,19 @@ import { ProofPointController } from '../presentation/controllers/program-design
 
     // Repositories - provided as their interface token for DI
     {
-      provide: 'IProgramRepository',
+      provide: "IProgramRepository",
       useClass: ProgramRepository,
     },
     {
-      provide: 'IFaseRepository',
+      provide: "IFaseRepository",
       useClass: FaseRepository,
     },
     {
-      provide: 'IProofPointRepository',
+      provide: "IProofPointRepository",
       useClass: ProofPointRepository,
     },
     {
-      provide: 'IFaseDocumentationRepository',
+      provide: "IFaseDocumentationRepository",
       useClass: FaseDocumentationRepository,
     },
 
@@ -71,10 +71,10 @@ import { ProofPointController } from '../presentation/controllers/program-design
   ],
   exports: [
     // Export repositories for use in other modules
-    'IProgramRepository',
-    'IFaseRepository',
-    'IProofPointRepository',
-    'IFaseDocumentationRepository',
+    "IProgramRepository",
+    "IFaseRepository",
+    "IProofPointRepository",
+    "IFaseDocumentationRepository",
 
     // Export use cases for controllers
     CreateProgramUseCase,

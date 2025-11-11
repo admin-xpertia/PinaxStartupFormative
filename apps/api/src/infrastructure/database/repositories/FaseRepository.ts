@@ -1,9 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { IFaseRepository } from '../../../domain/program-design/repositories/IProgramRepository';
-import { Fase } from '../../../domain/program-design/entities/Fase';
-import { RecordId } from '../../../domain/shared/value-objects/RecordId';
-import { SurrealDbService } from '../../../core/database/surrealdb.service';
-import { ProgramMapper } from '../../mappers/ProgramMapper';
+import { Injectable, Logger } from "@nestjs/common";
+import { IFaseRepository } from "../../../domain/program-design/repositories/IProgramRepository";
+import { Fase } from "../../../domain/program-design/entities/Fase";
+import { RecordId } from "../../../domain/shared/value-objects/RecordId";
+import { SurrealDbService } from "../../../core/database/surrealdb.service";
+import { ProgramMapper } from "../../mappers/ProgramMapper";
 
 /**
  * FaseRepository
@@ -41,10 +41,10 @@ export class FaseRepository implements IFaseRepository {
    */
   async findAll(criteria?: any): Promise<Fase[]> {
     try {
-      const result = await this.db.select<any>('fase');
+      const result = await this.db.select<any>("fase");
       return result.map((raw) => this.mapper.faseToDomain(raw));
     } catch (error) {
-      this.logger.error('Error finding all fases', error);
+      this.logger.error("Error finding all fases", error);
       throw error;
     }
   }
@@ -103,7 +103,10 @@ export class FaseRepository implements IFaseRepository {
       const result = await this.findById(id);
       return result !== null;
     } catch (error) {
-      this.logger.error(`Error checking if fase exists: ${id.toString()}`, error);
+      this.logger.error(
+        `Error checking if fase exists: ${id.toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -129,7 +132,10 @@ export class FaseRepository implements IFaseRepository {
 
       return fases.map((raw) => this.mapper.faseToDomain(raw));
     } catch (error) {
-      this.logger.error(`Error finding fases by programa: ${programaId.toString()}`, error);
+      this.logger.error(
+        `Error finding fases by programa: ${programaId.toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -137,7 +143,10 @@ export class FaseRepository implements IFaseRepository {
   /**
    * Finds a fase by its number within a program
    */
-  async findByNumeroFase(programaId: RecordId, numeroFase: number): Promise<Fase | null> {
+  async findByNumeroFase(
+    programaId: RecordId,
+    numeroFase: number,
+  ): Promise<Fase | null> {
     try {
       const query = `
         SELECT * FROM fase
@@ -167,7 +176,10 @@ export class FaseRepository implements IFaseRepository {
   /**
    * Reorders fases within a program
    */
-  async reorder(programaId: RecordId, faseOrders: Map<RecordId, number>): Promise<void> {
+  async reorder(
+    programaId: RecordId,
+    faseOrders: Map<RecordId, number>,
+  ): Promise<void> {
     try {
       // Update each fase with its new order
       for (const [faseId, newOrder] of faseOrders.entries()) {
@@ -181,7 +193,10 @@ export class FaseRepository implements IFaseRepository {
         });
       }
     } catch (error) {
-      this.logger.error(`Error reordering fases for programa: ${programaId.toString()}`, error);
+      this.logger.error(
+        `Error reordering fases for programa: ${programaId.toString()}`,
+        error,
+      );
       throw error;
     }
   }

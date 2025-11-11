@@ -1,23 +1,30 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNumber, IsObject, IsOptional, Min, Max } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import {
+  IsString,
+  IsNumber,
+  IsObject,
+  IsOptional,
+  Min,
+  Max,
+} from "class-validator";
 
 export class SaveProgressDto {
   @ApiProperty({
-    description: 'ID del estudiante',
-    example: 'estudiante:abc123',
+    description: "ID del estudiante",
+    example: "estudiante:abc123",
   })
   @IsString()
   estudianteId: string;
 
   @ApiProperty({
-    description: 'ID de la cohorte',
-    example: 'cohorte:xyz789',
+    description: "ID de la cohorte",
+    example: "cohorte:xyz789",
   })
   @IsString()
   cohorteId: string;
 
   @ApiPropertyOptional({
-    description: 'Datos del progreso del estudiante (JSON)',
+    description: "Datos del progreso del estudiante (JSON)",
     example: { respuestas: [], seccion_actual: 2 },
   })
   @IsOptional()
@@ -25,7 +32,7 @@ export class SaveProgressDto {
   datos?: Record<string, any>;
 
   @ApiPropertyOptional({
-    description: 'Porcentaje de completitud (0-100)',
+    description: "Porcentaje de completitud (0-100)",
     example: 45,
     minimum: 0,
     maximum: 100,
@@ -37,7 +44,7 @@ export class SaveProgressDto {
   porcentajeCompletitud?: number;
 
   @ApiPropertyOptional({
-    description: 'Tiempo invertido en minutos',
+    description: "Tiempo invertido en minutos",
     example: 15,
     minimum: 0,
   })

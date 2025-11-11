@@ -1,11 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { IExerciseInstanceRepository } from '../../../domain/exercise-instance/repositories/IExerciseInstanceRepository';
-import { ExerciseInstance } from '../../../domain/exercise-instance/entities/ExerciseInstance';
-import { ExerciseContent } from '../../../domain/exercise-instance/entities/ExerciseContent';
-import { ContentStatus } from '../../../domain/exercise-instance/value-objects/ContentStatus';
-import { RecordId } from '../../../domain/shared/value-objects/RecordId';
-import { SurrealDbService } from '../../../core/database/surrealdb.service';
-import { ExerciseMapper } from '../../mappers/ExerciseMapper';
+import { Injectable, Logger } from "@nestjs/common";
+import { IExerciseInstanceRepository } from "../../../domain/exercise-instance/repositories/IExerciseInstanceRepository";
+import { ExerciseInstance } from "../../../domain/exercise-instance/entities/ExerciseInstance";
+import { ExerciseContent } from "../../../domain/exercise-instance/entities/ExerciseContent";
+import { ContentStatus } from "../../../domain/exercise-instance/value-objects/ContentStatus";
+import { RecordId } from "../../../domain/shared/value-objects/RecordId";
+import { SurrealDbService } from "../../../core/database/surrealdb.service";
+import { ExerciseMapper } from "../../mappers/ExerciseMapper";
 
 /**
  * ExerciseInstanceRepository
@@ -33,7 +33,10 @@ export class ExerciseInstanceRepository implements IExerciseInstanceRepository {
 
       return this.mapper.instanceToDomain(result[0]);
     } catch (error) {
-      this.logger.error(`Error finding instance by id: ${id.toString()}`, error);
+      this.logger.error(
+        `Error finding instance by id: ${id.toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -43,10 +46,10 @@ export class ExerciseInstanceRepository implements IExerciseInstanceRepository {
    */
   async findAll(criteria?: any): Promise<ExerciseInstance[]> {
     try {
-      const result = await this.db.select<any>('exercise_instance');
+      const result = await this.db.select<any>("exercise_instance");
       return result.map((raw) => this.mapper.instanceToDomain(raw));
     } catch (error) {
-      this.logger.error('Error finding all instances', error);
+      this.logger.error("Error finding all instances", error);
       throw error;
     }
   }
@@ -83,7 +86,10 @@ export class ExerciseInstanceRepository implements IExerciseInstanceRepository {
       const saved = await this.findById(instance.getId());
       return saved!;
     } catch (error) {
-      this.logger.error(`Error saving instance: ${instance.getId().toString()}`, error);
+      this.logger.error(
+        `Error saving instance: ${instance.getId().toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -114,7 +120,10 @@ export class ExerciseInstanceRepository implements IExerciseInstanceRepository {
       const result = await this.findById(id);
       return result !== null;
     } catch (error) {
-      this.logger.error(`Error checking if instance exists: ${id.toString()}`, error);
+      this.logger.error(
+        `Error checking if instance exists: ${id.toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -136,7 +145,10 @@ export class ExerciseInstanceRepository implements IExerciseInstanceRepository {
 
       return result.map((raw) => this.mapper.instanceToDomain(raw));
     } catch (error) {
-      this.logger.error(`Error finding instances by proof point: ${proofPointId.toString()}`, error);
+      this.logger.error(
+        `Error finding instances by proof point: ${proofPointId.toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -158,7 +170,10 @@ export class ExerciseInstanceRepository implements IExerciseInstanceRepository {
 
       return result.map((raw) => this.mapper.instanceToDomain(raw));
     } catch (error) {
-      this.logger.error(`Error finding instances by template: ${templateId.toString()}`, error);
+      this.logger.error(
+        `Error finding instances by template: ${templateId.toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -180,7 +195,9 @@ export class ExerciseInstanceRepository implements IExerciseInstanceRepository {
       let content: ExerciseContent | undefined;
       const contenidoActual = instance.getContenidoActual();
       if (contenidoActual) {
-        const contentResult = await this.db.select<any>(contenidoActual.toString());
+        const contentResult = await this.db.select<any>(
+          contenidoActual.toString(),
+        );
         if (contentResult && contentResult.length > 0) {
           content = this.mapper.contentToDomain(contentResult[0]);
         }
@@ -191,7 +208,10 @@ export class ExerciseInstanceRepository implements IExerciseInstanceRepository {
         content,
       };
     } catch (error) {
-      this.logger.error(`Error finding instance with content: ${id.toString()}`, error);
+      this.logger.error(
+        `Error finding instance with content: ${id.toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -199,7 +219,10 @@ export class ExerciseInstanceRepository implements IExerciseInstanceRepository {
   /**
    * Finds instances by content status
    */
-  async findByStatus(proofPointId: RecordId, status: ContentStatus): Promise<ExerciseInstance[]> {
+  async findByStatus(
+    proofPointId: RecordId,
+    status: ContentStatus,
+  ): Promise<ExerciseInstance[]> {
     try {
       const query = `
         SELECT * FROM exercise_instance
@@ -225,7 +248,10 @@ export class ExerciseInstanceRepository implements IExerciseInstanceRepository {
   /**
    * Reorders instances within a proof point
    */
-  async reorder(proofPointId: RecordId, instanceOrders: Map<RecordId, number>): Promise<void> {
+  async reorder(
+    proofPointId: RecordId,
+    instanceOrders: Map<RecordId, number>,
+  ): Promise<void> {
     try {
       // Update each instance with its new order
       for (const [instanceId, newOrder] of instanceOrders.entries()) {
@@ -239,7 +265,10 @@ export class ExerciseInstanceRepository implements IExerciseInstanceRepository {
         });
       }
     } catch (error) {
-      this.logger.error(`Error reordering instances for proof point: ${proofPointId.toString()}`, error);
+      this.logger.error(
+        `Error reordering instances for proof point: ${proofPointId.toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -265,7 +294,10 @@ export class ExerciseInstanceRepository implements IExerciseInstanceRepository {
 
       return result[0].total || 0;
     } catch (error) {
-      this.logger.error(`Error counting instances by proof point: ${proofPointId.toString()}`, error);
+      this.logger.error(
+        `Error counting instances by proof point: ${proofPointId.toString()}`,
+        error,
+      );
       throw error;
     }
   }

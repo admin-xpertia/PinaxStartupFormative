@@ -1,13 +1,14 @@
-import { IRepository } from '../../shared/repositories/IRepository';
-import { ExerciseTemplate } from '../entities/ExerciseTemplate';
-import { ExerciseCategory } from '../value-objects/ExerciseCategory';
-import { RecordId } from '../../shared/value-objects/RecordId';
+import { IRepository } from "../../shared/repositories/IRepository";
+import { ExerciseTemplate } from "../entities/ExerciseTemplate";
+import { ExerciseCategory } from "../value-objects/ExerciseCategory";
+import { RecordId } from "../../shared/value-objects/RecordId";
 
 /**
  * IExerciseTemplateRepository
  * Repository interface for ExerciseTemplate aggregate
  */
-export interface IExerciseTemplateRepository extends IRepository<ExerciseTemplate> {
+export interface IExerciseTemplateRepository
+  extends IRepository<ExerciseTemplate> {
   /**
    * Finds all active templates
    */

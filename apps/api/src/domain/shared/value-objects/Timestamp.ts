@@ -118,11 +118,11 @@ export class Timestamp {
    */
   private validate(): void {
     if (!(this.value instanceof Date)) {
-      throw new Error('Timestamp value must be a Date object');
+      throw new Error("Timestamp value must be a Date object");
     }
 
     if (isNaN(this.value.getTime())) {
-      throw new Error('Invalid date');
+      throw new Error("Invalid date");
     }
   }
 

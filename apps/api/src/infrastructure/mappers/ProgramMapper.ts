@@ -1,13 +1,13 @@
-import { Injectable } from '@nestjs/common';
-import { Programa } from '../../domain/program-design/entities/Programa';
-import { Fase } from '../../domain/program-design/entities/Fase';
-import { ProofPoint } from '../../domain/program-design/entities/ProofPoint';
-import { FaseDocumentation } from '../../domain/program-design/entities/FaseDocumentation';
-import { RecordId } from '../../domain/shared/value-objects/RecordId';
-import { Timestamp } from '../../domain/shared/value-objects/Timestamp';
-import { ProgramStatus } from '../../domain/program-design/value-objects/ProgramStatus';
-import { Duration } from '../../domain/program-design/value-objects/Duration';
-import { ProofPointSlug } from '../../domain/program-design/value-objects/ProofPointSlug';
+import { Injectable } from "@nestjs/common";
+import { Programa } from "../../domain/program-design/entities/Programa";
+import { Fase } from "../../domain/program-design/entities/Fase";
+import { ProofPoint } from "../../domain/program-design/entities/ProofPoint";
+import { FaseDocumentation } from "../../domain/program-design/entities/FaseDocumentation";
+import { RecordId } from "../../domain/shared/value-objects/RecordId";
+import { Timestamp } from "../../domain/shared/value-objects/Timestamp";
+import { ProgramStatus } from "../../domain/program-design/value-objects/ProgramStatus";
+import { Duration } from "../../domain/program-design/value-objects/Duration";
+import { ProofPointSlug } from "../../domain/program-design/value-objects/ProofPointSlug";
 
 /**
  * ProgramMapper
@@ -98,7 +98,7 @@ export class ProgramMapper {
       ordenEnFase: raw.orden_en_fase,
       duracion: Duration.hours(raw.duracion_estimada_horas),
       tipoEntregableFinal: raw.tipo_entregable_final,
-      documentacionContexto: raw.documentacion_contexto || '',
+      documentacionContexto: raw.documentacion_contexto || "",
       prerequisitos,
       createdAt: Timestamp.fromISOString(raw.created_at),
       updatedAt: Timestamp.fromISOString(raw.updated_at),

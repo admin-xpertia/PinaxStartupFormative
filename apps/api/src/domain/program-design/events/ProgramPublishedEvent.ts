@@ -1,5 +1,5 @@
-import { DomainEvent } from '../../shared/events/DomainEvent';
-import { RecordId } from '../../shared/value-objects/RecordId';
+import { DomainEvent } from "../../shared/events/DomainEvent";
+import { RecordId } from "../../shared/value-objects/RecordId";
 
 /**
  * ProgramPublishedEvent
@@ -10,7 +10,7 @@ export class ProgramPublishedEvent extends DomainEvent {
     public readonly programaId: RecordId,
     public readonly programaNombre: string,
   ) {
-    super('ProgramPublished');
+    super("ProgramPublished");
   }
 
   toJSON(): Record<string, any> {

@@ -1,6 +1,6 @@
-import { Entity } from '../../shared/types/Entity';
-import { RecordId } from '../../shared/value-objects/RecordId';
-import { Timestamp } from '../../shared/value-objects/Timestamp';
+import { Entity } from "../../shared/types/Entity";
+import { RecordId } from "../../shared/value-objects/RecordId";
+import { Timestamp } from "../../shared/value-objects/Timestamp";
 
 /**
  * FaseDocumentation Entity
@@ -26,7 +26,7 @@ export interface ErrorComun {
 }
 
 export interface RecursoReferencia {
-  tipo: 'articulo' | 'video' | 'libro' | 'herramienta' | 'otro';
+  tipo: "articulo" | "video" | "libro" | "herramienta" | "otro";
   titulo: string;
   url?: string;
   descripcion?: string;
@@ -52,7 +52,9 @@ export class FaseDocumentation extends Entity<FaseDocumentationProps> {
    * Creates new FaseDocumentation (Factory method)
    */
   static create(faseId: RecordId, id?: RecordId): FaseDocumentation {
-    const docId = id || RecordId.create('fase_documentation', `${Date.now()}_${Math.random()}`);
+    const docId =
+      id ||
+      RecordId.create("fase_documentation", `${Date.now()}_${Math.random()}`);
 
     const documentation = new FaseDocumentation(docId, {
       fase: faseId,
@@ -70,7 +72,10 @@ export class FaseDocumentation extends Entity<FaseDocumentationProps> {
   /**
    * Reconstitutes FaseDocumentation from persistence
    */
-  static reconstitute(id: RecordId, props: FaseDocumentationProps): FaseDocumentation {
+  static reconstitute(
+    id: RecordId,
+    props: FaseDocumentationProps,
+  ): FaseDocumentation {
     return new FaseDocumentation(id, props);
   }
 
@@ -119,7 +124,7 @@ export class FaseDocumentation extends Entity<FaseDocumentationProps> {
    */
   addConceptoClave(concepto: ConceptoClave): void {
     if (!concepto.nombre || !concepto.definicion) {
-      throw new Error('Concepto must have nombre and definicion');
+      throw new Error("Concepto must have nombre and definicion");
     }
 
     this.props.conceptosClave.push(concepto);
@@ -130,7 +135,9 @@ export class FaseDocumentation extends Entity<FaseDocumentationProps> {
    * Removes a key concept by name
    */
   removeConceptoClave(nombre: string): void {
-    const index = this.props.conceptosClave.findIndex(c => c.nombre === nombre);
+    const index = this.props.conceptosClave.findIndex(
+      (c) => c.nombre === nombre,
+    );
     if (index > -1) {
       this.props.conceptosClave.splice(index, 1);
       this.props.updatedAt = Timestamp.now();
@@ -150,7 +157,7 @@ export class FaseDocumentation extends Entity<FaseDocumentationProps> {
    */
   addCasoEjemplo(caso: CasoEjemplo): void {
     if (!caso.titulo || !caso.descripcion) {
-      throw new Error('Caso must have titulo and descripcion');
+      throw new Error("Caso must have titulo and descripcion");
     }
 
     this.props.casosEjemplo.push(caso);
@@ -161,7 +168,7 @@ export class FaseDocumentation extends Entity<FaseDocumentationProps> {
    * Removes an example case by title
    */
   removeCasoEjemplo(titulo: string): void {
-    const index = this.props.casosEjemplo.findIndex(c => c.titulo === titulo);
+    const index = this.props.casosEjemplo.findIndex((c) => c.titulo === titulo);
     if (index > -1) {
       this.props.casosEjemplo.splice(index, 1);
       this.props.updatedAt = Timestamp.now();
@@ -181,7 +188,7 @@ export class FaseDocumentation extends Entity<FaseDocumentationProps> {
    */
   addErrorComun(error: ErrorComun): void {
     if (!error.descripcion) {
-      throw new Error('Error must have descripcion');
+      throw new Error("Error must have descripcion");
     }
 
     this.props.erroresComunes.push(error);
@@ -192,7 +199,9 @@ export class FaseDocumentation extends Entity<FaseDocumentationProps> {
    * Removes a common error
    */
   removeErrorComun(descripcion: string): void {
-    const index = this.props.erroresComunes.findIndex(e => e.descripcion === descripcion);
+    const index = this.props.erroresComunes.findIndex(
+      (e) => e.descripcion === descripcion,
+    );
     if (index > -1) {
       this.props.erroresComunes.splice(index, 1);
       this.props.updatedAt = Timestamp.now();
@@ -212,7 +221,7 @@ export class FaseDocumentation extends Entity<FaseDocumentationProps> {
    */
   addRecursoReferencia(recurso: RecursoReferencia): void {
     if (!recurso.tipo || !recurso.titulo) {
-      throw new Error('Recurso must have tipo and titulo');
+      throw new Error("Recurso must have tipo and titulo");
     }
 
     this.props.recursosReferencia.push(recurso);
@@ -223,7 +232,9 @@ export class FaseDocumentation extends Entity<FaseDocumentationProps> {
    * Removes a reference resource by title
    */
   removeRecursoReferencia(titulo: string): void {
-    const index = this.props.recursosReferencia.findIndex(r => r.titulo === titulo);
+    const index = this.props.recursosReferencia.findIndex(
+      (r) => r.titulo === titulo,
+    );
     if (index > -1) {
       this.props.recursosReferencia.splice(index, 1);
       this.props.updatedAt = Timestamp.now();
@@ -257,18 +268,18 @@ export class FaseDocumentation extends Entity<FaseDocumentationProps> {
     }
 
     if (this.props.conceptosClave.length > 0) {
-      parts.push('CONCEPTOS CLAVE:');
+      parts.push("CONCEPTOS CLAVE:");
       this.props.conceptosClave.forEach((concepto, i) => {
         parts.push(`${i + 1}. ${concepto.nombre}: ${concepto.definicion}`);
         if (concepto.importancia) {
           parts.push(`   Importancia: ${concepto.importancia}`);
         }
       });
-      parts.push('');
+      parts.push("");
     }
 
     if (this.props.casosEjemplo.length > 0) {
-      parts.push('CASOS DE EJEMPLO:');
+      parts.push("CASOS DE EJEMPLO:");
       this.props.casosEjemplo.forEach((caso, i) => {
         parts.push(`${i + 1}. ${caso.titulo}`);
         parts.push(`   ${caso.descripcion}`);
@@ -276,21 +287,21 @@ export class FaseDocumentation extends Entity<FaseDocumentationProps> {
           parts.push(`   Resultado: ${caso.resultado}`);
         }
       });
-      parts.push('');
+      parts.push("");
     }
 
     if (this.props.erroresComunes.length > 0) {
-      parts.push('ERRORES COMUNES A EVITAR:');
+      parts.push("ERRORES COMUNES A EVITAR:");
       this.props.erroresComunes.forEach((error, i) => {
         parts.push(`${i + 1}. ${error.descripcion}`);
         if (error.solucion) {
           parts.push(`   Solución: ${error.solucion}`);
         }
       });
-      parts.push('');
+      parts.push("");
     }
 
-    return parts.join('\n');
+    return parts.join("\n");
   }
 
   // ========== Serialization ==========

@@ -1,8 +1,8 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
-import { ICommand } from '../../../shared/interfaces/IUseCase';
-import { Result } from '../../../shared/types/Result';
-import { IProgramRepository } from '../../../../domain/program-design/repositories/IProgramRepository';
-import { RecordId } from '../../../../domain/shared/value-objects/RecordId';
+import { Injectable, Logger, Inject } from "@nestjs/common";
+import { ICommand } from "../../../shared/interfaces/IUseCase";
+import { Result } from "../../../shared/types/Result";
+import { IProgramRepository } from "../../../../domain/program-design/repositories/IProgramRepository";
+import { RecordId } from "../../../../domain/shared/value-objects/RecordId";
 
 /**
  * PublishProgramUseCase
@@ -33,7 +33,7 @@ export class PublishProgramUseCase
   private readonly logger = new Logger(PublishProgramUseCase.name);
 
   constructor(
-    @Inject('IProgramRepository')
+    @Inject("IProgramRepository")
     private readonly programRepository: IProgramRepository,
   ) {}
 
@@ -46,7 +46,9 @@ export class PublishProgramUseCase
       const programa = await this.programRepository.findById(programaId);
 
       if (!programa) {
-        return Result.fail(new Error(`Program not found: ${request.programaId}`));
+        return Result.fail(
+          new Error(`Program not found: ${request.programaId}`),
+        );
       }
 
       // 2. Publish program (domain logic validates if can publish)
@@ -70,7 +72,7 @@ export class PublishProgramUseCase
         estado: savedPrograma.getEstado().getValue(),
       });
     } catch (error) {
-      this.logger.error('Failed to publish program', error);
+      this.logger.error("Failed to publish program", error);
       return Result.fail(error as Error);
     }
   }

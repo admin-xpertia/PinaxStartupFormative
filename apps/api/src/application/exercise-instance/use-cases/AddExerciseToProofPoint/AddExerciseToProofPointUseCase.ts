@@ -1,13 +1,13 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
-import { ICommand } from '../../../shared/interfaces/IUseCase';
-import { Result } from '../../../shared/types/Result';
-import { IExerciseInstanceRepository } from '../../../../domain/exercise-instance/repositories/IExerciseInstanceRepository';
-import { IExerciseTemplateRepository } from '../../../../domain/exercise-catalog/repositories/IExerciseTemplateRepository';
-import { IProofPointRepository } from '../../../../domain/program-design/repositories/IProgramRepository';
-import { ExerciseInstance } from '../../../../domain/exercise-instance/entities/ExerciseInstance';
-import { RecordId } from '../../../../domain/shared/value-objects/RecordId';
-import { AddExerciseToProofPointDTO } from './AddExerciseToProofPointDTO';
-import { SurrealDbService } from '../../../../core/database/surrealdb.service';
+import { Injectable, Logger, Inject } from "@nestjs/common";
+import { ICommand } from "../../../shared/interfaces/IUseCase";
+import { Result } from "../../../shared/types/Result";
+import { IExerciseInstanceRepository } from "../../../../domain/exercise-instance/repositories/IExerciseInstanceRepository";
+import { IExerciseTemplateRepository } from "../../../../domain/exercise-catalog/repositories/IExerciseTemplateRepository";
+import { IProofPointRepository } from "../../../../domain/program-design/repositories/IProgramRepository";
+import { ExerciseInstance } from "../../../../domain/exercise-instance/entities/ExerciseInstance";
+import { RecordId } from "../../../../domain/shared/value-objects/RecordId";
+import { AddExerciseToProofPointDTO } from "./AddExerciseToProofPointDTO";
+import { SurrealDbService } from "../../../../core/database/surrealdb.service";
 
 /**
  * AddExerciseToProofPointUseCase
@@ -30,16 +30,17 @@ export interface AddExerciseToProofPointResponse {
 
 @Injectable()
 export class AddExerciseToProofPointUseCase
-  implements ICommand<AddExerciseToProofPointDTO, AddExerciseToProofPointResponse>
+  implements
+    ICommand<AddExerciseToProofPointDTO, AddExerciseToProofPointResponse>
 {
   private readonly logger = new Logger(AddExerciseToProofPointUseCase.name);
 
   constructor(
-    @Inject('IExerciseInstanceRepository')
+    @Inject("IExerciseInstanceRepository")
     private readonly exerciseInstanceRepository: IExerciseInstanceRepository,
-    @Inject('IExerciseTemplateRepository')
+    @Inject("IExerciseTemplateRepository")
     private readonly templateRepository: IExerciseTemplateRepository,
-    @Inject('IProofPointRepository')
+    @Inject("IProofPointRepository")
     private readonly proofPointRepository: IProofPointRepository,
     private readonly db: SurrealDbService,
   ) {}
@@ -50,8 +51,8 @@ export class AddExerciseToProofPointUseCase
     try {
       // 1. Validate template exists - Query directly from database
       const templateResult = await this.db.query(
-        'SELECT * FROM type::thing($id)',
-        { id: request.templateId }
+        "SELECT * FROM type::thing($id)",
+        { id: request.templateId },
       );
 
       let template: any;
@@ -64,11 +65,13 @@ export class AddExerciseToProofPointUseCase
       }
 
       if (!template) {
-        return Result.fail(new Error(`Template not found: ${request.templateId}`));
+        return Result.fail(
+          new Error(`Template not found: ${request.templateId}`),
+        );
       }
 
       if (!template.activo) {
-        return Result.fail(new Error('Template is not active'));
+        return Result.fail(new Error("Template is not active"));
       }
 
       // 2. Validate proof point exists
@@ -76,7 +79,9 @@ export class AddExerciseToProofPointUseCase
       const proofPoint = await this.proofPointRepository.findById(proofPointId);
 
       if (!proofPoint) {
-        return Result.fail(new Error(`Proof point not found: ${request.proofPointId}`));
+        return Result.fail(
+          new Error(`Proof point not found: ${request.proofPointId}`),
+        );
       }
 
       // 3. Merge configuration with template defaults (skip validation)
@@ -86,9 +91,8 @@ export class AddExerciseToProofPointUseCase
       };
 
       // 4. Calculate order (append to end)
-      const existingInstances = await this.exerciseInstanceRepository.findByProofPoint(
-        proofPointId,
-      );
+      const existingInstances =
+        await this.exerciseInstanceRepository.findByProofPoint(proofPointId);
       const orden = existingInstances.length;
 
       // 5. Create ExerciseInstance domain entity
@@ -104,7 +108,8 @@ export class AddExerciseToProofPointUseCase
       );
 
       // 6. Save to repository
-      const savedInstance = await this.exerciseInstanceRepository.save(instance);
+      const savedInstance =
+        await this.exerciseInstanceRepository.save(instance);
 
       this.logger.log(
         `Exercise added to proof point: ${savedInstance.getId().toString()}`,
@@ -118,7 +123,7 @@ export class AddExerciseToProofPointUseCase
         estadoContenido: savedInstance.getEstadoContenido().getValue(),
       });
     } catch (error) {
-      this.logger.error('Failed to add exercise to proof point', error);
+      this.logger.error("Failed to add exercise to proof point", error);
       return Result.fail(error as Error);
     }
   }

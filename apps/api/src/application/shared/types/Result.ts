@@ -44,7 +44,7 @@ export class Result<T, E = Error> {
    */
   getValue(): T {
     if (!this.isSuccess) {
-      throw new Error('Cannot get value from failed result');
+      throw new Error("Cannot get value from failed result");
     }
     return this.value!;
   }
@@ -54,7 +54,7 @@ export class Result<T, E = Error> {
    */
   getError(): E {
     if (this.isSuccess) {
-      throw new Error('Cannot get error from successful result');
+      throw new Error("Cannot get error from successful result");
     }
     return this.error!;
   }

@@ -1,13 +1,13 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { IProgramRepository } from '../../../domain/program-design/repositories/IProgramRepository';
-import { Programa } from '../../../domain/program-design/entities/Programa';
-import { Fase } from '../../../domain/program-design/entities/Fase';
-import { ProofPoint } from '../../../domain/program-design/entities/ProofPoint';
-import { FaseDocumentation } from '../../../domain/program-design/entities/FaseDocumentation';
-import { RecordId } from '../../../domain/shared/value-objects/RecordId';
-import { ProgramStatus } from '../../../domain/program-design/value-objects/ProgramStatus';
-import { SurrealDbService } from '../../../core/database/surrealdb.service';
-import { ProgramMapper } from '../../mappers/ProgramMapper';
+import { Injectable, Logger } from "@nestjs/common";
+import { IProgramRepository } from "../../../domain/program-design/repositories/IProgramRepository";
+import { Programa } from "../../../domain/program-design/entities/Programa";
+import { Fase } from "../../../domain/program-design/entities/Fase";
+import { ProofPoint } from "../../../domain/program-design/entities/ProofPoint";
+import { FaseDocumentation } from "../../../domain/program-design/entities/FaseDocumentation";
+import { RecordId } from "../../../domain/shared/value-objects/RecordId";
+import { ProgramStatus } from "../../../domain/program-design/value-objects/ProgramStatus";
+import { SurrealDbService } from "../../../core/database/surrealdb.service";
+import { ProgramMapper } from "../../mappers/ProgramMapper";
 
 /**
  * ProgramRepository
@@ -45,10 +45,10 @@ export class ProgramRepository implements IProgramRepository {
    */
   async findAll(criteria?: any): Promise<Programa[]> {
     try {
-      const result = await this.db.select<any>('programa');
+      const result = await this.db.select<any>("programa");
       return result.map((raw) => this.mapper.programaToDomain(raw));
     } catch (error) {
-      this.logger.error('Error finding all programs', error);
+      this.logger.error("Error finding all programs", error);
       throw error;
     }
   }
@@ -76,7 +76,10 @@ export class ProgramRepository implements IProgramRepository {
       const saved = await this.findById(programa.getId());
       return saved!;
     } catch (error) {
-      this.logger.error(`Error saving program: ${programa.getId().toString()}`, error);
+      this.logger.error(
+        `Error saving program: ${programa.getId().toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -107,7 +110,10 @@ export class ProgramRepository implements IProgramRepository {
       const result = await this.findById(id);
       return result !== null;
     } catch (error) {
-      this.logger.error(`Error checking if program exists: ${id.toString()}`, error);
+      this.logger.error(
+        `Error checking if program exists: ${id.toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -129,7 +135,10 @@ export class ProgramRepository implements IProgramRepository {
 
       return result.map((raw) => this.mapper.programaToDomain(raw));
     } catch (error) {
-      this.logger.error(`Error finding programs by creator: ${creadorId.toString()}`, error);
+      this.logger.error(
+        `Error finding programs by creator: ${creadorId.toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -151,7 +160,10 @@ export class ProgramRepository implements IProgramRepository {
 
       return result.map((raw) => this.mapper.programaToDomain(raw));
     } catch (error) {
-      this.logger.error(`Error finding programs by status: ${status.getValue()}`, error);
+      this.logger.error(
+        `Error finding programs by status: ${status.getValue()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -196,7 +208,9 @@ export class ProgramRepository implements IProgramRepository {
         const ppResult = await this.db.query<any[]>(ppQuery, {
           faseIds: faseIds,
         });
-        proofPoints = ppResult.map((raw) => this.mapper.proofPointToDomain(raw));
+        proofPoints = ppResult.map((raw) =>
+          this.mapper.proofPointToDomain(raw),
+        );
       }
 
       // Get documentation for all fases
@@ -210,7 +224,10 @@ export class ProgramRepository implements IProgramRepository {
         documentation,
       };
     } catch (error) {
-      this.logger.error(`Error finding program with full structure: ${id.toString()}`, error);
+      this.logger.error(
+        `Error finding program with full structure: ${id.toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -257,7 +274,10 @@ export class ProgramRepository implements IProgramRepository {
         }
       }
     } catch (error) {
-      this.logger.error(`Error saving program with structure: ${programa.getId().toString()}`, error);
+      this.logger.error(
+        `Error saving program with structure: ${programa.getId().toString()}`,
+        error,
+      );
       throw error;
     }
   }

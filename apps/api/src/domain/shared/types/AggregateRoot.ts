@@ -1,6 +1,6 @@
-import { Entity } from './Entity';
-import { DomainEvent } from '../events/DomainEvent';
-import { RecordId } from '../value-objects/RecordId';
+import { Entity } from "./Entity";
+import { DomainEvent } from "../events/DomainEvent";
+import { RecordId } from "../value-objects/RecordId";
 
 /**
  * Base class for Aggregate Roots

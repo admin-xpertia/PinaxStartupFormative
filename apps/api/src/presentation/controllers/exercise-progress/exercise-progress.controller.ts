@@ -10,16 +10,16 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
-} from '@nestjs/common';
+} from "@nestjs/common";
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiParam,
   ApiBearerAuth,
-} from '@nestjs/swagger';
-import { SurrealDbService } from '../../../core/database/surrealdb.service';
-import { OpenAIService } from '../../../infrastructure/ai/OpenAIService';
+} from "@nestjs/swagger";
+import { SurrealDbService } from "../../../core/database/surrealdb.service";
+import { OpenAIService } from "../../../infrastructure/ai/OpenAIService";
 import {
   StartExerciseDto,
   SaveProgressDto,
@@ -27,15 +27,15 @@ import {
   CompleteExerciseResponseDto,
   ExerciseProgressResponseDto,
   StudentProgressSummaryDto,
-} from '../../dtos/exercise-progress';
+} from "../../dtos/exercise-progress";
 
 /**
  * ExerciseProgressController
  * REST API endpoints for Exercise Progress Management (Student actions)
  */
-@ApiTags('exercise-progress')
+@ApiTags("exercise-progress")
 @Controller()
-@ApiBearerAuth('JWT-auth')
+@ApiBearerAuth("JWT-auth")
 export class ExerciseProgressController {
   private readonly logger = new Logger(ExerciseProgressController.name);
 
@@ -47,24 +47,27 @@ export class ExerciseProgressController {
   /**
    * Start an exercise (mark as started)
    */
-  @Post('student/exercises/:exerciseId/start')
+  @Post("student/exercises/:exerciseId/start")
   @ApiOperation({
-    summary: 'Start an exercise',
-    description: 'Mark an exercise as started by a student',
+    summary: "Start an exercise",
+    description: "Mark an exercise as started by a student",
   })
   @ApiParam({
-    name: 'exerciseId',
-    description: 'ExerciseInstance ID',
-    example: 'exercise_instance:abc123',
+    name: "exerciseId",
+    description: "ExerciseInstance ID",
+    example: "exercise_instance:abc123",
   })
   @ApiResponse({
     status: 201,
-    description: 'Exercise started successfully',
+    description: "Exercise started successfully",
     type: ExerciseProgressResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Exercise not found or not published' })
+  @ApiResponse({
+    status: 404,
+    description: "Exercise not found or not published",
+  })
   async startExercise(
-    @Param('exerciseId') exerciseId: string,
+    @Param("exerciseId") exerciseId: string,
     @Body() startDto: StartExerciseDto,
   ): Promise<ExerciseProgressResponseDto> {
     const decodedId = decodeURIComponent(exerciseId);
@@ -75,7 +78,9 @@ export class ExerciseProgressController {
       WHERE estado_contenido = 'publicado'
     `;
 
-    const exerciseResult = await this.db.query(exerciseQuery, { id: decodedId });
+    const exerciseResult = await this.db.query(exerciseQuery, {
+      id: decodedId,
+    });
     let exercise: any;
     if (Array.isArray(exerciseResult) && exerciseResult.length > 0) {
       if (Array.isArray(exerciseResult[0]) && exerciseResult[0].length > 0) {
@@ -86,7 +91,9 @@ export class ExerciseProgressController {
     }
 
     if (!exercise) {
-      throw new NotFoundException(`Published exercise not found: ${exerciseId}`);
+      throw new NotFoundException(
+        `Published exercise not found: ${exerciseId}`,
+      );
     }
 
     // Check if progress already exists
@@ -150,7 +157,7 @@ export class ExerciseProgressController {
     }
 
     if (!newProgress) {
-      throw new BadRequestException('Failed to create progress record');
+      throw new BadRequestException("Failed to create progress record");
     }
 
     return this.mapProgressToDto(newProgress);
@@ -159,23 +166,23 @@ export class ExerciseProgressController {
   /**
    * Save exercise progress
    */
-  @Put('student/exercises/:exerciseId/progress')
+  @Put("student/exercises/:exerciseId/progress")
   @ApiOperation({
-    summary: 'Save exercise progress',
-    description: 'Save current progress and student work data',
+    summary: "Save exercise progress",
+    description: "Save current progress and student work data",
   })
   @ApiParam({
-    name: 'exerciseId',
-    description: 'ExerciseInstance ID',
-    example: 'exercise_instance:abc123',
+    name: "exerciseId",
+    description: "ExerciseInstance ID",
+    example: "exercise_instance:abc123",
   })
   @ApiResponse({
     status: 200,
-    description: 'Progress saved successfully',
+    description: "Progress saved successfully",
     type: ExerciseProgressResponseDto,
   })
   async saveProgress(
-    @Param('exerciseId') exerciseId: string,
+    @Param("exerciseId") exerciseId: string,
     @Body() saveDto: SaveProgressDto,
   ): Promise<ExerciseProgressResponseDto> {
     const decodedId = decodeURIComponent(exerciseId);
@@ -205,7 +212,9 @@ export class ExerciseProgressController {
     }
 
     if (!progress) {
-      throw new NotFoundException('Progress record not found. Start the exercise first.');
+      throw new NotFoundException(
+        "Progress record not found. Start the exercise first.",
+      );
     }
 
     // Update progress
@@ -220,8 +229,10 @@ export class ExerciseProgressController {
 
     const updateResult = await this.db.query(updateQuery, {
       progressId: progress.id,
-      porcentaje: saveDto.porcentajeCompletitud ?? progress.porcentaje_completitud,
-      tiempo: saveDto.tiempoInvertidoMinutos ?? progress.tiempo_invertido_minutos,
+      porcentaje:
+        saveDto.porcentajeCompletitud ?? progress.porcentaje_completitud,
+      tiempo:
+        saveDto.tiempoInvertidoMinutos ?? progress.tiempo_invertido_minutos,
       datos: saveDto.datos ?? progress.datos_guardados ?? {},
     });
 
@@ -235,7 +246,7 @@ export class ExerciseProgressController {
     }
 
     if (!updatedProgress) {
-      throw new BadRequestException('Failed to update progress');
+      throw new BadRequestException("Failed to update progress");
     }
 
     return this.mapProgressToDto(updatedProgress);
@@ -244,24 +255,24 @@ export class ExerciseProgressController {
   /**
    * Complete an exercise
    */
-  @Post('student/exercises/:exerciseId/complete')
+  @Post("student/exercises/:exerciseId/complete")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Complete an exercise',
-    description: 'Mark exercise as completed and submit final work',
+    summary: "Complete an exercise",
+    description: "Mark exercise as completed and submit final work",
   })
   @ApiParam({
-    name: 'exerciseId',
-    description: 'ExerciseInstance ID',
-    example: 'exercise_instance:abc123',
+    name: "exerciseId",
+    description: "ExerciseInstance ID",
+    example: "exercise_instance:abc123",
   })
   @ApiResponse({
     status: 200,
-    description: 'Exercise completed successfully',
+    description: "Exercise completed successfully",
     type: CompleteExerciseResponseDto,
   })
   async completeExercise(
-    @Param('exerciseId') exerciseId: string,
+    @Param("exerciseId") exerciseId: string,
     @Body() completeDto: CompleteExerciseDto,
   ): Promise<CompleteExerciseResponseDto> {
     const decodedId = decodeURIComponent(exerciseId);
@@ -291,7 +302,9 @@ export class ExerciseProgressController {
     }
 
     if (!progress) {
-      throw new NotFoundException('Progress record not found. Start the exercise first.');
+      throw new NotFoundException(
+        "Progress record not found. Start the exercise first.",
+      );
     }
 
     // Update to completed
@@ -309,7 +322,8 @@ export class ExerciseProgressController {
 
     const updateResult = await this.db.query(updateQuery, {
       progressId: progress.id,
-      tiempo: completeDto.tiempoInvertidoMinutos ?? progress.tiempo_invertido_minutos,
+      tiempo:
+        completeDto.tiempoInvertidoMinutos ?? progress.tiempo_invertido_minutos,
       score: completeDto.scoreFinal ?? null,
       datos: completeDto.datos,
     });
@@ -324,7 +338,7 @@ export class ExerciseProgressController {
     }
 
     if (!completedProgress) {
-      throw new BadRequestException('Failed to complete exercise');
+      throw new BadRequestException("Failed to complete exercise");
     }
 
     // Get exercise details for feedback generation
@@ -344,8 +358,8 @@ export class ExerciseProgressController {
 
     // Generate AI feedback
     const feedback = await this.generateAIFeedback(
-      exercise?.nombre || 'ejercicio',
-      exercise?.template || 'general',
+      exercise?.nombre || "ejercicio",
+      exercise?.template || "general",
       completeDto.datos,
       completeDto.tiempoInvertidoMinutos || 0,
     );
@@ -362,24 +376,24 @@ export class ExerciseProgressController {
   /**
    * Get exercise progress for a student
    */
-  @Get('student/exercises/:exerciseId/progress')
+  @Get("student/exercises/:exerciseId/progress")
   @ApiOperation({
-    summary: 'Get exercise progress',
-    description: 'Get current progress for a student on a specific exercise',
+    summary: "Get exercise progress",
+    description: "Get current progress for a student on a specific exercise",
   })
   @ApiParam({
-    name: 'exerciseId',
-    description: 'ExerciseInstance ID',
-    example: 'exercise_instance:abc123',
+    name: "exerciseId",
+    description: "ExerciseInstance ID",
+    example: "exercise_instance:abc123",
   })
   @ApiResponse({
     status: 200,
-    description: 'Progress information',
+    description: "Progress information",
     type: ExerciseProgressResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Progress not found' })
+  @ApiResponse({ status: 404, description: "Progress not found" })
   async getProgress(
-    @Param('exerciseId') exerciseId: string,
+    @Param("exerciseId") exerciseId: string,
     @Body() body: { estudianteId: string; cohorteId: string },
   ): Promise<ExerciseProgressResponseDto> {
     const decodedId = decodeURIComponent(exerciseId);
@@ -408,7 +422,7 @@ export class ExerciseProgressController {
     }
 
     if (!progress) {
-      throw new NotFoundException('Progress not found');
+      throw new NotFoundException("Progress not found");
     }
 
     return this.mapProgressToDto(progress);
@@ -417,14 +431,15 @@ export class ExerciseProgressController {
   /**
    * Get student progress summary
    */
-  @Get('student/progress/summary')
+  @Get("student/progress/summary")
   @ApiOperation({
-    summary: 'Get student progress summary',
-    description: 'Get overall progress statistics for a student across all exercises',
+    summary: "Get student progress summary",
+    description:
+      "Get overall progress statistics for a student across all exercises",
   })
   @ApiResponse({
     status: 200,
-    description: 'Progress summary',
+    description: "Progress summary",
     type: StudentProgressSummaryDto,
   })
   async getProgressSummary(
@@ -476,8 +491,12 @@ export class ExerciseProgressController {
     }
 
     // Calculate overall statistics
-    const completedRecords = progressRecords.filter((p) => p.estado === 'completado');
-    const inProgressRecords = progressRecords.filter((p) => p.estado === 'en_progreso');
+    const completedRecords = progressRecords.filter(
+      (p) => p.estado === "completado",
+    );
+    const inProgressRecords = progressRecords.filter(
+      (p) => p.estado === "en_progreso",
+    );
 
     const totalTimeInvested = progressRecords.reduce(
       (sum, p) => sum + (p.tiempo_invertido_minutos || 0),
@@ -490,7 +509,8 @@ export class ExerciseProgressController {
 
     const averageScore =
       scoresWithValues.length > 0
-        ? scoresWithValues.reduce((sum, s) => sum + s, 0) / scoresWithValues.length
+        ? scoresWithValues.reduce((sum, s) => sum + s, 0) /
+          scoresWithValues.length
         : null;
 
     // Get proof point names
@@ -498,7 +518,7 @@ export class ExerciseProgressController {
     const proofPointsQuery = `
       SELECT id, nombre
       FROM proof_point
-      WHERE id IN [${proofPointIds.map((id) => `type::thing('${id}')`).join(', ')}]
+      WHERE id IN [${proofPointIds.map((id) => `type::thing('${id}')`).join(", ")}]
     `;
 
     const proofPointsResult = await this.db.query(proofPointsQuery);
@@ -518,7 +538,7 @@ export class ExerciseProgressController {
         const ppData = proofPoints.find((pp) => pp.id === ppId);
         proofPointStatsMap.set(ppId, {
           proofPointId: ppId,
-          proofPointName: ppData?.nombre || 'Unknown',
+          proofPointName: ppData?.nombre || "Unknown",
           totalExercises: 0,
           completedExercises: 0,
           timeInvestedMinutes: 0,
@@ -530,33 +550,41 @@ export class ExerciseProgressController {
       stats.totalExercises++;
 
       const progress = progressRecords.find(
-        (p) => p.exercise_instance === exercise.id && p.estado === 'completado',
+        (p) => p.exercise_instance === exercise.id && p.estado === "completado",
       );
       if (progress) {
         stats.completedExercises++;
         stats.timeInvestedMinutes += progress.tiempo_invertido_minutos || 0;
-        if (progress.score_final !== null && progress.score_final !== undefined) {
+        if (
+          progress.score_final !== null &&
+          progress.score_final !== undefined
+        ) {
           stats.scores.push(progress.score_final);
         }
       }
     }
 
     // Convert to DTO format
-    const proofPointStats = Array.from(proofPointStatsMap.values()).map((stats) => ({
-      proofPointId: stats.proofPointId,
-      proofPointName: stats.proofPointName,
-      totalExercises: stats.totalExercises,
-      completedExercises: stats.completedExercises,
-      completionPercentage:
-        stats.totalExercises > 0
-          ? Math.round((stats.completedExercises / stats.totalExercises) * 100)
-          : 0,
-      averageScore:
-        stats.scores.length > 0
-          ? stats.scores.reduce((sum: number, s: number) => sum + s, 0) / stats.scores.length
-          : null,
-      timeInvestedMinutes: stats.timeInvestedMinutes,
-    }));
+    const proofPointStats = Array.from(proofPointStatsMap.values()).map(
+      (stats) => ({
+        proofPointId: stats.proofPointId,
+        proofPointName: stats.proofPointName,
+        totalExercises: stats.totalExercises,
+        completedExercises: stats.completedExercises,
+        completionPercentage:
+          stats.totalExercises > 0
+            ? Math.round(
+                (stats.completedExercises / stats.totalExercises) * 100,
+              )
+            : 0,
+        averageScore:
+          stats.scores.length > 0
+            ? stats.scores.reduce((sum: number, s: number) => sum + s, 0) /
+              stats.scores.length
+            : null,
+        timeInvestedMinutes: stats.timeInvestedMinutes,
+      }),
+    );
 
     // Get recent completed exercises (last 10)
     const recentCompletedQuery = `
@@ -581,15 +609,19 @@ export class ExerciseProgressController {
 
     let recentRecords: any[] = [];
     if (Array.isArray(recentResult) && recentResult.length > 0) {
-      recentRecords = Array.isArray(recentResult[0]) ? recentResult[0] : [recentResult[0]];
+      recentRecords = Array.isArray(recentResult[0])
+        ? recentResult[0]
+        : [recentResult[0]];
     }
 
     const recentCompletedExercises = recentRecords.map((record) => {
-      const exercise = allExercises.find((e) => e.id === record.exercise_instance);
+      const exercise = allExercises.find(
+        (e) => e.id === record.exercise_instance,
+      );
       return {
         exerciseId: record.exercise_instance,
-        exerciseName: exercise?.nombre || 'Unknown',
-        exerciseTemplate: exercise?.template || 'general',
+        exerciseName: exercise?.nombre || "Unknown",
+        exerciseTemplate: exercise?.template || "general",
         completedAt: record.fecha_completado,
         score: record.score_final,
         timeInvestedMinutes: record.tiempo_invertido_minutos || 0,
@@ -641,7 +673,7 @@ Feedback:`;
 
       return response.trim();
     } catch (error) {
-      this.logger.error('Failed to generate AI feedback:', error);
+      this.logger.error("Failed to generate AI feedback:", error);
       // Fallback to generic message
       return `¡Excelente trabajo! Has completado el ejercicio "${exerciseName}" exitosamente. Continúa practicando para fortalecer tus habilidades.`;
     }

@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
-import { ExerciseTemplate } from '../../domain/exercise-catalog/entities/ExerciseTemplate';
-import { ExerciseInstance } from '../../domain/exercise-instance/entities/ExerciseInstance';
-import { ExerciseContent } from '../../domain/exercise-instance/entities/ExerciseContent';
-import { RecordId } from '../../domain/shared/value-objects/RecordId';
-import { Timestamp } from '../../domain/shared/value-objects/Timestamp';
-import { ExerciseCategory } from '../../domain/exercise-catalog/value-objects/ExerciseCategory';
-import { ConfigurationSchema } from '../../domain/exercise-catalog/value-objects/ConfigurationSchema';
-import { ContentStatus } from '../../domain/exercise-instance/value-objects/ContentStatus';
+import { Injectable } from "@nestjs/common";
+import { ExerciseTemplate } from "../../domain/exercise-catalog/entities/ExerciseTemplate";
+import { ExerciseInstance } from "../../domain/exercise-instance/entities/ExerciseInstance";
+import { ExerciseContent } from "../../domain/exercise-instance/entities/ExerciseContent";
+import { RecordId } from "../../domain/shared/value-objects/RecordId";
+import { Timestamp } from "../../domain/shared/value-objects/Timestamp";
+import { ExerciseCategory } from "../../domain/exercise-catalog/value-objects/ExerciseCategory";
+import { ConfigurationSchema } from "../../domain/exercise-catalog/value-objects/ConfigurationSchema";
+import { ContentStatus } from "../../domain/exercise-instance/value-objects/ContentStatus";
 
 /**
  * ExerciseMapper
@@ -20,7 +20,9 @@ export class ExerciseMapper {
   templateToDomain(raw: any): ExerciseTemplate {
     const id = RecordId.fromString(raw.id);
     const categoria = ExerciseCategory.create(raw.categoria);
-    const configuracionSchema = ConfigurationSchema.create(raw.configuracion_schema || {});
+    const configuracionSchema = ConfigurationSchema.create(
+      raw.configuracion_schema || {},
+    );
 
     return ExerciseTemplate.reconstitute(id, {
       nombre: raw.nombre,
@@ -34,7 +36,7 @@ export class ExerciseMapper {
       outputSchema: raw.output_schema || {},
       previewConfig: raw.preview_config || {},
       icono: raw.icono || categoria.getDefaultIcon(),
-      color: raw.color || '#6366f1',
+      color: raw.color || "#6366f1",
       esOficial: raw.es_oficial ?? true,
       activo: raw.activo ?? true,
       createdAt: Timestamp.fromISOString(raw.created_at),
@@ -67,7 +69,7 @@ export class ExerciseMapper {
       proofPoint,
       nombre: raw.nombre,
       descripcionBreve: raw.descripcion_breve,
-      consideracionesContexto: raw.consideraciones_contexto || '',
+      consideracionesContexto: raw.consideraciones_contexto || "",
       configuracionPersonalizada: raw.configuracion_personalizada || {},
       orden: raw.orden,
       duracionEstimadaMinutos: raw.duracion_estimada_minutos,
@@ -99,7 +101,7 @@ export class ExerciseMapper {
 
     return ExerciseContent.reconstitute(id, {
       exerciseInstance,
-      contenido: raw.contenido || {},
+      contenido: raw.contenido_generado || {},
       estado: raw.estado,
       generacionRequest,
       version: raw.version || 1,

@@ -1,9 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { IProofPointRepository } from '../../../domain/program-design/repositories/IProgramRepository';
-import { ProofPoint } from '../../../domain/program-design/entities/ProofPoint';
-import { RecordId } from '../../../domain/shared/value-objects/RecordId';
-import { SurrealDbService } from '../../../core/database/surrealdb.service';
-import { ProgramMapper } from '../../mappers/ProgramMapper';
+import { Injectable, Logger } from "@nestjs/common";
+import { IProofPointRepository } from "../../../domain/program-design/repositories/IProgramRepository";
+import { ProofPoint } from "../../../domain/program-design/entities/ProofPoint";
+import { RecordId } from "../../../domain/shared/value-objects/RecordId";
+import { SurrealDbService } from "../../../core/database/surrealdb.service";
+import { ProgramMapper } from "../../mappers/ProgramMapper";
 
 /**
  * ProofPointRepository
@@ -31,7 +31,10 @@ export class ProofPointRepository implements IProofPointRepository {
 
       return this.mapper.proofPointToDomain(result[0]);
     } catch (error) {
-      this.logger.error(`Error finding proof point by id: ${id.toString()}`, error);
+      this.logger.error(
+        `Error finding proof point by id: ${id.toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -41,10 +44,10 @@ export class ProofPointRepository implements IProofPointRepository {
    */
   async findAll(criteria?: any): Promise<ProofPoint[]> {
     try {
-      const result = await this.db.select<any>('proof_point');
+      const result = await this.db.select<any>("proof_point");
       return result.map((raw) => this.mapper.proofPointToDomain(raw));
     } catch (error) {
-      this.logger.error('Error finding all proof points', error);
+      this.logger.error("Error finding all proof points", error);
       throw error;
     }
   }
@@ -72,7 +75,10 @@ export class ProofPointRepository implements IProofPointRepository {
       const saved = await this.findById(proofPoint.getId());
       return saved!;
     } catch (error) {
-      this.logger.error(`Error saving proof point: ${proofPoint.getId().toString()}`, error);
+      this.logger.error(
+        `Error saving proof point: ${proofPoint.getId().toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -103,7 +109,10 @@ export class ProofPointRepository implements IProofPointRepository {
       const result = await this.findById(id);
       return result !== null;
     } catch (error) {
-      this.logger.error(`Error checking if proof point exists: ${id.toString()}`, error);
+      this.logger.error(
+        `Error checking if proof point exists: ${id.toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -129,7 +138,10 @@ export class ProofPointRepository implements IProofPointRepository {
 
       return proofPoints.map((raw) => this.mapper.proofPointToDomain(raw));
     } catch (error) {
-      this.logger.error(`Error finding proof points by fase: ${faseId.toString()}`, error);
+      this.logger.error(
+        `Error finding proof points by fase: ${faseId.toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -187,7 +199,10 @@ export class ProofPointRepository implements IProofPointRepository {
         prerequisites,
       };
     } catch (error) {
-      this.logger.error(`Error finding proof point with prerequisites: ${id.toString()}`, error);
+      this.logger.error(
+        `Error finding proof point with prerequisites: ${id.toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -208,7 +223,10 @@ export class ProofPointRepository implements IProofPointRepository {
 
       return result.map((raw) => this.mapper.proofPointToDomain(raw));
     } catch (error) {
-      this.logger.error(`Error finding dependent proof points: ${proofPointId.toString()}`, error);
+      this.logger.error(
+        `Error finding dependent proof points: ${proofPointId.toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -216,7 +234,10 @@ export class ProofPointRepository implements IProofPointRepository {
   /**
    * Reorders proof points within a fase
    */
-  async reorder(faseId: RecordId, ppOrders: Map<RecordId, number>): Promise<void> {
+  async reorder(
+    faseId: RecordId,
+    ppOrders: Map<RecordId, number>,
+  ): Promise<void> {
     try {
       // Update each proof point with its new order
       for (const [ppId, newOrder] of ppOrders.entries()) {
@@ -230,7 +251,10 @@ export class ProofPointRepository implements IProofPointRepository {
         });
       }
     } catch (error) {
-      this.logger.error(`Error reordering proof points for fase: ${faseId.toString()}`, error);
+      this.logger.error(
+        `Error reordering proof points for fase: ${faseId.toString()}`,
+        error,
+      );
       throw error;
     }
   }

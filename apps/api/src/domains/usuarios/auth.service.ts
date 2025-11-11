@@ -98,7 +98,7 @@ export class AuthService {
         throw new UnauthorizedException("Usuario no encontrado");
       }
 
-      let user = Array.isArray(result) ? result[0] : result;
+      const user = Array.isArray(result) ? result[0] : result;
 
       // Limpiar campos sensibles
       if (user?.password_hash) {

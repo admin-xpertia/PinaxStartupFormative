@@ -16,11 +16,11 @@ export class RecordId {
    * Creates a RecordId from a full record string (e.g., "programa:abc123")
    */
   static fromString(recordIdString: string): RecordId {
-    if (!recordIdString || typeof recordIdString !== 'string') {
-      throw new Error('RecordId must be a non-empty string');
+    if (!recordIdString || typeof recordIdString !== "string") {
+      throw new Error("RecordId must be a non-empty string");
     }
 
-    const parts = recordIdString.split(':');
+    const parts = recordIdString.split(":");
 
     if (parts.length !== 2) {
       throw new Error(
@@ -73,11 +73,11 @@ export class RecordId {
    */
   private validate(): void {
     if (!this.table || this.table.trim().length === 0) {
-      throw new Error('RecordId table cannot be empty');
+      throw new Error("RecordId table cannot be empty");
     }
 
     if (!this.id || this.id.trim().length === 0) {
-      throw new Error('RecordId id cannot be empty');
+      throw new Error("RecordId id cannot be empty");
     }
 
     // Validate table name format (alphanumeric and underscore only)

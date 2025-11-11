@@ -1,5 +1,5 @@
-import { DomainEvent } from '../../shared/events/DomainEvent';
-import { RecordId } from '../../shared/value-objects/RecordId';
+import { DomainEvent } from "../../shared/events/DomainEvent";
+import { RecordId } from "../../shared/value-objects/RecordId";
 
 /**
  * ExerciseContentGeneratedEvent
@@ -11,7 +11,7 @@ export class ExerciseContentGeneratedEvent extends DomainEvent {
     public readonly contentId: RecordId,
     public readonly exerciseName: string,
   ) {
-    super('ExerciseContentGenerated');
+    super("ExerciseContentGenerated");
   }
 
   toJSON(): Record<string, any> {

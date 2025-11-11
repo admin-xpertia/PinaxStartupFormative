@@ -1,9 +1,12 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
-import { ICommand } from '../../../shared/interfaces/IUseCase';
-import { Result } from '../../../shared/types/Result';
-import { IProgramRepository, IFaseRepository } from '../../../../domain/program-design/repositories/IProgramRepository';
-import { Fase } from '../../../../domain/program-design/entities/Fase';
-import { RecordId } from '../../../../domain/shared/value-objects/RecordId';
+import { Injectable, Logger, Inject } from "@nestjs/common";
+import { ICommand } from "../../../shared/interfaces/IUseCase";
+import { Result } from "../../../shared/types/Result";
+import {
+  IProgramRepository,
+  IFaseRepository,
+} from "../../../../domain/program-design/repositories/IProgramRepository";
+import { Fase } from "../../../../domain/program-design/entities/Fase";
+import { RecordId } from "../../../../domain/shared/value-objects/RecordId";
 
 /**
  * AddFaseToProgram UseCase
@@ -40,9 +43,9 @@ export class AddFaseToProgramUseCase
   private readonly logger = new Logger(AddFaseToProgramUseCase.name);
 
   constructor(
-    @Inject('IProgramRepository')
+    @Inject("IProgramRepository")
     private readonly programRepository: IProgramRepository,
-    @Inject('IFaseRepository')
+    @Inject("IFaseRepository")
     private readonly faseRepository: IFaseRepository,
   ) {}
 
@@ -55,22 +58,27 @@ export class AddFaseToProgramUseCase
       const programa = await this.programRepository.findById(programaId);
 
       if (!programa) {
-        return Result.fail(new Error(`Program not found: ${request.programaId}`));
+        return Result.fail(
+          new Error(`Program not found: ${request.programaId}`),
+        );
       }
 
       // 2. Calculate orden and numeroFase (get existing fases)
-      const existingFases = await this.faseRepository.findByPrograma(programaId);
-      const maxOrden = existingFases.length > 0
-        ? Math.max(...existingFases.map(f => f.getOrden()))
-        : -1;
+      const existingFases =
+        await this.faseRepository.findByPrograma(programaId);
+      const maxOrden =
+        existingFases.length > 0
+          ? Math.max(...existingFases.map((f) => f.getOrden()))
+          : -1;
       const newOrden = maxOrden + 1;
 
       // Auto-calculate numeroFase if not provided
-      const numeroFase = request.numeroFase !== undefined
-        ? request.numeroFase
-        : existingFases.length > 0
-          ? Math.max(...existingFases.map(f => f.getNumeroFase())) + 1
-          : 1;
+      const numeroFase =
+        request.numeroFase !== undefined
+          ? request.numeroFase
+          : existingFases.length > 0
+            ? Math.max(...existingFases.map((f) => f.getNumeroFase())) + 1
+            : 1;
 
       // 3. Create Fase entity
       const fase = Fase.create(
@@ -83,7 +91,10 @@ export class AddFaseToProgramUseCase
       );
 
       // 3.1. Update objetivos de aprendizaje if provided
-      if (request.objetivosAprendizaje && request.objetivosAprendizaje.length > 0) {
+      if (
+        request.objetivosAprendizaje &&
+        request.objetivosAprendizaje.length > 0
+      ) {
         fase.updateObjetivosAprendizaje(request.objetivosAprendizaje);
       }
 
@@ -102,7 +113,7 @@ export class AddFaseToProgramUseCase
         orden: savedFase.getOrden(),
       });
     } catch (error) {
-      this.logger.error('Failed to add fase to program', error);
+      this.logger.error("Failed to add fase to program", error);
       return Result.fail(error as Error);
     }
   }

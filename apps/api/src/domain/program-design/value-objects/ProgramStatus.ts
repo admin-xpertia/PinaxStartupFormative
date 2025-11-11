@@ -1,4 +1,4 @@
-import { ValueObject } from '../../shared/types/ValueObject';
+import { ValueObject } from "../../shared/types/ValueObject";
 
 /**
  * ProgramStatus Value Object
@@ -7,10 +7,7 @@ import { ValueObject } from '../../shared/types/ValueObject';
  * Values must match the database schema constraint:
  * ASSERT $value IN ['borrador', 'publicado', 'archivado']
  */
-export type ProgramStatusType =
-  | 'borrador'
-  | 'publicado'
-  | 'archivado';
+export type ProgramStatusType = "borrador" | "publicado" | "archivado";
 
 export class ProgramStatus extends ValueObject<{ value: ProgramStatusType }> {
   private constructor(value: ProgramStatusType) {
@@ -22,15 +19,15 @@ export class ProgramStatus extends ValueObject<{ value: ProgramStatusType }> {
   }
 
   static draft(): ProgramStatus {
-    return new ProgramStatus('borrador');
+    return new ProgramStatus("borrador");
   }
 
   static published(): ProgramStatus {
-    return new ProgramStatus('publicado');
+    return new ProgramStatus("publicado");
   }
 
   static archived(): ProgramStatus {
-    return new ProgramStatus('archivado');
+    return new ProgramStatus("archivado");
   }
 
   getValue(): ProgramStatusType {
@@ -38,15 +35,15 @@ export class ProgramStatus extends ValueObject<{ value: ProgramStatusType }> {
   }
 
   isDraft(): boolean {
-    return this.props.value === 'borrador';
+    return this.props.value === "borrador";
   }
 
   isPublished(): boolean {
-    return this.props.value === 'publicado';
+    return this.props.value === "publicado";
   }
 
   isArchived(): boolean {
-    return this.props.value === 'archivado';
+    return this.props.value === "archivado";
   }
 
   canEdit(): boolean {

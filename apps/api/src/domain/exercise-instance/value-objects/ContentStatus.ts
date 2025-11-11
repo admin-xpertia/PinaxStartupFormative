@@ -1,10 +1,16 @@
-import { ValueObject } from '../../shared/types/ValueObject';
+import { ValueObject } from "../../shared/types/ValueObject";
 
 /**
  * ContentStatus Value Object
  * Represents the status of exercise content generation
  */
-export type ContentStatusType = 'sin_generar' | 'generando' | 'generado' | 'draft' | 'publicado' | 'error';
+export type ContentStatusType =
+  | "sin_generar"
+  | "generando"
+  | "generado"
+  | "draft"
+  | "publicado"
+  | "error";
 
 export class ContentStatus extends ValueObject<{ value: ContentStatusType }> {
   private constructor(value: ContentStatusType) {
@@ -16,27 +22,27 @@ export class ContentStatus extends ValueObject<{ value: ContentStatusType }> {
   }
 
   static sinGenerar(): ContentStatus {
-    return new ContentStatus('sin_generar');
+    return new ContentStatus("sin_generar");
   }
 
   static generando(): ContentStatus {
-    return new ContentStatus('generando');
+    return new ContentStatus("generando");
   }
 
   static generado(): ContentStatus {
-    return new ContentStatus('generado');
+    return new ContentStatus("generado");
   }
 
   static draft(): ContentStatus {
-    return new ContentStatus('draft');
+    return new ContentStatus("draft");
   }
 
   static publicado(): ContentStatus {
-    return new ContentStatus('publicado');
+    return new ContentStatus("publicado");
   }
 
   static error(): ContentStatus {
-    return new ContentStatus('error');
+    return new ContentStatus("error");
   }
 
   getValue(): ContentStatusType {
@@ -44,39 +50,39 @@ export class ContentStatus extends ValueObject<{ value: ContentStatusType }> {
   }
 
   isSinGenerar(): boolean {
-    return this.props.value === 'sin_generar';
+    return this.props.value === "sin_generar";
   }
 
   isGenerando(): boolean {
-    return this.props.value === 'generando';
+    return this.props.value === "generando";
   }
 
   isGenerado(): boolean {
-    return this.props.value === 'generado';
+    return this.props.value === "generado";
   }
 
   isDraft(): boolean {
-    return this.props.value === 'draft';
+    return this.props.value === "draft";
   }
 
   isPublicado(): boolean {
-    return this.props.value === 'publicado';
+    return this.props.value === "publicado";
   }
 
   isError(): boolean {
-    return this.props.value === 'error';
+    return this.props.value === "error";
   }
 
   canGenerate(): boolean {
-    return this.props.value === 'sin_generar' || this.props.value === 'error';
+    return this.props.value === "sin_generar" || this.props.value === "error";
   }
 
   canEdit(): boolean {
-    return this.props.value === 'draft' || this.props.value === 'generado';
+    return this.props.value === "draft" || this.props.value === "generado";
   }
 
   canPublish(): boolean {
-    return this.props.value === 'draft' || this.props.value === 'generado';
+    return this.props.value === "draft" || this.props.value === "generado";
   }
 
   equals(vo?: ValueObject<{ value: ContentStatusType }>): boolean {

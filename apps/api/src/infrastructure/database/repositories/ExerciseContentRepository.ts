@@ -1,9 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { IExerciseContentRepository } from '../../../domain/exercise-instance/repositories/IExerciseContentRepository';
-import { ExerciseContent } from '../../../domain/exercise-instance/entities/ExerciseContent';
-import { RecordId } from '../../../domain/shared/value-objects/RecordId';
-import { SurrealDbService } from '../../../core/database/surrealdb.service';
-import { ExerciseMapper } from '../../mappers/ExerciseMapper';
+import { Injectable, Logger } from "@nestjs/common";
+import { IExerciseContentRepository } from "../../../domain/exercise-instance/repositories/IExerciseContentRepository";
+import { ExerciseContent } from "../../../domain/exercise-instance/entities/ExerciseContent";
+import { RecordId } from "../../../domain/shared/value-objects/RecordId";
+import { SurrealDbService } from "../../../core/database/surrealdb.service";
+import { ExerciseMapper } from "../../mappers/ExerciseMapper";
 
 /**
  * ExerciseContentRepository
@@ -41,10 +41,10 @@ export class ExerciseContentRepository implements IExerciseContentRepository {
    */
   async findAll(criteria?: any): Promise<ExerciseContent[]> {
     try {
-      const result = await this.db.select<any>('exercise_content');
+      const result = await this.db.select<any>("exercise_content");
       return result.map((raw) => this.mapper.contentToDomain(raw));
     } catch (error) {
-      this.logger.error('Error finding all content', error);
+      this.logger.error("Error finding all content", error);
       throw error;
     }
   }
@@ -72,7 +72,10 @@ export class ExerciseContentRepository implements IExerciseContentRepository {
       const saved = await this.findById(content.getId());
       return saved!;
     } catch (error) {
-      this.logger.error(`Error saving content: ${content.getId().toString()}`, error);
+      this.logger.error(
+        `Error saving content: ${content.getId().toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -103,7 +106,10 @@ export class ExerciseContentRepository implements IExerciseContentRepository {
       const result = await this.findById(id);
       return result !== null;
     } catch (error) {
-      this.logger.error(`Error checking if content exists: ${id.toString()}`, error);
+      this.logger.error(
+        `Error checking if content exists: ${id.toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -130,7 +136,10 @@ export class ExerciseContentRepository implements IExerciseContentRepository {
 
       return this.mapper.contentToDomain(result[0]);
     } catch (error) {
-      this.logger.error(`Error finding content by instance: ${instanceId.toString()}`, error);
+      this.logger.error(
+        `Error finding content by instance: ${instanceId.toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -138,7 +147,9 @@ export class ExerciseContentRepository implements IExerciseContentRepository {
   /**
    * Finds all versions of content for an instance
    */
-  async findVersionsByInstance(instanceId: RecordId): Promise<ExerciseContent[]> {
+  async findVersionsByInstance(
+    instanceId: RecordId,
+  ): Promise<ExerciseContent[]> {
     try {
       const query = `
         SELECT * FROM exercise_content
@@ -152,7 +163,10 @@ export class ExerciseContentRepository implements IExerciseContentRepository {
 
       return result.map((raw) => this.mapper.contentToDomain(raw));
     } catch (error) {
-      this.logger.error(`Error finding versions by instance: ${instanceId.toString()}`, error);
+      this.logger.error(
+        `Error finding versions by instance: ${instanceId.toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -160,7 +174,9 @@ export class ExerciseContentRepository implements IExerciseContentRepository {
   /**
    * Finds content by generation request
    */
-  async findByGenerationRequest(requestId: RecordId): Promise<ExerciseContent[]> {
+  async findByGenerationRequest(
+    requestId: RecordId,
+  ): Promise<ExerciseContent[]> {
     try {
       const query = `
         SELECT * FROM exercise_content
@@ -174,7 +190,10 @@ export class ExerciseContentRepository implements IExerciseContentRepository {
 
       return result.map((raw) => this.mapper.contentToDomain(raw));
     } catch (error) {
-      this.logger.error(`Error finding content by generation request: ${requestId.toString()}`, error);
+      this.logger.error(
+        `Error finding content by generation request: ${requestId.toString()}`,
+        error,
+      );
       throw error;
     }
   }
@@ -194,7 +213,7 @@ export class ExerciseContentRepository implements IExerciseContentRepository {
 
       return result.map((raw) => this.mapper.contentToDomain(raw));
     } catch (error) {
-      this.logger.error('Error finding published content', error);
+      this.logger.error("Error finding published content", error);
       throw error;
     }
   }
@@ -214,7 +233,7 @@ export class ExerciseContentRepository implements IExerciseContentRepository {
 
       return result.map((raw) => this.mapper.contentToDomain(raw));
     } catch (error) {
-      this.logger.error('Error finding draft content', error);
+      this.logger.error("Error finding draft content", error);
       throw error;
     }
   }

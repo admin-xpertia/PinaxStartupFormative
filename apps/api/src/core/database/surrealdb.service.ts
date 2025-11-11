@@ -129,9 +129,7 @@ export class SurrealDbService implements OnModuleInit, OnModuleDestroy {
     try {
       const result: any = await this.db.query(sql, vars);
 
-      this.logger.debug(
-        `Query result RAW: ${JSON.stringify(result, null, 2)}`,
-      );
+      this.logger.debug(`Query result RAW: ${JSON.stringify(result, null, 2)}`);
       this.logger.debug(
         `Query result type: ${typeof result}, isArray: ${Array.isArray(result)}, length: ${result?.length}`,
       );
@@ -142,7 +140,9 @@ export class SurrealDbService implements OnModuleInit, OnModuleDestroy {
 
       // Si no hay resultados, retornar array vacío
       if (result.length === 0) {
-        this.logger.warn("Query returned empty array - possible permission issue or failed assertion");
+        this.logger.warn(
+          "Query returned empty array - possible permission issue or failed assertion",
+        );
         return [] as T;
       }
 
@@ -179,7 +179,9 @@ export class SurrealDbService implements OnModuleInit, OnModuleDestroy {
     try {
       this.logger.debug(`📄 SELECT: ${thing}`);
       const result = await this.db.select(thing);
-      this.logger.debug(`📄 SELECT result type: ${typeof result}, isArray: ${Array.isArray(result)}`);
+      this.logger.debug(
+        `📄 SELECT result type: ${typeof result}, isArray: ${Array.isArray(result)}`,
+      );
       this.logger.debug(`📄 SELECT result: ${JSON.stringify(result, null, 2)}`);
       return result as T[];
     } catch (error) {
