@@ -31,7 +31,11 @@ export default function ExercisePage() {
     async () => {
       const exerciseData = await exercisesApi.getById(exerciseId)
       const content = await exercisesApi.getContent(exerciseId)
-      return { ...exerciseData, content }
+
+      // Extract exercise type from template (format: "template:exercise_type")
+      const tipo = (exerciseData as any).template?.split(":")[1] || "leccion_interactiva"
+
+      return { ...exerciseData, content, tipo }
     }
   )
 
