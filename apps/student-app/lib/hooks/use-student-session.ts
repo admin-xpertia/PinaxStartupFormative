@@ -1,40 +1,37 @@
+import { useAuth } from "../contexts/auth-context"
+
 /**
  * Hook for managing student session data
- *
- * In a real application, this would retrieve data from:
- * - Authentication context
- * - JWT token claims
- * - Session storage
- * - Backend session endpoint
- *
- * For now, it returns temporary hardcoded values until proper auth is implemented.
- * TODO: Replace with real authentication context when implemented
+ * Uses authentication context to provide student and cohort IDs
  */
-
 interface StudentSession {
   estudianteId: string
   cohorteId: string
+  programId: string
   isAuthenticated: boolean
+  isLoading: boolean
 }
 
 export function useStudentSession(): StudentSession {
-  // TODO: Replace with real authentication
-  // This should eventually come from an auth context or JWT token
-  // For example:
-  // const { user } = useAuth()
-  // return {
-  //   estudianteId: user.id,
-  //   cohorteId: user.activeCohorteId,
-  //   isAuthenticated: !!user
-  // }
+  const { enrollment, isAuthenticated, isLoading } = useAuth()
 
-  // Temporary: Read from environment or use fixed values for development
-  const estudianteId = process.env.NEXT_PUBLIC_DEV_ESTUDIANTE_ID || "usuario:estudiante1"
-  const cohorteId = process.env.NEXT_PUBLIC_DEV_COHORTE_ID || "cohorte:cohorte1"
+  // If no enrollment data available (e.g., during initial load or not logged in)
+  // Fall back to environment variables for development
+  if (!enrollment) {
+    return {
+      estudianteId: process.env.NEXT_PUBLIC_DEV_ESTUDIANTE_ID || "usuario:estudiante1",
+      cohorteId: process.env.NEXT_PUBLIC_DEV_COHORTE_ID || "cohorte:cohorte1",
+      programId: "programa:default",
+      isAuthenticated: false,
+      isLoading,
+    }
+  }
 
   return {
-    estudianteId,
-    cohorteId,
-    isAuthenticated: true,
+    estudianteId: enrollment.estudianteId,
+    cohorteId: enrollment.cohorteId,
+    programId: enrollment.programId,
+    isAuthenticated,
+    isLoading,
   }
 }

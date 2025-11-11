@@ -25,6 +25,12 @@ export default function ProofPointPage() {
   const [aiInput, setAiInput] = useState("")
   const [selectedExerciseIdx, setSelectedExerciseIdx] = useState<number | null>(null)
 
+  // Fetch proof point details
+  const { data: proofPointDetails, error: detailsError } = useSWR(
+    proofPointId ? `proof-point-details-${proofPointId}` : null,
+    () => proofPointsApi.getDetails(proofPointId)
+  )
+
   // Fetch proof point progress
   const { data: proofPointProgress, error: progressError } = useSWR(
     proofPointId ? `proof-point-progress-${proofPointId}` : null,
@@ -54,18 +60,19 @@ export default function ProofPointPage() {
     : []
 
   // Build proof point overview from real data
-  const proofPoint: ProofPointOverview | null = publishedExercises
-    ? {
-        id: proofPointId,
-        nombre: publishedExercises[0]?.proofPointNombre || "Proof Point",
-        descripcion: publishedExercises[0]?.proofPointDescripcion || "",
-        nivelId: "",
-        nivelNombre: "",
-        phaseNombre: publishedExercises[0]?.phaseNombre || "",
-        progress: proofPointProgress?.progress ?? 0,
-        exercises,
-      }
-    : null
+  const proofPoint: ProofPointOverview | null =
+    proofPointDetails && publishedExercises
+      ? {
+          id: proofPointId,
+          nombre: proofPointDetails.nombre,
+          descripcion: proofPointDetails.descripcion || "",
+          nivelId: "",
+          nivelNombre: "",
+          phaseNombre: `Fase ${proofPointDetails.faseNumero}: ${proofPointDetails.faseNombre}`,
+          progress: proofPointProgress?.progress ?? 0,
+          exercises,
+        }
+      : null
 
   const highlightExercise = proofPoint ? getHighlightExercise(proofPoint.exercises) : null
 
@@ -98,7 +105,7 @@ export default function ProofPointPage() {
   const handlePrefill = (value: string) => setAiInput(value)
 
   // Loading state
-  if (exercisesLoading) {
+  if (exercisesLoading || !proofPointDetails) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -110,12 +117,12 @@ export default function ProofPointPage() {
   }
 
   // Error state
-  if (exercisesError || !publishedExercises || publishedExercises.length === 0) {
+  if (detailsError || exercisesError || !publishedExercises || publishedExercises.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-destructive mb-4">
-            {exercisesError
+            {detailsError || exercisesError
               ? "Error al cargar el proof point"
               : "No se encontraron ejercicios para este proof point"}
           </p>

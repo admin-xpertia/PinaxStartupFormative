@@ -5,3 +5,4 @@ export * from "./add-fase-request.dto";
 export * from "./fase-response.dto";
 export * from "./add-proof-point-request.dto";
 export * from "./proof-point-response.dto";
+export * from "./proof-point-details.dto";

@@ -18,6 +18,15 @@ const API_BASE_URL = configuredUrl.endsWith("/api/v1")
   ? configuredUrl
   : `${configuredUrl}/api/v1`
 
+/**
+ * Get authentication token from localStorage
+ * This is accessed by the API client to include in requests
+ */
+function getAuthToken(): string | null {
+  if (typeof window === "undefined") return null
+  return localStorage.getItem("auth_token")
+}
+
 export async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -28,7 +37,11 @@ export async function apiRequest<T>(
     "Content-Type": "application/json",
   }
 
-  // TODO: Add authentication token when auth is implemented
+  // Add authentication token if available
+  const token = getAuthToken()
+  if (token) {
+    defaultHeaders.Authorization = `Bearer ${token}`
+  }
 
   const config: RequestInit = {
     ...options,
