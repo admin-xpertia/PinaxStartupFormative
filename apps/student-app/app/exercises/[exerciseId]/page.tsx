@@ -38,12 +38,6 @@ export default function ExercisePage() {
       // Extract contenido_generado from the response
       const content = (contentResponse as any)?.contenido_generado || contentResponse
 
-      // Debug logs
-      console.log("Exercise Type:", tipo)
-      console.log("Content Response:", contentResponse)
-      console.log("Extracted Content:", content)
-      console.log("Content has secciones?", content?.secciones ? "YES" : "NO")
-
       return { ...exerciseData, content, tipo }
     }
   )
@@ -123,26 +117,6 @@ export default function ExercisePage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-muted-foreground mb-4">El contenido del ejercicio no está disponible</p>
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="text-primary hover:underline"
-          >
-            Volver al Dashboard
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  // Validate content structure for players that need specific fields
-  if (exercise.tipo === "cuaderno_trabajo" && !exercise.content.secciones) {
-    console.error("Invalid content structure for cuaderno_trabajo:", exercise.content)
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-destructive mb-4">
-            Error: El contenido del ejercicio no tiene el formato esperado
-          </p>
           <button
             onClick={() => router.push("/dashboard")}
             className="text-primary hover:underline"

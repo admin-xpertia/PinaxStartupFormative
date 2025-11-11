@@ -26,8 +26,10 @@ import { RecordId } from "../../../domain/shared/value-objects/RecordId";
 import {
   AddProofPointRequestDto,
   ProofPointResponseDto,
+  ProofPointDetailsDto,
 } from "../../dtos/program-design";
 import { SurrealDbService } from "../../../core/database/surrealdb.service";
+import { Public } from "../../../core/decorators";
 
 /**
  * ProofPointController
@@ -370,6 +372,79 @@ export class ProofPointController {
     if (!deleted) {
       throw new NotFoundException(`ProofPoint not found: ${id}`);
     }
+  }
+
+  /**
+   * Get proof point details for student (Public endpoint)
+   */
+  @Public()
+  @Get("student/proof-points/:id")
+  @ApiOperation({
+    summary: "Get proof point details for student",
+    description:
+      "Get complete proof point information including phase and program details",
+  })
+  @ApiParam({
+    name: "id",
+    description: "ProofPoint ID",
+    example: "proof_point:⟨1762784185921_0⟩",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Proof point details",
+    type: ProofPointDetailsDto,
+  })
+  @ApiResponse({ status: 404, description: "ProofPoint not found" })
+  async getProofPointDetails(
+    @Param("id") id: string,
+  ): Promise<ProofPointDetailsDto> {
+    const decodedId = decodeURIComponent(id);
+
+    // Query proof point with fase and programa information
+    const query = `
+      SELECT
+        pp.*,
+        (SELECT * FROM fase WHERE id = pp.fase LIMIT 1)[0] as fase_info,
+        (SELECT * FROM programa WHERE id = (SELECT * FROM fase WHERE id = pp.fase LIMIT 1)[0].programa LIMIT 1)[0] as programa_info
+      FROM type::thing($id) as pp
+    `;
+
+    const result = await this.db.query(query, { id: decodedId });
+
+    let proofPoint: any;
+    if (Array.isArray(result) && result.length > 0) {
+      if (Array.isArray(result[0]) && result[0].length > 0) {
+        proofPoint = result[0][0];
+      } else if (!Array.isArray(result[0])) {
+        proofPoint = result[0];
+      }
+    }
+
+    if (!proofPoint) {
+      throw new NotFoundException(`ProofPoint not found: ${id}`);
+    }
+
+    // Map to DTO
+    return {
+      id: proofPoint.id,
+      nombre: proofPoint.nombre,
+      slug: proofPoint.slug,
+      descripcion: proofPoint.descripcion,
+      preguntaCentral: proofPoint.pregunta_central,
+      ordenEnFase: proofPoint.orden_en_fase,
+      duracionEstimadaHoras: proofPoint.duracion_estimada_horas,
+      tipoEntregableFinal: proofPoint.tipo_entregable_final,
+      documentacionContexto: proofPoint.documentacion_contexto,
+      prerequisitos: proofPoint.prerequisitos || [],
+      faseId: proofPoint.fase,
+      faseNombre: proofPoint.fase_info?.nombre || "",
+      faseDescripcion: proofPoint.fase_info?.descripcion,
+      faseNumero: proofPoint.fase_info?.numero_fase || 0,
+      programaId: proofPoint.programa_info?.id || "",
+      programaNombre: proofPoint.programa_info?.nombre || "",
+      createdAt: proofPoint.created_at,
+      updatedAt: proofPoint.updated_at,
+    };
   }
 
   /**

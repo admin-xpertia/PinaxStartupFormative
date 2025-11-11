@@ -1,8 +1,9 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import useSWR from "swr"
+import { Loader2 } from "lucide-react"
 import {
   ProofPointHeader,
   ProofPointSidebar,
@@ -12,103 +13,43 @@ import {
 import { progressApi, proofPointsApi, type PublishedExercise } from "@/services/api"
 import type { ProofPointExercise, ProofPointOverview } from "@/types/proof-point"
 import { getHighlightExercise } from "@/lib/proof-point"
-
-// Mock user data - replace with real auth context
-const MOCK_ESTUDIANTE_ID = "usuario:estudiante1"
-const MOCK_COHORTE_ID = "cohorte:cohorte1"
-
-const FALLBACK_OBJECTIVES = [
-  "Identificar los principales estilos de liderazgo y sus características",
-  "Reconocer tu estilo natural de liderazgo",
-  "Practicar la adaptación del estilo según el contexto",
-  "Desarrollar flexibilidad en tu aproximación al liderazgo",
-]
-
-const buildFallbackProofPoint = (proofPointId: string): ProofPointOverview => ({
-  id: proofPointId,
-  nombre: "Estilos de Liderazgo",
-  descripcion:
-    "Explora y practica diferentes estilos de liderazgo situacional para adaptarte efectivamente a diversos contextos organizacionales.",
-  nivelId: "n1",
-  nivelNombre: "Nivel 1: Fundamentos",
-  phaseNombre: "Fase 2: Liderazgo Situacional",
-  progress: 60,
-  exercises: [
-    {
-      id: "ex1",
-      nombre: "Introducción a los Estilos de Liderazgo",
-      tipo: "leccion_interactiva",
-      estimatedMinutes: 15,
-      status: "completed",
-      progress: 100,
-    },
-    {
-      id: "ex2",
-      nombre: "Cuaderno: Identifica tu Estilo Natural",
-      tipo: "cuaderno_trabajo",
-      estimatedMinutes: 20,
-      status: "completed",
-      progress: 100,
-    },
-    {
-      id: "ex3",
-      nombre: "Simulación: Liderazgo en Crisis",
-      tipo: "simulacion_interaccion",
-      estimatedMinutes: 30,
-      status: "in_progress",
-      progress: 60,
-    },
-    {
-      id: "ex4",
-      nombre: "Análisis de Casos Reales",
-      tipo: "herramienta_analisis",
-      estimatedMinutes: 25,
-      status: "available",
-      progress: 0,
-    },
-    {
-      id: "ex5",
-      nombre: "Mentor IA: Consulta Personalizada",
-      tipo: "mentor_ia",
-      estimatedMinutes: 20,
-      status: "available",
-      progress: 0,
-    },
-    {
-      id: "ex6",
-      nombre: "Reflexión Final",
-      tipo: "cuaderno_trabajo",
-      estimatedMinutes: 15,
-      status: "locked",
-      progress: 0,
-    },
-  ],
-})
+import { useStudentSession } from "@/lib/hooks/use-student-session"
 
 export default function ProofPointPage() {
   const params = useParams()
   const router = useRouter()
   const proofPointId = params.id as string
+  const { estudianteId, cohorteId } = useStudentSession()
 
   const [aiMessages, setAiMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([])
   const [aiInput, setAiInput] = useState("")
   const [selectedExerciseIdx, setSelectedExerciseIdx] = useState<number | null>(null)
 
-  const { data: proofPointProgress } = useSWR(
-    proofPointId ? `proof-point-${proofPointId}` : null,
-    () => progressApi.getProofPointProgress(proofPointId, MOCK_ESTUDIANTE_ID, MOCK_COHORTE_ID)
+  // Fetch proof point details
+  const { data: proofPointDetails, error: detailsError } = useSWR(
+    proofPointId ? `proof-point-details-${proofPointId}` : null,
+    () => proofPointsApi.getDetails(proofPointId)
   )
 
-  const { data: publishedExercises, isLoading: exercisesLoading } = useSWR<PublishedExercise[]>(
+  // Fetch proof point progress
+  const { data: proofPointProgress, error: progressError } = useSWR(
+    proofPointId ? `proof-point-progress-${proofPointId}` : null,
+    () => progressApi.getProofPointProgress(proofPointId, estudianteId, cohorteId)
+  )
+
+  // Fetch published exercises
+  const {
+    data: publishedExercises,
+    isLoading: exercisesLoading,
+    error: exercisesError,
+  } = useSWR<PublishedExercise[]>(
     proofPointId ? `proof-point-exercises-${proofPointId}` : null,
     () => proofPointsApi.getPublishedExercises(proofPointId)
   )
 
-  const fallbackProofPoint = useMemo(() => buildFallbackProofPoint(proofPointId), [proofPointId])
-
-  const exercises: ProofPointExercise[] = useMemo(() => {
-    if (publishedExercises && publishedExercises.length > 0) {
-      return publishedExercises.map((exercise) => ({
+  // Map published exercises to UI format
+  const exercises: ProofPointExercise[] = publishedExercises
+    ? publishedExercises.map((exercise) => ({
         id: exercise.id,
         nombre: exercise.nombre,
         tipo: exercise.template?.split(":")[1] || "leccion_interactiva",
@@ -116,27 +57,34 @@ export default function ProofPointPage() {
         status: "available",
         progress: 0,
       }))
-    }
-    return fallbackProofPoint.exercises
-  }, [publishedExercises, fallbackProofPoint])
+    : []
 
-  const proofPoint: ProofPointOverview = useMemo(() => {
-    return {
-      ...fallbackProofPoint,
-      progress: proofPointProgress?.progress ?? fallbackProofPoint.progress,
-      exercises,
-    }
-  }, [exercises, fallbackProofPoint, proofPointProgress])
+  // Build proof point overview from real data
+  const proofPoint: ProofPointOverview | null =
+    proofPointDetails && publishedExercises
+      ? {
+          id: proofPointId,
+          nombre: proofPointDetails.nombre,
+          descripcion: proofPointDetails.descripcion || "",
+          nivelId: "",
+          nivelNombre: "",
+          phaseNombre: `Fase ${proofPointDetails.faseNumero}: ${proofPointDetails.faseNombre}`,
+          progress: proofPointProgress?.progress ?? 0,
+          exercises,
+        }
+      : null
 
-  const highlightExercise = getHighlightExercise(proofPoint.exercises)
+  const highlightExercise = proofPoint ? getHighlightExercise(proofPoint.exercises) : null
 
   const handleExerciseClick = (exercise: ProofPointExercise, idx?: number) => {
     if (exercise.status === "locked") return
-    const targetIdx =
-      typeof idx === "number" && idx >= 0
-        ? idx
-        : proofPoint.exercises.findIndex((item) => item.id === exercise.id)
-    setSelectedExerciseIdx(targetIdx >= 0 ? targetIdx : null)
+    if (proofPoint) {
+      const targetIdx =
+        typeof idx === "number" && idx >= 0
+          ? idx
+          : proofPoint.exercises.findIndex((item) => item.id === exercise.id)
+      setSelectedExerciseIdx(targetIdx >= 0 ? targetIdx : null)
+    }
     router.push(`/exercises/${exercise.id}`)
   }
 
@@ -155,6 +103,61 @@ export default function ProofPointPage() {
   }
 
   const handlePrefill = (value: string) => setAiInput(value)
+
+  // Loading state
+  if (exercisesLoading || !proofPointDetails) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Cargando proof point...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (detailsError || exercisesError || !publishedExercises || publishedExercises.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-destructive mb-4">
+            {detailsError || exercisesError
+              ? "Error al cargar el proof point"
+              : "No se encontraron ejercicios para este proof point"}
+          </p>
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="text-primary hover:underline"
+          >
+            Volver al Dashboard
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Proof point not loaded (shouldn't happen after checks above)
+  if (!proofPoint) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-destructive mb-4">No se pudo cargar el proof point</p>
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="text-primary hover:underline"
+          >
+            Volver al Dashboard
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Extract objectives from exercises if available
+  const objectives = publishedExercises
+    .filter((ex) => ex.descripcionBreve)
+    .map((ex) => ex.descripcionBreve!)
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
@@ -179,7 +182,7 @@ export default function ProofPointPage() {
           <ProofPointOverviewSection
             proofPoint={proofPoint}
             highlightExercise={highlightExercise}
-            objectives={FALLBACK_OBJECTIVES}
+            objectives={objectives.length > 0 ? objectives : undefined}
             onStartExercise={handleExerciseClick}
           />
         </div>
