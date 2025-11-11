@@ -28,6 +28,8 @@ import {
   CompleteExerciseResponseDto,
   ExerciseProgressResponseDto,
   StudentProgressSummaryDto,
+  ProofPointProgressResponseDto,
+  ExerciseProgressSummaryDto,
 } from "../../dtos/exercise-progress";
 import { Public } from "../../../core/decorators";
 
@@ -662,6 +664,193 @@ export class ExerciseProgressController {
       averageScore,
       proofPointStats,
       recentCompletedExercises,
+    };
+  }
+
+  /**
+   * Get proof point progress
+   */
+  @Public()
+  @Get("student/proof-points/:proofPointId/progress")
+  @ApiOperation({
+    summary: "Get proof point progress",
+    description: "Get detailed progress for a specific proof point",
+  })
+  @ApiParam({
+    name: "proofPointId",
+    description: "ProofPoint ID",
+    example: "proof_point:⟨1762784185921_0⟩",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Proof point progress",
+    type: ProofPointProgressResponseDto,
+  })
+  async getProofPointProgress(
+    @Param("proofPointId") proofPointId: string,
+    @Query("estudianteId") estudianteId?: string,
+    @Query("cohorteId") cohorteId?: string,
+  ): Promise<ProofPointProgressResponseDto> {
+    const decodedProofPointId = decodeURIComponent(proofPointId);
+
+    if (!estudianteId || !cohorteId) {
+      throw new BadRequestException(
+        "Los parámetros estudianteId y cohorteId son requeridos",
+      );
+    }
+
+    // Get all exercises for this proof point
+    const exercisesQuery = `
+      SELECT id, nombre, template, orden
+      FROM exercise_instance
+      WHERE proof_point = type::thing($proofPointId)
+        AND estado_contenido = 'publicado'
+        AND cohorte = type::thing($cohorteId)
+      ORDER BY orden ASC
+    `;
+
+    const exercisesResult = await this.db.query(exercisesQuery, {
+      proofPointId: decodedProofPointId,
+      cohorteId,
+    });
+
+    let exercises: any[] = [];
+    if (Array.isArray(exercisesResult) && exercisesResult.length > 0) {
+      exercises = Array.isArray(exercisesResult[0])
+        ? exercisesResult[0]
+        : [exercisesResult[0]];
+    }
+
+    // Get progress records for these exercises
+    const progressQuery = `
+      SELECT
+        id,
+        exercise_instance,
+        estado,
+        porcentaje_completitud,
+        score_final,
+        fecha_inicio,
+        fecha_completado,
+        fecha_ultimo_acceso
+      FROM exercise_progress
+      WHERE estudiante = type::thing($estudianteId)
+        AND cohorte = type::thing($cohorteId)
+        AND exercise_instance IN [${exercises.map((e) => `type::thing('${e.id}')`).join(", ")}]
+    `;
+
+    const progressResult = await this.db.query(progressQuery, {
+      estudianteId,
+      cohorteId,
+    });
+
+    let progressRecords: any[] = [];
+    if (Array.isArray(progressResult) && progressResult.length > 0) {
+      progressRecords = Array.isArray(progressResult[0])
+        ? progressResult[0]
+        : [progressResult[0]];
+    }
+
+    // Calculate exercise summaries
+    const exerciseSummaries: ExerciseProgressSummaryDto[] = exercises.map(
+      (exercise) => {
+        const progress = progressRecords.find(
+          (p) => p.exercise_instance === exercise.id,
+        );
+
+        let status: "not_started" | "in_progress" | "completed" = "not_started";
+        let progressPercentage = 0;
+        let score: number | undefined = undefined;
+        let lastAccessed: Date | undefined = undefined;
+
+        if (progress) {
+          if (progress.estado === "completado") {
+            status = "completed";
+            progressPercentage = 100;
+          } else if (progress.estado === "en_progreso") {
+            status = "in_progress";
+            progressPercentage = progress.porcentaje_completitud || 0;
+          }
+          score = progress.score_final;
+          lastAccessed = progress.fecha_ultimo_acceso;
+        }
+
+        return {
+          exerciseId: exercise.id,
+          status,
+          progress: progressPercentage,
+          score,
+          lastAccessed,
+        };
+      },
+    );
+
+    // Calculate overall statistics
+    const completedExercises = exerciseSummaries.filter(
+      (e) => e.status === "completed",
+    ).length;
+    const totalExercises = exercises.length;
+    const progressPercentage =
+      totalExercises > 0
+        ? Math.round((completedExercises / totalExercises) * 100)
+        : 0;
+
+    // Calculate average score
+    const scoresWithValues = exerciseSummaries
+      .filter((e) => e.score !== null && e.score !== undefined)
+      .map((e) => e.score!);
+
+    const averageScore =
+      scoresWithValues.length > 0
+        ? scoresWithValues.reduce((sum, s) => sum + s, 0) / scoresWithValues.length
+        : 0;
+
+    // Determine status
+    let status: "locked" | "available" | "in_progress" | "completed" =
+      "available";
+    if (completedExercises === totalExercises && totalExercises > 0) {
+      status = "completed";
+    } else if (
+      exerciseSummaries.some((e) => e.status === "in_progress" || e.status === "completed")
+    ) {
+      status = "in_progress";
+    }
+
+    // Find earliest start date and latest completion date
+    const completedProgressRecords = progressRecords.filter(
+      (p) => p.estado === "completado",
+    );
+    const startedAt = progressRecords.length > 0
+      ? progressRecords.reduce((earliest, p) => {
+          return !earliest || (p.fecha_inicio && p.fecha_inicio < earliest)
+            ? p.fecha_inicio
+            : earliest;
+        }, null)
+      : undefined;
+
+    const completedAt =
+      status === "completed" && completedProgressRecords.length > 0
+        ? completedProgressRecords.reduce((latest, p) => {
+            return !latest || (p.fecha_completado && p.fecha_completado > latest)
+              ? p.fecha_completado
+              : latest;
+          }, null)
+        : undefined;
+
+    // For now, assume all exercises are required
+    const requiredExercises = totalExercises;
+
+    return {
+      proofPointId: decodedProofPointId,
+      studentId: `estudiante:⟨${estudianteId}⟩`,
+      status,
+      progress: progressPercentage,
+      completedExercises,
+      totalExercises,
+      requiredExercises,
+      averageScore,
+      startedAt,
+      completedAt,
+      exercises: exerciseSummaries,
     };
   }
 

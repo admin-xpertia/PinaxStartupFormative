@@ -25,10 +25,14 @@ export default function ExercisePage() {
   const router = useRouter()
   const exerciseId = params.exerciseId as string
 
-  // Fetch exercise data
+  // Fetch exercise data and content
   const { data: exercise, error, isLoading } = useSWR(
     exerciseId ? `exercise-${exerciseId}` : null,
-    () => exercisesApi.getById(exerciseId)
+    async () => {
+      const exerciseData = await exercisesApi.getById(exerciseId)
+      const content = await exercisesApi.getContent(exerciseId)
+      return { ...exerciseData, content }
+    }
   )
 
   const handleSave = async (data: any) => {
