@@ -15,6 +15,7 @@ import { ExerciseContentRepository } from "../infrastructure/database/repositori
 // Use Cases
 import { AddExerciseToProofPointUseCase } from "../application/exercise-instance/use-cases/AddExerciseToProofPoint/AddExerciseToProofPointUseCase";
 import { GenerateExerciseContentUseCase } from "../application/exercise-instance/use-cases/GenerateExerciseContent/GenerateExerciseContentUseCase";
+import { AnalyzeDraftUseCase } from "../application/exercise-instance/use-cases/AnalyzeDraft/AnalyzeDraftUseCase";
 
 // Services
 import { OpenAIService } from "../infrastructure/ai/OpenAIService";
@@ -57,6 +58,7 @@ import { ExerciseInstanceController } from "../presentation/controllers/exercise
     // Use Cases
     AddExerciseToProofPointUseCase,
     GenerateExerciseContentUseCase,
+    AnalyzeDraftUseCase,
   ],
   controllers: [
     // REST API Controllers
@@ -73,6 +75,7 @@ import { ExerciseInstanceController } from "../presentation/controllers/exercise
     // Export use cases for controllers
     AddExerciseToProofPointUseCase,
     GenerateExerciseContentUseCase,
+    AnalyzeDraftUseCase,
 
     // Export mapper for potential reuse
     ExerciseMapper,

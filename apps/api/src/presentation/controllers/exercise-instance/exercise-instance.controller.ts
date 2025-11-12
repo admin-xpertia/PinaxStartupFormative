@@ -22,6 +22,7 @@ import {
 } from "@nestjs/swagger";
 import { AddExerciseToProofPointUseCase } from "../../../application/exercise-instance/use-cases/AddExerciseToProofPoint/AddExerciseToProofPointUseCase";
 import { GenerateExerciseContentUseCase } from "../../../application/exercise-instance/use-cases/GenerateExerciseContent/GenerateExerciseContentUseCase";
+import { AnalyzeDraftUseCase } from "../../../application/exercise-instance/use-cases/AnalyzeDraft/AnalyzeDraftUseCase";
 import { IExerciseInstanceRepository } from "../../../domain/exercise-instance/repositories/IExerciseInstanceRepository";
 import {
   ContentStatus,
@@ -32,6 +33,8 @@ import {
   ExerciseInstanceResponseDto,
   GenerateContentRequestDto,
   GenerateContentResponseDto,
+  AnalyzeDraftRequestDto,
+  AnalyzeDraftResponseDto,
 } from "../../dtos/exercise-instance";
 import { SurrealDbService } from "../../../core/database/surrealdb.service";
 import { Public } from "../../../core/decorators";
@@ -49,6 +52,7 @@ export class ExerciseInstanceController {
   constructor(
     private readonly addExerciseUseCase: AddExerciseToProofPointUseCase,
     private readonly generateContentUseCase: GenerateExerciseContentUseCase,
+    private readonly analyzeDraftUseCase: AnalyzeDraftUseCase,
     @Inject("IExerciseInstanceRepository")
     private readonly exerciseInstanceRepository: IExerciseInstanceRepository,
     private readonly db: SurrealDbService,
@@ -714,6 +718,56 @@ export class ExerciseInstanceController {
       createdAt: exercise.created_at,
       updatedAt: exercise.updated_at,
     };
+  }
+
+  /**
+   * Analyze draft against rubric criteria (Student endpoint)
+   */
+  @Public()
+  @Post("student/exercises/:id/analyze-draft")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Analyze student draft",
+    description:
+      "Analyzes a student's draft text against the rubric criteria and provides formative feedback",
+  })
+  @ApiParam({
+    name: "id",
+    description: "ExerciseInstance ID",
+    example: "exercise_instance:abc123",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Draft analysis with suggestions",
+    type: AnalyzeDraftResponseDto,
+  })
+  @ApiResponse({ status: 404, description: "Exercise or content not found" })
+  @ApiResponse({ status: 400, description: "Analysis failed" })
+  async analyzeDraft(
+    @Param("id") id: string,
+    @Body() analyzeDraftDto: AnalyzeDraftRequestDto,
+  ): Promise<AnalyzeDraftResponseDto> {
+    const result = await this.analyzeDraftUseCase.execute({
+      exerciseInstanceId: id,
+      questionId: analyzeDraftDto.questionId,
+      draftText: analyzeDraftDto.draftText,
+    });
+
+    return result.match({
+      ok: (response) => ({
+        questionId: response.questionId,
+        suggestion: response.suggestion,
+        strengths: response.strengths,
+        improvements: response.improvements,
+        rubricAlignment: response.rubricAlignment,
+      }),
+      fail: (error) => {
+        if (error.message.includes("not found")) {
+          throw new NotFoundException(error.message);
+        }
+        throw new BadRequestException(error.message);
+      },
+    });
   }
 
   /**

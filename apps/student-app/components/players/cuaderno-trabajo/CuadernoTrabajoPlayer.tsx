@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { ExercisePlayer } from "../base/ExercisePlayer"
+import { exercisesApi } from "@/services/api/exercises.api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
@@ -14,7 +15,9 @@ import {
   Circle,
   AlertCircle,
   Lightbulb,
-  FileText
+  FileText,
+  Sparkles,
+  Loader2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -69,6 +72,9 @@ export function CuadernoTrabajoPlayer({
   const [currentSection, setCurrentSection] = useState(0)
   const [responses, setResponses] = useState<Record<string, any>>(initialResponses)
   const [completedSections, setCompletedSections] = useState<Set<number>>(new Set())
+  const [proactiveFeedback, setProactiveFeedback] = useState<Record<string, string | null>>({})
+  const [isAnalyzing, setIsAnalyzing] = useState<Record<string, boolean>>({})
+  const [debounceTimers, setDebounceTimers] = useState<Record<string, NodeJS.Timeout>>({})
 
   const totalSections = content.secciones.length
   const currentSectionData = content.secciones[currentSection]
@@ -80,7 +86,56 @@ export function CuadernoTrabajoPlayer({
   const updateResponse = (sectionIdx: number, promptIdx: number, value: any) => {
     const key = getResponseKey(sectionIdx, promptIdx)
     setResponses(prev => ({ ...prev, [key]: value }))
+
+    // Trigger proactive feedback analysis for long text responses
+    const prompt = content.secciones[sectionIdx]?.prompts[promptIdx]
+    if (prompt && (prompt.tipo === "texto_largo" || prompt.tipo === "reflexion")) {
+      debouncedAnalyzeDraft(key, value)
+    }
   }
+
+  // Debounced analysis function
+  const debouncedAnalyzeDraft = useCallback((questionId: string, draftText: string) => {
+    // Clear existing timer for this question
+    if (debounceTimers[questionId]) {
+      clearTimeout(debounceTimers[questionId])
+    }
+
+    // Only analyze if there's substantial text (>30 characters)
+    if (!draftText || draftText.trim().length < 30) {
+      setProactiveFeedback(prev => ({ ...prev, [questionId]: null }))
+      return
+    }
+
+    // Set new timer
+    const timer = setTimeout(async () => {
+      setIsAnalyzing(prev => ({ ...prev, [questionId]: true }))
+      setProactiveFeedback(prev => ({ ...prev, [questionId]: null }))
+
+      try {
+        const response = await exercisesApi.analyzeDraft(exerciseId, {
+          questionId,
+          draftText,
+        })
+
+        setProactiveFeedback(prev => ({ ...prev, [questionId]: response.suggestion }))
+      } catch (error) {
+        console.error("Error analyzing draft:", error)
+        // Silent fail - don't interrupt student workflow
+      } finally {
+        setIsAnalyzing(prev => ({ ...prev, [questionId]: false }))
+      }
+    }, 1500) // 1.5 second debounce
+
+    setDebounceTimers(prev => ({ ...prev, [questionId]: timer }))
+  }, [exerciseId, debounceTimers])
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(debounceTimers).forEach(timer => clearTimeout(timer))
+    }
+  }, [debounceTimers])
 
   const getResponse = (sectionIdx: number, promptIdx: number) => {
     const key = getResponseKey(sectionIdx, promptIdx)
@@ -145,6 +200,7 @@ export function CuadernoTrabajoPlayer({
         const minWords = prompt.min_palabras || 0
         const maxWords = prompt.max_palabras || 1000
         const isWordCountValid = wordCount >= minWords && wordCount <= maxWords
+        const questionKey = getResponseKey(currentSection, promptIdx)
 
         return (
           <div className="space-y-3">
@@ -183,6 +239,36 @@ export function CuadernoTrabajoPlayer({
                 </Button>
               )}
             </div>
+
+            {/* Proactive AI Feedback */}
+            {isAnalyzing[questionKey] && (
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-2 text-sm text-blue-700">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Analizando tu respuesta...</span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {!isAnalyzing[questionKey] && proactiveFeedback[questionKey] && (
+              <Card className="bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <Sparkles className="h-5 w-5 text-purple-600 mt-0.5 flex-shrink-0" />
+                    <div className="space-y-2 flex-1">
+                      <h4 className="text-sm font-semibold text-purple-900">
+                        Sugerencia del Tutor IA
+                      </h4>
+                      <p className="text-sm text-purple-800 leading-relaxed">
+                        {proactiveFeedback[questionKey]}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )
 

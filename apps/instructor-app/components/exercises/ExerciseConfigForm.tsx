@@ -73,6 +73,36 @@ export function ExerciseConfigForm({ template, proofPointId, onClose, onSuccess 
     })
   }
 
+  const handleAddSection = (key: string) => {
+    const currentSections = formData.configuracionPersonalizada[key] || []
+    handleConfigChange(key, [
+      ...currentSections,
+      { tituloSeccion: "", descripcionPrompt: "", criteriosPrompt: "" },
+    ])
+  }
+
+  const handleRemoveSection = (key: string, index: number) => {
+    const currentSections = formData.configuracionPersonalizada[key] || []
+    handleConfigChange(
+      key,
+      currentSections.filter((_: any, i: number) => i !== index)
+    )
+  }
+
+  const handleSectionFieldChange = (
+    arrayKey: string,
+    index: number,
+    fieldKey: string,
+    value: any
+  ) => {
+    const currentSections = [...(formData.configuracionPersonalizada[arrayKey] || [])]
+    currentSections[index] = {
+      ...currentSections[index],
+      [fieldKey]: value,
+    }
+    handleConfigChange(arrayKey, currentSections)
+  }
+
   // Parse schema to render form fields
   const renderConfigFields = () => {
     const schema = template.configuracionSchema
@@ -159,6 +189,73 @@ export function ExerciseConfigForm({ template, proofPointId, onClose, onSuccess 
             <Label htmlFor={key} className="font-normal">
               {fieldSchema.description || key}
             </Label>
+          </div>
+        )
+      }
+
+      // Array of objects (e.g., secciones)
+      if (fieldSchema.type === "array" && fieldSchema.items?.type === "object") {
+        const sections = (formData.configuracionPersonalizada[key] as any[]) || []
+        const itemProperties = fieldSchema.items.properties || {}
+
+        return (
+          <div key={key} className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-base font-semibold">
+                {fieldSchema.description || key}
+                {schema.required?.includes(key) && <span className="text-destructive ml-1">*</span>}
+              </Label>
+            </div>
+
+            <div className="space-y-3">
+              {sections.map((section: any, idx: number) => (
+                <Card key={idx} className="border-2">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm font-medium">
+                        Sección {idx + 1}
+                      </CardTitle>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveSection(key, idx)}
+                        className="h-8 text-destructive hover:text-destructive"
+                      >
+                        Eliminar
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {Object.entries(itemProperties).map(([fieldKey, fieldDef]: [string, any]) => (
+                      <div key={fieldKey} className="space-y-2">
+                        <Label htmlFor={`${key}_${idx}_${fieldKey}`} className="text-sm">
+                          {fieldDef.description || fieldKey}
+                        </Label>
+                        <Textarea
+                          id={`${key}_${idx}_${fieldKey}`}
+                          value={section[fieldKey] || ""}
+                          onChange={e =>
+                            handleSectionFieldChange(key, idx, fieldKey, e.target.value)
+                          }
+                          placeholder={fieldDef.description}
+                          rows={3}
+                          className="text-sm"
+                        />
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleAddSection(key)}
+              className="w-full"
+            >
+              + Añadir Sección
+            </Button>
           </div>
         )
       }
