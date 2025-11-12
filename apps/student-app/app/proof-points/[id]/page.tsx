@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import useSWR from "swr"
 import { Loader2 } from "lucide-react"
@@ -11,6 +11,7 @@ import {
   AiAssistantPanel,
 } from "@/components/student/proof-point"
 import { progressApi, proofPointsApi, type PublishedExercise } from "@/services/api"
+import type { ExerciseProgressSummary } from "@/types/progress"
 import type { ProofPointExercise, ProofPointOverview } from "@/types/proof-point"
 import { getHighlightExercise } from "@/lib/proof-point"
 import { useStudentSession } from "@/lib/hooks/use-student-session"
@@ -47,17 +48,44 @@ export default function ProofPointPage() {
     () => proofPointsApi.getPublishedExercises(proofPointId)
   )
 
-  // Map published exercises to UI format
-  const exercises: ProofPointExercise[] = publishedExercises
-    ? publishedExercises.map((exercise) => ({
+  const exercises: ProofPointExercise[] = useMemo(() => {
+    if (!publishedExercises) return []
+    const progressMap = new Map<string, ExerciseProgressSummary>()
+    if (proofPointProgress?.exercises) {
+      for (const summary of proofPointProgress.exercises) {
+        progressMap.set(summary.exerciseId, summary)
+      }
+    }
+    const proofPointLocked = proofPointProgress?.status === "locked"
+
+    return publishedExercises.map((exercise) => {
+      const tipo = exercise.template?.split(":")[1] || "leccion_interactiva"
+      const summary = progressMap.get(exercise.id)
+      let status: ProofPointExercise["status"] = "available"
+      let progressValue = 0
+
+      if (proofPointLocked) {
+        status = "locked"
+      } else if (summary) {
+        if (summary.status === "completed") {
+          status = "completed"
+          progressValue = 100
+        } else if (summary.status === "in_progress") {
+          status = "in_progress"
+          progressValue = Math.max(0, Math.min(100, summary.progress ?? 0))
+        }
+      }
+
+      return {
         id: exercise.id,
         nombre: exercise.nombre,
-        tipo: exercise.template?.split(":")[1] || "leccion_interactiva",
+        tipo,
         estimatedMinutes: exercise.duracionEstimadaMinutos ?? 20,
-        status: "available",
-        progress: 0,
-      }))
-    : []
+        status,
+        progress: progressValue,
+      }
+    })
+  }, [publishedExercises, proofPointProgress])
 
   // Build proof point overview from real data
   const proofPoint: ProofPointOverview | null =

@@ -4,7 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react"
 import useSWR from "swr"
 import { BookOpen } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { enrollmentsApi } from "@/services/api"
+import { enrollmentsApi, progressApi } from "@/services/api"
 import {
   DashboardHeader,
   NextExerciseCard,
@@ -47,14 +47,66 @@ function DashboardContent() {
     activeEnrollment ? () => enrollmentsApi.getContinuePoint(activeEnrollment.id) : null
   )
 
-  const phases = structure?.phases ?? []
+  const { data: progressSummary } = useSWR(
+    activeEnrollment?.studentId && activeEnrollment?.cohortId
+      ? ["dashboard-progress-summary", activeEnrollment.studentId, activeEnrollment.cohortId]
+      : null,
+    () =>
+      progressApi.getProgressSummary(
+        activeEnrollment!.studentId,
+        activeEnrollment!.cohortId
+      )
+  )
+
+  const phases = useMemo(() => {
+    if (!structure?.phases) return []
+    if (!progressSummary?.proofPointStats?.length) {
+      return structure.phases
+    }
+
+    const statsMap = new Map(
+      progressSummary.proofPointStats.map((stat) => [stat.proofPointId, stat])
+    )
+
+    return structure.phases.map((phase) => ({
+      ...phase,
+      proofPoints: phase.proofPoints.map((proofPoint) => {
+        const stat = statsMap.get(proofPoint.id)
+        if (!stat) {
+          return proofPoint
+        }
+
+        if (proofPoint.status === "locked") {
+          return {
+            ...proofPoint,
+            progress: stat.completionPercentage,
+          }
+        }
+
+        const status =
+          stat.totalExercises > 0 && stat.completedExercises >= stat.totalExercises
+            ? "completed"
+            : stat.completedExercises > 0 || stat.completionPercentage > 0
+              ? "in_progress"
+              : "available"
+
+        return {
+          ...proofPoint,
+          status,
+          progress: stat.completionPercentage,
+        }
+      }),
+    }))
+  }, [structure, progressSummary])
+
+  const phaseCount = phases.length
   const selectedPhase: Phase | undefined = phases[selectedPhaseIdx]
 
   useEffect(() => {
-    if (phases.length > 0 && selectedPhaseIdx >= phases.length) {
+    if (phaseCount > 0 && selectedPhaseIdx >= phaseCount) {
       setSelectedPhaseIdx(0)
     }
-  }, [phases.length, selectedPhaseIdx])
+  }, [phaseCount, selectedPhaseIdx])
 
   const formatDate = (value?: string | Date | null) => {
     if (!value) return null
@@ -70,17 +122,32 @@ function DashboardContent() {
     if (!activeEnrollment) {
       return { progress: 0, proofPointsLabel: "0/0", completed: 0, total: 0 }
     }
-    const completed = activeEnrollment.completedProofPoints ?? 0
-    const total = activeEnrollment.totalProofPoints ?? 0
+
+    const totalFromStructure = phases.reduce(
+      (acc, phase) => acc + phase.proofPoints.length,
+      0
+    )
+    const total =
+      totalFromStructure || activeEnrollment.totalProofPoints || 0
+
+    const completedFromSummary = progressSummary
+      ? progressSummary.proofPointStats.filter(
+          (stat) => stat.totalExercises > 0 && stat.completedExercises >= stat.totalExercises
+        ).length
+      : activeEnrollment.completedProofPoints ?? 0
+
+    const progressValue =
+      progressSummary?.completionPercentage ?? activeEnrollment.overallProgress ?? 0
+
     return {
-      progress: activeEnrollment.overallProgress ?? 0,
-      proofPointsLabel: `${completed}/${total}`,
-      completed,
+      progress: progressValue,
+      proofPointsLabel: `${completedFromSummary}/${total}`,
+      completed: completedFromSummary,
       total,
       instructor: activeEnrollment.instructorName,
       cohort: activeEnrollment.cohortId,
     }
-  }, [activeEnrollment])
+  }, [activeEnrollment, phases, progressSummary])
 
   const selectedPhaseProgress = getPhaseProgress(selectedPhase)
   const selectedPhaseStatus = getPhaseStatus(selectedPhase) as PhaseStatus

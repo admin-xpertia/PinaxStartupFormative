@@ -1,10 +1,13 @@
 "use client"
 
+import { useEffect, useMemo, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import useSWR from "swr"
-import { exercisesApi, progressApi } from "@/services/api"
+import { exercisesApi } from "@/services/api"
+import type { CompleteExerciseParams, SaveProgressParams } from "@/services/api"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
+import { useStudentSession } from "@/lib/hooks/use-student-session"
 
 // Import all players
 import {
@@ -24,6 +27,8 @@ export default function ExercisePage() {
   const params = useParams()
   const router = useRouter()
   const exerciseId = params.exerciseId as string
+  const { estudianteId, cohorteId } = useStudentSession()
+  const startedExercisesRef = useRef<Set<string>>(new Set())
 
   // Fetch exercise data and content
   const { data: exercise, error, isLoading } = useSWR(
@@ -38,13 +43,117 @@ export default function ExercisePage() {
       // Extract contenido_generado from the response
       const content = (contentResponse as any)?.contenido_generado || contentResponse
 
-      return { ...exerciseData, content, tipo }
+      const proofPointId =
+        (exerciseData as any).proofPointId ??
+        (exerciseData as any).proofPoint ??
+        (exerciseData as any).proof_point
+
+      return { ...exerciseData, proofPointId, content, tipo }
     }
   )
 
+  const proofPointId = useMemo(() => {
+    if (!exercise) return undefined
+    return (
+      (exercise as any).proofPointId ??
+      (exercise as any).proofPoint ??
+      (exercise as any).proof_point
+    )
+  }, [exercise])
+
+  useEffect(() => {
+    if (!exerciseId || !estudianteId || !cohorteId) {
+      return
+    }
+
+    if (startedExercisesRef.current.has(exerciseId)) {
+      return
+    }
+
+    startedExercisesRef.current.add(exerciseId)
+
+    const startExercise = async () => {
+      try {
+        await exercisesApi.start(exerciseId, {
+          estudianteId,
+          cohorteId,
+        })
+      } catch (error) {
+        console.warn("Failed to start exercise", error)
+      }
+    }
+
+    startExercise()
+  }, [exerciseId, estudianteId, cohorteId])
+
+  const ensureRecord = (value: any): Record<string, any> => {
+    if (value && typeof value === "object") {
+      return value as Record<string, any>
+    }
+    if (value === undefined || value === null) {
+      return {}
+    }
+    return { value }
+  }
+
+  const normalizeSavePayload = (rawData: any): SaveProgressParams => {
+    if (rawData && typeof rawData === "object") {
+      const {
+        datos,
+        porcentajeCompletitud,
+        tiempoInvertidoMinutos,
+        estudianteId: payloadEstudianteId,
+        cohorteId: payloadCohorteId,
+        ...rest
+      } = rawData as Record<string, any>
+
+      return {
+        estudianteId: (payloadEstudianteId as string) ?? estudianteId,
+        cohorteId: (payloadCohorteId as string) ?? cohorteId,
+        datos: ensureRecord(datos ?? rest),
+        porcentajeCompletitud,
+        tiempoInvertidoMinutos,
+      }
+    }
+
+    return {
+      estudianteId,
+      cohorteId,
+      datos: ensureRecord(rawData),
+    }
+  }
+
+  const normalizeCompletePayload = (rawData: any): CompleteExerciseParams => {
+    if (rawData && typeof rawData === "object") {
+      const {
+        datos,
+        tiempoInvertidoMinutos,
+        scoreFinal,
+        estudianteId: payloadEstudianteId,
+        cohorteId: payloadCohorteId,
+        ...rest
+      } = rawData as Record<string, any>
+
+      return {
+        estudianteId: (payloadEstudianteId as string) ?? estudianteId,
+        cohorteId: (payloadCohorteId as string) ?? cohorteId,
+        datos: ensureRecord(datos ?? rest),
+        tiempoInvertidoMinutos,
+        scoreFinal,
+      }
+    }
+
+    return {
+      estudianteId,
+      cohorteId,
+      datos: ensureRecord(rawData),
+    }
+  }
+
   const handleSave = async (data: any) => {
     try {
-      await exercisesApi.saveProgress(exerciseId, data)
+      const payload = normalizeSavePayload(data)
+      await exercisesApi.saveProgress(exerciseId, payload)
       toast.success("Progreso guardado exitosamente")
     } catch (error) {
       console.error("Error saving progress:", error)
@@ -55,17 +164,20 @@ export default function ExercisePage() {
 
   const handleComplete = async (data: any) => {
     try {
-      const result = await exercisesApi.complete(exerciseId, data)
+      const payload = normalizeCompletePayload(data)
+      const result = await exercisesApi.complete(exerciseId, payload)
       toast.success("¡Ejercicio completado! 🎉")
 
       // Navigate based on completion result
       if (result.nextExerciseId) {
         router.push(`/exercises/${result.nextExerciseId}`)
-      } else if (result.proofPointCompleted) {
+      } else if (result.proofPointCompleted && proofPointId) {
         toast.success("¡Proof Point completado! 🌟")
         router.push("/dashboard")
+      } else if (proofPointId) {
+        router.push(`/proof-points/${proofPointId}`)
       } else {
-        router.push(`/proof-points/${exercise?.proofPointId}`)
+        router.push("/dashboard")
       }
     } catch (error) {
       console.error("Error completing exercise:", error)
@@ -75,8 +187,8 @@ export default function ExercisePage() {
   }
 
   const handleExit = () => {
-    if (exercise?.proofPointId) {
-      router.push(`/proof-points/${exercise.proofPointId}`)
+    if (proofPointId) {
+      router.push(`/proof-points/${proofPointId}`)
     } else {
       router.push("/dashboard")
     }

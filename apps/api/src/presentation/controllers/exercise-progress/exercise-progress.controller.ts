@@ -502,15 +502,12 @@ export class ExerciseProgressController {
 
     // Get all published exercises for the cohorte
     const exercisesQuery = `
-      SELECT id, nombre, template, proof_point
+      SELECT id, nombre, template, proof_point, cohorte
       FROM exercise_instance
       WHERE estado_contenido = 'publicado'
-        AND cohorte = type::thing($cohorteId)
     `;
 
-    const exercisesResult = await this.db.query(exercisesQuery, {
-      cohorteId,
-    });
+    const exercisesResult = await this.db.query(exercisesQuery);
 
     let allExercises: any[] = [];
     if (Array.isArray(exercisesResult) && exercisesResult.length > 0) {
@@ -518,6 +515,10 @@ export class ExerciseProgressController {
         ? exercisesResult[0]
         : [exercisesResult[0]];
     }
+
+    allExercises = allExercises.filter((exercise) =>
+      this.isExerciseAvailableForCohorte(exercise, cohorteId),
+    );
 
     // Calculate overall statistics
     const completedRecords = progressRecords.filter(
@@ -706,17 +707,15 @@ export class ExerciseProgressController {
 
     // Get all exercises for this proof point
     const exercisesQuery = `
-      SELECT id, nombre, template, orden, es_obligatorio
+      SELECT id, nombre, template, orden, es_obligatorio, cohorte
       FROM exercise_instance
       WHERE proof_point = type::thing($proofPointId)
         AND estado_contenido = 'publicado'
-        AND cohorte = type::thing($cohorteId)
       ORDER BY orden ASC
     `;
 
     const exercisesResult = await this.db.query(exercisesQuery, {
       proofPointId: decodedProofPointId,
-      cohorteId,
     });
 
     let exercises: any[] = [];
@@ -725,6 +724,10 @@ export class ExerciseProgressController {
         ? exercisesResult[0]
         : [exercisesResult[0]];
     }
+
+    exercises = exercises.filter((exercise) =>
+      this.isExerciseAvailableForCohorte(exercise, cohorteId),
+    );
 
     if (exercises.length === 0) {
       return {
@@ -981,10 +984,16 @@ Recuerda citar explícitamente las secciones que utilices y mantener el tono soc
     const { content, raw } = await this.openAIService.generateChatResponse({
       systemPrompt,
       messages: [...limitedHistory, { role: "user", content: userContent }],
-      maxTokens: 900,
+      maxTokens: 7500,
     });
 
-    const { answer, references } = this.extractAssistantAnswer(content);
+    const { references, answer: extractedAnswer } =
+      this.extractAssistantAnswer(content);
+    let answer = extractedAnswer;
+
+    if (!answer) {
+      answer = this.buildAssistantFallback(assistantDto);
+    }
 
     return {
       respuesta: answer,
@@ -1093,6 +1102,25 @@ ${evaluationDto.respuestaEstudiante}`;
     };
   }
 
+  private buildAssistantFallback(
+    assistantDto: LessonAssistantRequestDto,
+  ): string {
+    const sectionTitle = assistantDto.seccionTitulo || "esta sección";
+    const sectionContent = assistantDto.seccionContenido || "";
+    const summary = sectionContent
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .slice(0, 2)
+      .join(" ");
+
+    const focus = assistantDto.conceptoFocal ?? "la idea principal";
+
+    return `No pude consultar al mentor IA en este momento, pero aquí tienes un recordatorio rápido sobre "${sectionTitle}": ${
+      summary || "repasa la sección para retomar el hilo"
+    }.\n\nVuelve a intentarlo formulando tu duda sobre ${focus} o dime qué parte quieres profundizar.`;
+  }
+
   private normalizeEvaluationScore(
     rawScore: string,
   ): "correcto" | "parcialmente_correcto" | "incorrecto" {
@@ -1104,6 +1132,44 @@ ${evaluationDto.respuestaEstudiante}`;
       return "incorrecto";
     }
     return "correcto";
+  }
+
+  private isExerciseAvailableForCohorte(
+    exercise: any,
+    cohorteId: string,
+  ): boolean {
+    const exerciseCohorteId = this.extractRecordId(exercise?.cohorte);
+    if (!exerciseCohorteId) {
+      return true;
+    }
+    return exerciseCohorteId === cohorteId;
+  }
+
+  private extractRecordId(value: any): string | null {
+    if (!value) {
+      return null;
+    }
+
+    if (typeof value === "string") {
+      return value;
+    }
+
+    if (typeof value === "object") {
+      if (typeof value.id === "string") {
+        return value.id;
+      }
+      if (typeof value["@id"] === "string") {
+        return value["@id"];
+      }
+      if (typeof value.toString === "function") {
+        const stringValue = value.toString();
+        if (typeof stringValue === "string" && stringValue.length > 0) {
+          return stringValue;
+        }
+      }
+    }
+
+    return null;
   }
 
   /**

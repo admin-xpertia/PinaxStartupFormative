@@ -693,16 +693,93 @@ FORMATO PARA EJEMPLOS PRÁCTICOS:
       const chatMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] =
         [{ role: "system", content: systemPrompt }, ...messages];
 
-      const response = await this.client.chat.completions.create({
-        model: this.model,
-        messages: chatMessages,
-        max_completion_tokens: maxTokens,
-        response_format: responseFormat,
-      });
+      let tokenBudget = Math.min(
+        maxTokens && maxTokens > 0 ? maxTokens : this.initialCompletionTokens,
+        this.maxCompletionTokens,
+      );
+      let attempt = 0;
+      let lastResponse: OpenAI.Chat.Completions.ChatCompletion | null = null;
 
-      const content = this.extractMessageContent(response.choices[0]?.message);
+      while (attempt <= this.completionRetryLimit) {
+        this.logger.debug(
+          `🤖 Sending chat completion request (attempt ${attempt + 1})`,
+        );
+        this.logger.debug(`   Model: ${this.model}`);
+        this.logger.debug(`   Messages count: ${chatMessages.length}`);
+        this.logger.debug(`   Max tokens: ${tokenBudget}`);
+        this.logger.debug(
+          `   Response format: ${responseFormat?.type || "text"}`,
+        );
 
-      return { content, raw: response };
+        const response = await this.client.chat.completions.create({
+          model: this.model,
+          messages: chatMessages,
+          max_completion_tokens: tokenBudget,
+          response_format: responseFormat ?? { type: "text" },
+        });
+
+        lastResponse = response;
+
+        this.logger.debug(`✅ Chat completion received`);
+        this.logger.debug(
+          `   Finish reason: ${response.choices[0]?.finish_reason}`,
+        );
+        this.logger.debug(
+          `   Message exists: ${!!response.choices[0]?.message}`,
+        );
+        this.logger.debug(
+          `   Message content type: ${typeof response.choices[0]?.message?.content}`,
+        );
+        this.logger.debug(
+          `   Message content length: ${response.choices[0]?.message?.content?.toString().length || 0}`,
+        );
+
+        const content = this.extractMessageContent(
+          response.choices[0]?.message,
+        );
+
+        this.logger.debug(`   Extracted content length: ${content.length}`);
+
+        if (content) {
+          return { content, raw: response };
+        }
+
+        const finishReason = response.choices[0]?.finish_reason;
+        const reachedRetryLimit = attempt >= this.completionRetryLimit;
+        const hitMaxTokens = tokenBudget >= this.maxCompletionTokens;
+        const shouldRetry =
+          finishReason === "length" && !reachedRetryLimit && !hitMaxTokens;
+
+        if (!shouldRetry) {
+          this.logger.warn("⚠️  Empty content extracted from chat response");
+          this.logger.debug(
+            `   Full message: ${JSON.stringify(response.choices[0]?.message, null, 2)}`,
+          );
+          break;
+        }
+
+        const nextBudget = Math.min(
+          Math.ceil(tokenBudget * this.completionTokenMultiplier),
+          this.maxCompletionTokens,
+        );
+
+        if (nextBudget === tokenBudget) {
+          break;
+        }
+
+        this.logger.warn(
+          `⚠️  Chat response truncated at ${tokenBudget} tokens (finish_reason: length). Retrying with ${nextBudget} tokens...`,
+        );
+
+        tokenBudget = nextBudget;
+        attempt += 1;
+      }
+
+      if (!lastResponse) {
+        throw new Error("No response received from OpenAI");
+      }
+
+      return { content: "", raw: lastResponse };
     } catch (error) {
       this.logger.error("❌ Error generating chat response with OpenAI", error);
       throw new Error(`Failed to generate chat response: ${error.message}`);
@@ -743,7 +820,15 @@ FORMATO PARA EJEMPLOS PRÁCTICOS:
       return "";
     }
 
-    // Check for parsed content first (used with response_format: json_object)
+    this.logger.debug(
+      `extractMessageContent: message keys: ${Object.keys(message).join(", ")}`,
+    );
+    this.logger.debug(`extractMessageContent: message.role: ${message.role}`);
+    this.logger.debug(
+      `extractMessageContent: message.content type: ${typeof message.content}`,
+    );
+
+    // Check for parsed content first (used with response_format: json_object with structured outputs)
     const potentialParsed = (message as any)?.parsed;
     if (potentialParsed) {
       this.logger.debug("extractMessageContent: Found parsed content");
@@ -768,8 +853,17 @@ FORMATO PARA EJEMPLOS PRÁCTICOS:
 
     // Check for regular content
     if (!message.content) {
+      const refusalText = (message as any)?.refusal;
+      if (typeof refusalText === "string" && refusalText.trim().length > 0) {
+        this.logger.warn("extractMessageContent: Model refusal detected");
+        return refusalText.trim();
+      }
+
       this.logger.debug(
         "extractMessageContent: No content or parsed field found",
+      );
+      this.logger.debug(
+        `extractMessageContent: Full message structure: ${JSON.stringify(message, null, 2)}`,
       );
       return "";
     }

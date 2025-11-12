@@ -63,7 +63,7 @@ export class ExerciseInstance extends AggregateRoot<ExerciseInstanceProps> {
       template: templateId,
       proofPoint: proofPointId,
       nombre,
-      consideracionesContexto: consideraciones || "",
+      consideracionesContexto: normalizeConsideraciones(consideraciones),
       configuracionPersonalizada: configuracion,
       orden,
       duracionEstimadaMinutos: duracionMinutos,
@@ -176,7 +176,8 @@ export class ExerciseInstance extends AggregateRoot<ExerciseInstanceProps> {
    * Updates instructor context considerations
    */
   updateConsideracionesContexto(consideraciones: string): void {
-    this.props.consideracionesContexto = consideraciones;
+    this.props.consideracionesContexto =
+      normalizeConsideraciones(consideraciones);
     this.props.updatedAt = Timestamp.now();
   }
 
@@ -324,3 +325,19 @@ export class ExerciseInstance extends AggregateRoot<ExerciseInstanceProps> {
     };
   }
 }
+
+const normalizeConsideraciones = (input?: any): string => {
+  if (input === undefined || input === null) {
+    return "";
+  }
+
+  if (typeof input === "string") {
+    return input;
+  }
+
+  try {
+    return JSON.stringify(input);
+  } catch {
+    return String(input);
+  }
+};

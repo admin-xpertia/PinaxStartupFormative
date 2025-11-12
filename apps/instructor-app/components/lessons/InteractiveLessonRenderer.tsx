@@ -297,11 +297,25 @@ interface LessonExampleNormalizedData {
 }
 
 const parseExampleBlock = (raw: string): LessonExampleNormalizedData | null => {
+  const parsed = parseJsonWithFallback(raw)
+  if (!parsed) return null
+  return normalizeExampleData(parsed)
+}
+
+const parseJsonWithFallback = (raw: string): any | null => {
   try {
-    const parsed = JSON.parse(raw)
-    return normalizeExampleData(parsed)
+    return JSON.parse(raw)
   } catch {
-    return null
+    try {
+      const normalized = raw
+        .replace(/\\r/g, "")
+        .replace(/\\n/g, "\n")
+        .replace(/\\t/g, "\t")
+        .replace(/\\"/g, '"')
+      return JSON.parse(normalized)
+    } catch {
+      return null
+    }
   }
 }
 
@@ -519,6 +533,10 @@ export function InteractiveLessonRenderer({
     })
     return map
   }, [content.preguntasVerificacion])
+  const hasInlineVerificationBlocks = useMemo(
+    () => typeof content.markdown === "string" && content.markdown.includes("```verification"),
+    [content.markdown],
+  )
 
   useEffect(() => {
     onSectionsMetadata?.(sections)
@@ -675,6 +693,145 @@ export function InteractiveLessonRenderer({
   const handleRequestDeepDive = (question: LessonVerificationQuestion) => {
     if (!question.accionChatSugerida) return
     onRequestDeepDive?.(question, question.accionChatSugerida)
+  }
+
+  const renderVerificationBlock = (question: LessonVerificationQuestion) => {
+    const state = questionState[question.id] || defaultQuestionState
+    const expected = Array.isArray(question.respuestaCorrecta)
+      ? (question.respuestaCorrecta as string[])
+      : [String(question.respuestaCorrecta)]
+    const isMultiSelect = expected.length > 1
+
+    if (question.tipo === "respuesta_corta") {
+      return (
+        <VerificationShell status={state.status}>
+          <p className="text-sm font-medium text-slate-800">{question.enunciado}</p>
+          <textarea
+            className="mt-4 w-full rounded-xl border border-slate-200 bg-white/80 p-3 text-sm shadow-inner focus:border-slate-400 focus:outline-none"
+            placeholder="Escribe tu respuesta aquí..."
+            value={state.answerText || ""}
+            disabled={readOnly || state.status === "checking"}
+            onChange={(event) =>
+              updateState(question.id, (prev) => ({
+                ...prev,
+                answerText: event.target.value,
+                status: "idle",
+              }))
+            }
+          />
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => handleShortAnswer(question)}
+              disabled={!evaluateShortAnswer || !state.answerText?.trim() || readOnly || state.status === "checking"}
+              className="rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+            >
+              {state.status === "checking" ? "Evaluando..." : "Evaluar con IA"}
+            </button>
+            {!readOnly && question.accionChatSugerida && (
+              <button
+                type="button"
+                onClick={() => handleRequestDeepDive(question)}
+                className="rounded-full border border-slate-300 px-5 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400"
+              >
+                Profundizar en Chat
+              </button>
+            )}
+          </div>
+
+          {state.feedback && (
+            <div className="mt-4 rounded-xl border border-slate-200 bg-white/90 p-3 text-sm text-slate-700">
+              {state.feedback}
+              {state.suggestions && state.suggestions.length > 0 && (
+                <ul className="mt-2 list-disc pl-5 text-xs text-slate-600">
+                  {state.suggestions.map((suggestion, idx) => (
+                    <li key={idx}>{suggestion}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </VerificationShell>
+      )
+    }
+
+    return (
+      <VerificationShell status={state.status}>
+        <div className="space-y-4">
+          <div>
+            <p className="text-sm font-semibold text-slate-800">{question.enunciado}</p>
+            {question.criteriosEvaluacion && question.criteriosEvaluacion.length > 0 && (
+              <p className="mt-1 text-xs text-slate-500">{question.criteriosEvaluacion.join(" • ")}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            {(question.opciones || []).map((option) => {
+              const isSelected = state.selectedOptionIds?.includes(option.id)
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  disabled={readOnly}
+                  onClick={() => handleSelectOption(question, option.id, isMultiSelect)}
+                  className={`w-full rounded-2xl border px-4 py-3 text-left text-sm transition hover:border-slate-400 ${
+                    isSelected ? "border-slate-900 bg-slate-900/5" : "border-slate-200 bg-white"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`h-4 w-4 rounded-full border ${
+                        isSelected ? "border-slate-900 bg-slate-900" : "border-slate-300"
+                      }`}
+                    />
+                    <span>{option.texto}</span>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+
+          {!readOnly && (
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                className="rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+                disabled={state.selectedOptionIds?.length === 0}
+                onClick={() => handleCheckAnswer(question)}
+              >
+                Revisar respuesta
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  updateState(question.id, () => ({
+                    selectedOptionIds: [],
+                    status: "idle",
+                  }))
+                }
+                className="rounded-full border border-slate-300 px-5 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400"
+              >
+                Reintentar
+              </button>
+              {question.accionChatSugerida && (
+                <button
+                  type="button"
+                  onClick={() => handleRequestDeepDive(question)}
+                  className="rounded-full border border-slate-300 px-5 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400"
+                >
+                  Profundizar en Chat
+                </button>
+              )}
+            </div>
+          )}
+          {state.feedback && (
+            <div className="mt-4 rounded-xl border border-slate-200 bg-white/90 p-3 text-sm text-slate-700">
+              {state.feedback}
+            </div>
+          )}
+        </div>
+      </VerificationShell>
+    )
   }
 
   const components: Components = {
@@ -996,6 +1153,18 @@ export function InteractiveLessonRenderer({
       >
         {content.markdown}
       </ReactMarkdown>
+
+      {!hasInlineVerificationBlocks && content.preguntasVerificacion && content.preguntasVerificacion.length > 0 && (
+        <section className="rounded-3xl border border-slate-200 bg-white/70 p-6">
+          <h4 className="text-base font-semibold text-slate-900">Preguntas de verificación</h4>
+          <p className="text-sm text-slate-500">Estas preguntas se agregan automáticamente cuando el markdown no las incluye embebidas.</p>
+          <div className="mt-4 space-y-6">
+            {content.preguntasVerificacion.map((question) => (
+              <div key={`fallback-question-${question.id}`}>{renderVerificationBlock(question)}</div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {content.glosario && content.glosario.length > 0 && (
         <section className="rounded-3xl border border-slate-200 bg-slate-50/60 p-6">
