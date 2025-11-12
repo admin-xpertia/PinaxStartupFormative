@@ -9,6 +9,7 @@ import { ExerciseTemplateRepository } from "../infrastructure/database/repositor
 
 // Controllers
 import { ExerciseTemplateController } from "../presentation/controllers/exercise-catalog/exercise-template.controller";
+import { UpdateTemplateController } from "../presentation/controllers/exercise-catalog/update-template.controller";
 
 /**
  * ExerciseCatalogModule
@@ -34,6 +35,7 @@ import { ExerciseTemplateController } from "../presentation/controllers/exercise
   controllers: [
     // REST API Controllers
     ExerciseTemplateController,
+    UpdateTemplateController, // Temporary controller for schema update
   ],
   exports: [
     // Export repository for use in other modules
