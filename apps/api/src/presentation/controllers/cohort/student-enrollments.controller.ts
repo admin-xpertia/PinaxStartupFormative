@@ -20,7 +20,7 @@ import type {
   StudentEnrollmentItem,
   GetStudentEnrollmentsParams,
 } from "../../../application/cohort/queries/GetStudentEnrollments/GetStudentEnrollmentsQuery";
-import type { ProgramStructure } from "../../../types/enrollment";
+import type { ProgramStructure } from "@xpertia/types/enrollment";
 import { Public } from "../../../core/decorators";
 import { CohortStructureService } from "../../../application/cohort/services/CohortStructureService";
 

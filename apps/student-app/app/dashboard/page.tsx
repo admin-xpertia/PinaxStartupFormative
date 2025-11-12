@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
 import useSWR from "swr"
 import { BookOpen } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -14,9 +14,9 @@ import {
   StatsOverview,
 } from "@/components/student/dashboard"
 import { getPhaseProgress, getPhaseStatus, type PhaseStatus } from "@/lib/dashboard"
-import type { Phase } from "@/types/enrollment"
+import type { Phase } from "@shared-types/enrollment"
 
-export default function DashboardPage() {
+function DashboardContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -166,5 +166,17 @@ export default function DashboardPage() {
         </section>
       </main>
     </div>
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center text-muted-foreground">
+        Cargando tu espacio de aprendizaje...
+      </div>
+    }>
+      <DashboardContent />
+    </Suspense>
   )
 }

@@ -1,52 +1,47 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState, useCallback } from "react"
+import type {
+  LeccionContent,
+  LessonVerificationQuestion,
+  LessonQuestionType,
+} from "@shared-types/content"
 import { ExercisePlayer } from "../base/ExercisePlayer"
+import {
+  InteractiveLessonRenderer,
+  type LessonSectionInfo,
+  type QuestionResultPayload,
+  type EvaluateShortAnswerInput,
+  type EvaluateShortAnswerResult,
+} from "../../lessons/InteractiveLessonRenderer"
+import { exercisesApi } from "@/services/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { Badge } from "@/components/ui/badge"
-import { BookOpen, Video, FileText, CheckCircle2, Circle } from "lucide-react"
-import { cn } from "@/lib/utils"
-
-// Types based on AI-generated content structure
-interface LeccionSection {
-  tipo: "texto" | "video" | "imagen" | "lista" | "concepto_clave"
-  contenido: string
-  titulo?: string
-  url?: string // for video/image
-  items?: string[] // for lists
-}
-
-interface QuizQuestion {
-  pregunta: string
-  tipo: "multiple_choice" | "verdadero_falso" | "checkbox"
-  opciones: string[]
-  respuesta_correcta: string | string[]
-  explicacion?: string
-}
-
-interface LeccionContent {
-  titulo: string
-  objetivos: string[]
-  secciones: LeccionSection[]
-  conceptos_clave: string[]
-  quiz?: QuizQuestion[]
-  recursos_adicionales?: Array<{ titulo: string; url: string; tipo: string }>
-}
+import { Textarea } from "@/components/ui/textarea"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Loader2, MessageCircle, Sparkles } from "lucide-react"
 
 interface LeccionInteractivaPlayerProps {
   exerciseId: string
   exerciseName: string
   proofPointName: string
   content: LeccionContent
+  savedData?: any
   onSave: (data: any) => Promise<void>
   onComplete: (data: any) => Promise<void>
   onExit: () => void
 }
+
+type AssistantMessage = {
+  role: "user" | "assistant"
+  content: string
+}
+
+const defaultSuggestions = [
+  "¿Puedes resumir esta sección?",
+  "Dame un ejemplo aplicado",
+  "¿Cuál sería el siguiente paso?",
+]
 
 export function LeccionInteractivaPlayer({
   exerciseId,
@@ -57,369 +52,429 @@ export function LeccionInteractivaPlayer({
   onComplete,
   onExit,
 }: LeccionInteractivaPlayerProps) {
-  const [currentSection, setCurrentSection] = useState(0)
-  const [completedSections, setCompletedSections] = useState<Set<number>>(new Set())
-  const [quizAnswers, setQuizAnswers] = useState<Record<number, any>>({})
-  const [showQuizResults, setShowQuizResults] = useState(false)
+  const normalizedContent = useMemo(() => ensureLessonContentHasMarkdown(content), [content])
+  const [sections, setSections] = useState<LessonSectionInfo[]>([])
+  const [currentSection, setCurrentSection] = useState<LessonSectionInfo | null>(null)
+  const [aiMessages, setAiMessages] = useState<AssistantMessage[]>([])
+  const [aiInput, setAiInput] = useState("")
+  const [aiLoading, setAiLoading] = useState(false)
+  const [assistantOpen, setAssistantOpen] = useState(true)
+  const [profile, setProfile] = useState({
+    correctas: 0,
+    incorrectas: 0,
+    parciales: 0,
+    preguntasDificiles: [] as string[],
+  })
 
-  const totalSections = content.secciones.length + (content.quiz ? 1 : 0)
-  const isQuizSection = currentSection === content.secciones.length && content.quiz
-  const canComplete = completedSections.size >= content.secciones.length
-
-  const handleSectionComplete = () => {
-    setCompletedSections(prev => new Set([...prev, currentSection]))
-    handleNext()
-  }
-
-  const handleNext = () => {
-    if (currentSection < totalSections - 1) {
-      setCurrentSection(currentSection + 1)
+  const exerciseDescription = useMemo(() => {
+    if (normalizedContent.metadata?.objetivoPrincipal) return normalizedContent.metadata.objetivoPrincipal
+    if (normalizedContent.metadata?.conceptosClave?.length) {
+      return normalizedContent.metadata.conceptosClave.join(" • ")
     }
-  }
+    return undefined
+  }, [normalizedContent])
 
-  const handlePrevious = () => {
-    if (currentSection > 0) {
-      setCurrentSection(currentSection - 1)
-    }
-  }
+  const handleQuestionResult = useCallback(
+    (payload: QuestionResultPayload) => {
+      setProfile((prev) => ({
+        correctas: payload.status === "correcto" ? prev.correctas + 1 : prev.correctas,
+        incorrectas: payload.status === "incorrecto" ? prev.incorrectas + 1 : prev.incorrectas,
+        parciales: payload.status === "parcialmente_correcto" ? prev.parciales + 1 : prev.parciales,
+        preguntasDificiles:
+          payload.status === "incorrecto" || payload.status === "parcialmente_correcto"
+            ? Array.from(new Set([...prev.preguntasDificiles, payload.questionId]))
+            : prev.preguntasDificiles,
+      }))
+    },
+    []
+  )
 
-  const handleQuizSubmit = () => {
-    setShowQuizResults(true)
-    setCompletedSections(prev => new Set([...prev, currentSection]))
-  }
+  const handleEvaluateShortAnswer = useCallback(
+    async ({ question, answer, section }: EvaluateShortAnswerInput): Promise<EvaluateShortAnswerResult> => {
+      const response = await exercisesApi.evaluateLessonQuestion(exerciseId, {
+        preguntaId: question.id,
+        tipoPregunta: "respuesta_corta",
+        enunciado: question.enunciado,
+        respuestaEstudiante: answer,
+        criteriosEvaluacion: question.criteriosEvaluacion || [],
+        seccionContenido: section?.content || normalizedContent.markdown,
+        seccionTitulo: section?.title || normalizedContent.metadata?.titulo || proofPointName,
+        perfilComprension: {
+          correctas: profile.correctas,
+          incorrectas: profile.incorrectas,
+          parciales: profile.parciales,
+        },
+      })
 
-  const calculateQuizScore = () => {
-    if (!content.quiz) return 0
-    let correct = 0
-    content.quiz.forEach((q, idx) => {
-      const userAnswer = quizAnswers[idx]
-      if (Array.isArray(q.respuesta_correcta)) {
-        if (JSON.stringify(userAnswer?.sort()) === JSON.stringify(q.respuesta_correcta.sort())) {
-          correct++
-        }
-      } else {
-        if (userAnswer === q.respuesta_correcta) {
-          correct++
-        }
+      return {
+        score: response.score,
+        feedback: response.feedback,
+        sugerencias: response.sugerencias,
       }
-    })
-    return Math.round((correct / content.quiz.length) * 100)
-  }
+    },
+    [normalizedContent.markdown, normalizedContent.metadata?.titulo, exerciseId, profile, proofPointName]
+  )
 
-  const renderSection = (section: LeccionSection, index: number) => {
-    switch (section.tipo) {
-      case "texto":
-        return (
-          <div className="prose prose-lg max-w-none">
-            {section.titulo && <h3>{section.titulo}</h3>}
-            <p className="text-foreground/90 leading-relaxed">{section.contenido}</p>
-          </div>
-        )
+  const comprehensionProfile = useMemo(
+    () => ({
+      correctas: profile.correctas,
+      incorrectas: profile.incorrectas,
+      parciales: profile.parciales,
+      preguntasDificiles: profile.preguntasDificiles,
+    }),
+    [profile]
+  )
 
-      case "video":
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Video className="h-5 w-5" />
-                {section.titulo || "Video"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                {section.url ? (
-                  <iframe
-                    src={section.url}
-                    className="w-full h-full rounded-lg"
-                    allowFullScreen
-                  />
-                ) : (
-                  <p className="text-muted-foreground">Video: {section.contenido}</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )
+  const handleAssistantMessage = useCallback(
+    async (message: string) => {
+      if (!message.trim()) return
+      const trimmed = message.trim()
+      const historyWithUser = [
+        ...aiMessages.slice(-9),
+        {
+          role: "user" as const,
+          content: trimmed,
+        },
+      ]
 
-      case "imagen":
-        return (
-          <Card>
-            <CardContent className="p-4">
-              {section.url ? (
-                <img
-                  src={section.url}
-                  alt={section.titulo || section.contenido}
-                  className="w-full rounded-lg"
-                />
-              ) : (
-                <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                  <p className="text-muted-foreground">Imagen: {section.contenido}</p>
-                </div>
-              )}
-              {section.titulo && (
-                <p className="text-sm text-muted-foreground mt-2 text-center">
-                  {section.titulo}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        )
+      setAiMessages(historyWithUser)
+      setAiInput("")
+      setAiLoading(true)
 
-      case "lista":
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>{section.titulo || "Puntos Clave"}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2">
-                {(section.items || []).map((item, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )
+      try {
+        const response = await exercisesApi.sendLessonAssistantMessage(exerciseId, {
+          pregunta: trimmed,
+          seccionId: currentSection?.id || "leccion",
+          seccionTitulo: currentSection?.title || normalizedContent.metadata?.titulo || proofPointName,
+          seccionContenido: currentSection?.content || sections[0]?.content || normalizedContent.markdown,
+          historial: historyWithUser,
+          perfilComprension: comprehensionProfile,
+        })
 
-      case "concepto_clave":
-        return (
-          <Card className="border-primary/50 bg-primary/5">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-primary">
-                <BookOpen className="h-5 w-5" />
-                Concepto Clave
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-lg font-medium">{section.contenido}</p>
-            </CardContent>
-          </Card>
-        )
+        setAiMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: response.respuesta,
+          },
+        ])
+      } catch (error) {
+        setAiMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: "No pude consultar a la IA en este momento. Intenta nuevamente en unos segundos.",
+          },
+        ])
+      } finally {
+        setAiLoading(false)
+      }
+    },
+    [
+      aiMessages,
+      comprehensionProfile,
+      normalizedContent.markdown,
+      normalizedContent.metadata?.titulo,
+      currentSection,
+      exerciseId,
+      proofPointName,
+      sections,
+    ]
+  )
 
-      default:
-        return <p>{section.contenido}</p>
-    }
-  }
+  const handleDeepDive = useCallback((prompt: string) => {
+    setAssistantOpen(true)
+    setAiInput(prompt)
+  }, [])
 
-  const renderQuiz = () => {
-    if (!content.quiz) return null
-
-    return (
-      <div className="space-y-6">
-        <Card className="border-primary/50 bg-primary/5">
-          <CardContent className="p-6">
-            <h3 className="text-xl font-semibold mb-2">Evaluación de Comprensión</h3>
-            <p className="text-muted-foreground">
-              Responde las siguientes preguntas para verificar tu comprensión de la lección
-            </p>
-          </CardContent>
-        </Card>
-
-        {content.quiz.map((question, qIdx) => (
-          <Card key={qIdx}>
-            <CardHeader>
-              <CardTitle className="text-lg">
-                Pregunta {qIdx + 1} de {content.quiz!.length}
-              </CardTitle>
-              <p className="text-foreground/90">{question.pregunta}</p>
-            </CardHeader>
-            <CardContent>
-              {question.tipo === "multiple_choice" && (
-                <RadioGroup
-                  value={quizAnswers[qIdx]}
-                  onValueChange={(value) =>
-                    setQuizAnswers({ ...quizAnswers, [qIdx]: value })
-                  }
-                  disabled={showQuizResults}
-                >
-                  {question.opciones.map((option, oIdx) => {
-                    const isCorrect = option === question.respuesta_correcta
-                    const isSelected = quizAnswers[qIdx] === option
-                    return (
-                      <div
-                        key={oIdx}
-                        className={cn(
-                          "flex items-center space-x-2 rounded-lg border p-4 transition-colors",
-                          showQuizResults &&
-                            isCorrect &&
-                            "border-green-500 bg-green-50",
-                          showQuizResults &&
-                            isSelected &&
-                            !isCorrect &&
-                            "border-red-500 bg-red-50"
-                        )}
-                      >
-                        <RadioGroupItem value={option} id={`q${qIdx}-o${oIdx}`} />
-                        <Label
-                          htmlFor={`q${qIdx}-o${oIdx}`}
-                          className="flex-1 cursor-pointer"
-                        >
-                          {option}
-                        </Label>
-                        {showQuizResults && isCorrect && (
-                          <CheckCircle2 className="h-5 w-5 text-green-600" />
-                        )}
-                      </div>
-                    )
-                  })}
-                </RadioGroup>
-              )}
-
-              {question.tipo === "checkbox" && (
-                <div className="space-y-2">
-                  {question.opciones.map((option, oIdx) => {
-                    const correctAnswers = question.respuesta_correcta as string[]
-                    const isCorrect = correctAnswers.includes(option)
-                    const isSelected = quizAnswers[qIdx]?.includes(option)
-                    return (
-                      <div
-                        key={oIdx}
-                        className={cn(
-                          "flex items-center space-x-2 rounded-lg border p-4",
-                          showQuizResults &&
-                            isCorrect &&
-                            "border-green-500 bg-green-50",
-                          showQuizResults &&
-                            isSelected &&
-                            !isCorrect &&
-                            "border-red-500 bg-red-50"
-                        )}
-                      >
-                        <Checkbox
-                          id={`q${qIdx}-o${oIdx}`}
-                          checked={quizAnswers[qIdx]?.includes(option) || false}
-                          onCheckedChange={(checked) => {
-                            const current = quizAnswers[qIdx] || []
-                            const updated = checked
-                              ? [...current, option]
-                              : current.filter((o: string) => o !== option)
-                            setQuizAnswers({ ...quizAnswers, [qIdx]: updated })
-                          }}
-                          disabled={showQuizResults}
-                        />
-                        <Label
-                          htmlFor={`q${qIdx}-o${oIdx}`}
-                          className="flex-1 cursor-pointer"
-                        >
-                          {option}
-                        </Label>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-
-              {showQuizResults && question.explicacion && (
-                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm">
-                    <strong>Explicación:</strong> {question.explicacion}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-
-        {!showQuizResults && (
-          <Button onClick={handleQuizSubmit} size="lg" className="w-full">
-            Enviar Respuestas
-          </Button>
-        )}
-
-        {showQuizResults && (
-          <Card className="border-primary">
-            <CardContent className="p-6">
-              <div className="text-center">
-                <h3 className="text-2xl font-bold mb-2">
-                  Tu puntuación: {calculateQuizScore()}%
-                </h3>
-                <p className="text-muted-foreground">
-                  {calculateQuizScore() >= 70
-                    ? "¡Excelente! Has demostrado un buen entendimiento de la lección"
-                    : "Revisa los conceptos clave y vuelve a intentarlo"}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+  const layout = (
+    <div className="flex w-full flex-col gap-8 xl:flex-row xl:items-start">
+      <div className="flex-1">
+        <InteractiveLessonRenderer
+          content={normalizedContent}
+          onSectionsMetadata={setSections}
+          onSectionChange={setCurrentSection}
+          onQuestionResult={handleQuestionResult}
+          onRequestDeepDive={(_, prompt) => prompt && handleDeepDive(prompt)}
+          evaluateShortAnswer={handleEvaluateShortAnswer}
+        />
       </div>
-    )
-  }
+
+      <Card className="lg:w-[360px]">
+        <CardHeader className="flex flex-row items-start justify-between space-y-0">
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Tutor IA</p>
+            <CardTitle className="mt-1 flex items-center gap-2 text-lg">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Pregunta al mentor
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+            Contexto: {currentSection?.title || normalizedContent.metadata?.titulo}
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8"
+            onClick={() => setAssistantOpen((prev) => !prev)}
+          >
+            {assistantOpen ? "Ocultar" : "Mostrar"}
+          </Button>
+        </CardHeader>
+        {assistantOpen && (
+          <>
+            <CardContent className="space-y-4">
+              <div className="rounded-2xl bg-muted/40 p-3 text-xs text-muted-foreground">
+                <p className="font-semibold text-foreground">Perfil de Comprensión</p>
+                <p>
+                  ✓ {profile.correctas} respondidas correctamente • ∆ {profile.parciales} parciales • !{" "}
+                  {profile.incorrectas} por reforzar
+                </p>
+              </div>
+
+              <ScrollArea className="h-64 rounded-2xl border border-muted">
+                <div className="space-y-3 p-3">
+                  {aiMessages.length === 0 && (
+                    <div className="rounded-xl border border-dashed border-muted-foreground/30 p-4 text-center text-xs text-muted-foreground">
+                      Explica qué parte no quedó clara o pregúntame por un ejemplo.
+                    </div>
+                  )}
+                  {aiMessages.map((message, idx) => (
+                    <div
+                      key={`assistant-msg-${idx}`}
+                      className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`rounded-2xl px-4 py-2 text-sm shadow ${
+                          message.role === "user"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-white text-slate-800"
+                        }`}
+                      >
+                        {message.content}
+                      </div>
+                    </div>
+                  ))}
+                  {aiLoading && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Elaborando respuesta...
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+
+              <div className="flex flex-wrap gap-2">
+                {defaultSuggestions.map((suggestion) => (
+                  <Button
+                    key={suggestion}
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-wrap"
+                    onClick={() => setAiInput(suggestion)}
+                  >
+                    {suggestion}
+                  </Button>
+                ))}
+              </div>
+
+              <div className="space-y-2 rounded-2xl border border-muted bg-white/80 p-3 shadow-inner">
+                <Textarea
+                  value={aiInput}
+                  placeholder="Formula tu pregunta..."
+                  onChange={(event) => setAiInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !event.shiftKey) {
+                      event.preventDefault()
+                      handleAssistantMessage(aiInput)
+                    }
+                  }}
+                  className="min-h-[90px] resize-none border-0 bg-transparent p-0 text-sm focus-visible:ring-0"
+                />
+                <div className="flex justify-end">
+                  <Button
+                    size="sm"
+                    onClick={() => handleAssistantMessage(aiInput)}
+                    disabled={!aiInput.trim() || aiLoading}
+                  >
+                    {aiLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Pensando...
+                      </>
+                    ) : (
+                      <>
+                        <MessageCircle className="mr-2 h-4 w-4" />
+                        Enviar
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </>
+        )}
+      </Card>
+    </div>
+  )
 
   return (
     <ExercisePlayer
       exerciseId={exerciseId}
       exerciseName={exerciseName}
-      exerciseDescription={content.objetivos.join(" • ")}
+      exerciseDescription={exerciseDescription}
       proofPointName={proofPointName}
-      totalSteps={totalSections}
-      currentStep={currentSection + 1}
+      totalSteps={1}
+      contentMaxWidthClassName="max-w-6xl"
+      currentStep={1}
       onSave={onSave}
       onComplete={onComplete}
-      onPrevious={currentSection > 0 ? handlePrevious : undefined}
-      onNext={
-        currentSection < totalSections - 1 && !isQuizSection ? handleNext : undefined
-      }
       onExit={onExit}
-      showAIAssistant={true}
+      showAIAssistant={false}
     >
-      <div className="space-y-6">
-        {/* Progress Indicator */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {Array.from({ length: totalSections }).map((_, idx) => (
-            <Button
-              key={idx}
-              variant={currentSection === idx ? "default" : "outline"}
-              size="sm"
-              onClick={() => setCurrentSection(idx)}
-              className="relative"
-            >
-              {completedSections.has(idx) && (
-                <CheckCircle2 className="h-4 w-4 absolute -top-1 -right-1 text-green-600" />
-              )}
-              {idx < content.secciones.length ? `Sección ${idx + 1}` : "Quiz"}
-            </Button>
-          ))}
-        </div>
-
-        <Separator />
-
-        {/* Content */}
-        {!isQuizSection && content.secciones[currentSection] && (
-          <>
-            {renderSection(content.secciones[currentSection], currentSection)}
-            {!completedSections.has(currentSection) && (
-              <Button onClick={handleSectionComplete} className="w-full" size="lg">
-                <CheckCircle2 className="h-5 w-5 mr-2" />
-                Marcar como Completada
-              </Button>
-            )}
-          </>
-        )}
-
-        {isQuizSection && renderQuiz()}
-
-        {/* Key Concepts Summary */}
-        {!isQuizSection && content.conceptos_clave && content.conceptos_clave.length > 0 && (
-          <Card className="mt-8 border-primary/30 bg-primary/5">
-            <CardHeader>
-              <CardTitle>Conceptos Clave de Esta Lección</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {content.conceptos_clave.map((concepto, idx) => (
-                  <Badge key={idx} variant="secondary" className="text-sm">
-                    {concepto}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+      {layout}
     </ExercisePlayer>
   )
+}
+
+const slugify = (value: string, fallback: string) => {
+  if (!value || typeof value !== "string") return fallback
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-") || fallback
+}
+
+function ensureLessonContentHasMarkdown(raw: LeccionContent): LeccionContent {
+  if (raw?.markdown && raw.markdown.trim().length > 0) {
+    return raw
+  }
+
+  const legacy: any = raw || {}
+  const mdParts: string[] = []
+  const legacySections: Array<{ titulo?: string; contenido?: string; items?: string[] }> = Array.isArray(
+    legacy.secciones,
+  )
+    ? legacy.secciones
+    : []
+  const sectionIds: string[] = []
+
+  if (legacy.titulo) {
+    mdParts.push(`# ${legacy.titulo}`)
+  }
+
+  if (legacy.introduccion) {
+    mdParts.push(legacy.introduccion)
+  }
+
+  legacySections.forEach((section, index) => {
+    const title = section.titulo || `Sección ${index + 1}`
+    const sectionId = slugify(title, `seccion-${index + 1}`)
+    sectionIds.push(sectionId)
+    mdParts.push(`## ${title}`)
+    if (section.contenido) {
+      mdParts.push(section.contenido)
+    }
+    if (Array.isArray(section.items) && section.items.length > 0) {
+      mdParts.push(section.items.map((item) => `- ${item}`).join("\n"))
+    }
+  })
+
+  if (Array.isArray(legacy.conceptos_clave) && legacy.conceptos_clave.length > 0) {
+    mdParts.push(
+      `### Conceptos Clave\n${legacy.conceptos_clave
+        .map((concepto: string) => `- ${concepto}`)
+        .join("\n")}`,
+    )
+  }
+
+  const markdown = mdParts.join("\n\n").trim()
+
+  const preguntas: LessonVerificationQuestion[] =
+    raw.preguntasVerificacion && raw.preguntasVerificacion.length > 0
+      ? raw.preguntasVerificacion
+      : normalizeLegacyQuiz(legacy.quiz, sectionIds)
+
+  return {
+    ...raw,
+    markdown,
+    metadata: raw.metadata ?? {
+      titulo: legacy.titulo || "Lección Interactiva",
+      duracionMinutos: legacy.duracion_minutos || 20,
+      dificultad: legacy.dificultad || "intermedio",
+      conceptosClave: legacy.conceptos_clave || [],
+      nivelNarrativa: "narrativo",
+      objetivoPrincipal: legacy.objetivo || "",
+    },
+    glosario: raw.glosario ?? legacy.glosario ?? [],
+    preguntasVerificacion: preguntas,
+  }
+}
+
+function normalizeLegacyQuiz(
+  quiz: Array<{
+    pregunta: string
+    tipo?: string
+    opciones?: string[]
+    respuesta_correcta?: string | string[]
+    explicacion?: string
+  }> = [],
+  sectionIds: string[],
+): LessonVerificationQuestion[] {
+  return quiz.map((question, index) => {
+    const opciones =
+      question.tipo === "verdadero_falso"
+        ? (["Verdadero", "Falso"] as string[])
+        : Array.isArray(question.opciones)
+          ? question.opciones
+          : []
+
+    const optionObjects = opciones.map((texto, optionIdx) => ({
+      id: `legacy-${index}-${optionIdx}`,
+      texto,
+      esCorrecta: false,
+    }))
+
+    const expectedValues = Array.isArray(question.respuesta_correcta)
+      ? question.respuesta_correcta
+      : question.respuesta_correcta
+        ? [question.respuesta_correcta]
+        : []
+
+    const respuestaCorrecta = expectedValues
+      .map((value) => {
+        const match = optionObjects.find((opt) => opt.texto === value)
+        if (match) {
+          match.esCorrecta = true
+          return match.id
+        }
+        return null
+      })
+      .filter(Boolean) as string[]
+
+    if (respuestaCorrecta.length === 0 && optionObjects[0]) {
+      respuestaCorrecta.push(optionObjects[0].id)
+      optionObjects[0].esCorrecta = true
+    }
+
+    return {
+      id: `legacy-question-${index}`,
+      seccionId: sectionIds[Math.min(index, sectionIds.length - 1)] || sectionIds[0] || "leccion",
+      tipo: (question.tipo as LessonQuestionType) || "multiple_choice",
+      enunciado: question.pregunta,
+      opciones: optionObjects,
+      respuestaCorrecta,
+      criteriosEvaluacion: [],
+      feedback: {
+        correcto: question.explicacion || "¡Correcto!",
+        incorrecto: question.explicacion || "Revisa el contenido y vuelve a intentarlo.",
+      },
+      accionChatSugerida: question.explicacion
+        ? `No entiendo la explicación de "${question.explicacion}". ¿Puedes verla desde otro ángulo?`
+        : undefined,
+    }
+  })
 }

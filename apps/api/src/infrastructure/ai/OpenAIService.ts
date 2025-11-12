@@ -5,6 +5,7 @@ import { ExerciseTemplate } from "../../domain/exercise-catalog/entities/Exercis
 import { ProofPoint } from "../../domain/program-design/entities/ProofPoint";
 import { Fase } from "../../domain/program-design/entities/Fase";
 import { Programa } from "../../domain/program-design/entities/Programa";
+import { FaseDocumentation } from "../../domain/program-design/entities/FaseDocumentation";
 
 /**
  * Request for generating exercise content
@@ -18,6 +19,7 @@ export interface GenerateContentRequest {
     proofPoint: ProofPoint;
     exerciseName: string;
     customContext?: string;
+    faseDocumentation?: FaseDocumentation;
   };
 }
 
@@ -62,11 +64,15 @@ export class OpenAIService {
 
     // Configuration
     this.model = this.configService.get<string>("OPENAI_MODEL") || "gpt-5-nano";
+    const configuredMaxTokens =
+      this.configService.get<number>("OPENAI_MAX_TOKENS");
     this.maxCompletionTokens =
-      this.configService.get<number>("OPENAI_MAX_TOKENS") || 12000;
+      configuredMaxTokens && configuredMaxTokens > 0
+        ? configuredMaxTokens
+        : 42000;
     this.initialCompletionTokens = Math.min(
       this.configService.get<number>("OPENAI_INITIAL_COMPLETION_TOKENS") ||
-        4000,
+        36000,
       this.maxCompletionTokens,
     );
     this.completionRetryLimit =
@@ -195,40 +201,349 @@ IMPORTANTE:
   private buildUserPrompt(request: GenerateContentRequest): string {
     const { template, configuration, context } = request;
 
-    // Start with template's prompt template
     let prompt = template.getPromptTemplate();
+    const promptHasSchemaPlaceholder = prompt.includes("{{output_schema}}");
 
-    // Replace placeholders with actual context
-    const replacements: Record<string, string> = {
-      "{programa_nombre}": context.programa.getNombre(),
-      "{programa_descripcion}": context.programa.getDescripcion(),
-      "{fase_nombre}": context.fase.getNombre(),
-      "{fase_descripcion}": context.fase.getDescripcion() || "",
-      "{fase_objetivos}": context.fase.getObjetivosAprendizaje().join(", "),
-      "{proof_point_nombre}": context.proofPoint.getNombre(),
-      "{proof_point_descripcion}": context.proofPoint.getDescripcion() || "",
-      "{proof_point_pregunta}": context.proofPoint.getPreguntaCentral() || "",
-      "{exercise_nombre}": context.exerciseName,
-      "{contexto_instructor}": context.customContext || "",
-    };
+    const promptData = this.buildPromptData(template, configuration, context);
+    prompt = this.applyTemplate(prompt, promptData);
 
-    // Add configuration values as replacements
-    Object.entries(configuration).forEach(([key, value]) => {
-      replacements[`{config_${key}}`] = String(value);
-    });
-
-    // Replace all placeholders
+    const replacements = this.buildLegacyPlaceholderReplacements(
+      configuration,
+      context,
+      promptData,
+    );
     Object.entries(replacements).forEach(([placeholder, value]) => {
       prompt = prompt.replace(new RegExp(placeholder, "g"), value);
     });
 
-    // Append output schema requirement
     const outputSchema = template.getOutputSchema();
-    if (outputSchema && Object.keys(outputSchema).length > 0) {
+    if (
+      outputSchema &&
+      Object.keys(outputSchema).length > 0 &&
+      !promptHasSchemaPlaceholder
+    ) {
       prompt += `\n\nDebes generar el contenido siguiendo esta estructura JSON:\n${JSON.stringify(outputSchema, null, 2)}`;
     }
 
+    if (template.getCategoria().toString() === "leccion_interactiva") {
+      const requiredExamples = this.getRequiredExamplesCount(configuration);
+      prompt += `
+
+FORMATO PARA EJEMPLOS PRÁCTICOS:
+- Incluye al menos ${requiredExamples} ejemplos prácticos que conecten el concepto con situaciones reales del proof point.
+- Cuando desarrolles un ejemplo completo encapsúlalo en un bloque \`\`\`example { ... }\`\`\`.
+- El JSON del bloque debe contener "titulo" (o "title"), "contexto" (o "context"), "pasos"/"steps" (lista de 3 a 5 bullets) y "resultado"/"result". Puedes agregar "metricas"/"metrics" (pares etiqueta-valor) y "casos"/"cases" con sub-escenarios.
+- Después de cada bloque example continúa con el flujo narrativo del artículo.`;
+    }
+
     return prompt;
+  }
+
+  private buildPromptData(
+    template: ExerciseTemplate,
+    configuration: Record<string, any>,
+    context: GenerateContentRequest["context"],
+  ): Record<string, any> {
+    const programaData = this.serializePrograma(context.programa);
+    const faseData = this.serializeFase(context.fase);
+    const proofPointData = this.serializeProofPoint(context.proofPoint);
+    const documentationSummary = this.formatFaseDocumentation(
+      context.faseDocumentation,
+    );
+    const contextoCompleto = this.buildContextoCompleto(
+      context.programa,
+      context.fase,
+      context.proofPoint,
+      documentationSummary,
+      context.customContext,
+    );
+    const outputSchema = template.getOutputSchema();
+    const schemaString =
+      outputSchema && Object.keys(outputSchema).length > 0
+        ? JSON.stringify(outputSchema, null, 2)
+        : "{}";
+
+    return {
+      programa: programaData,
+      fase: faseData,
+      proof_point: proofPointData,
+      configuracion: configuration,
+      exercise: { nombre: context.exerciseName },
+      consideraciones: context.customContext || "",
+      contexto_instructor: context.customContext || "",
+      contexto_completo: contextoCompleto,
+      fase_documentation: documentationSummary,
+      output_schema: schemaString,
+    };
+  }
+
+  private buildLegacyPlaceholderReplacements(
+    configuration: Record<string, any>,
+    context: GenerateContentRequest["context"],
+    promptData: Record<string, any>,
+  ): Record<string, string> {
+    const replacements: Record<string, string> = {
+      "{programa_nombre}":
+        promptData.programa?.nombre || context.programa.getNombre(),
+      "{programa_descripcion}":
+        promptData.programa?.descripcion ||
+        context.programa.getDescripcion() ||
+        "",
+      "{fase_nombre}": promptData.fase?.nombre || context.fase.getNombre(),
+      "{fase_descripcion}":
+        promptData.fase?.descripcion || context.fase.getDescripcion() || "",
+      "{fase_objetivos}": Array.isArray(promptData.fase?.objetivos)
+        ? promptData.fase.objetivos.join(", ")
+        : context.fase.getObjetivosAprendizaje().join(", "),
+      "{proof_point_nombre}":
+        promptData.proof_point?.nombre || context.proofPoint.getNombre(),
+      "{proof_point_descripcion}":
+        promptData.proof_point?.descripcion ||
+        context.proofPoint.getDescripcion() ||
+        "",
+      "{proof_point_pregunta}":
+        promptData.proof_point?.pregunta_central ||
+        context.proofPoint.getPreguntaCentral() ||
+        "",
+      "{proof_point_documentacion}":
+        promptData.proof_point?.documentacion_contexto ||
+        context.proofPoint.getDocumentacionContexto() ||
+        "",
+      "{exercise_nombre}": context.exerciseName,
+      "{contexto_instructor}": context.customContext || "",
+      "{fase_documentation}": promptData.fase_documentation || "",
+      "{contexto_completo}": promptData.contexto_completo || "",
+    };
+
+    Object.entries(configuration).forEach(([key, value]) => {
+      replacements[`{config_${key}}`] = this.stringifyReplacementValue(value);
+    });
+
+    return replacements;
+  }
+
+  private stringifyReplacementValue(value: any): string {
+    if (value === undefined || value === null) {
+      return "";
+    }
+
+    if (Array.isArray(value)) {
+      return value
+        .map((entry) => this.stringifyReplacementValue(entry))
+        .join(", ");
+    }
+
+    if (typeof value === "object") {
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return String(value);
+      }
+    }
+
+    return String(value);
+  }
+
+  private getRequiredExamplesCount(configuration: Record<string, any>): number {
+    const candidates = [
+      configuration.numero_casos_practica,
+      configuration.numero_ejemplos,
+      configuration.numero_examples,
+      configuration.examples,
+    ];
+
+    const match = candidates.find(
+      (value) => typeof value === "number" && value > 0,
+    );
+
+    return (match as number | undefined) || 3;
+  }
+
+  private serializePrograma(programa: Programa): Record<string, any> {
+    return {
+      id: programa.getId().toString(),
+      nombre: programa.getNombre(),
+      descripcion: programa.getDescripcion() || "",
+      objetivos: programa.getObjetivosAprendizaje() || [],
+      duracion_semanas: programa.getDuracion().toWeeks(),
+      categoria: programa.getCategoria() || "",
+      nivel_dificultad: programa.getNivelDificultad() || "",
+      audiencia: programa.getAudienciaObjetivo() || "",
+      tags: programa.getTags() || [],
+    };
+  }
+
+  private serializeFase(fase: Fase): Record<string, any> {
+    return {
+      id: fase.getId().toString(),
+      nombre: fase.getNombre(),
+      descripcion: fase.getDescripcion() || "",
+      numero: fase.getNumeroFase(),
+      objetivos: fase.getObjetivosAprendizaje(),
+      duracion_semanas: fase.getDuracion().toWeeks(),
+      orden: fase.getOrden(),
+    };
+  }
+
+  private serializeProofPoint(proofPoint: ProofPoint): Record<string, any> {
+    return {
+      id: proofPoint.getId().toString(),
+      nombre: proofPoint.getNombre(),
+      descripcion: proofPoint.getDescripcion() || "",
+      pregunta_central: proofPoint.getPreguntaCentral() || "",
+      documentacion_contexto: proofPoint.getDocumentacionContexto() || "",
+      duracion_horas: proofPoint.getDuracion().toHours(),
+      orden: proofPoint.getOrdenEnFase(),
+      tipo_entregable: proofPoint.getTipoEntregableFinal() || "",
+    };
+  }
+
+  private formatFaseDocumentation(doc?: FaseDocumentation): string {
+    if (!doc) {
+      return "No hay documentación adicional registrada para esta fase.";
+    }
+
+    const sections: string[] = [];
+
+    if (doc.getContextoGeneral()) {
+      sections.push(`Contexto general:\n${doc.getContextoGeneral()}`);
+    }
+
+    if (doc.getConceptosClave().length > 0) {
+      const conceptos = doc
+        .getConceptosClave()
+        .map((concepto) => `- ${concepto.nombre}: ${concepto.definicion}`)
+        .join("\n");
+      sections.push(`Conceptos clave relevantes:\n${conceptos}`);
+    }
+
+    if (doc.getCasosEjemplo().length > 0) {
+      const casos = doc
+        .getCasosEjemplo()
+        .map(
+          (caso, index) =>
+            `${index + 1}. ${caso.titulo}: ${caso.descripcion}${
+              caso.resultado ? ` (resultado: ${caso.resultado})` : ""
+            }`,
+        )
+        .join("\n");
+      sections.push(`Casos de ejemplo representativos:\n${casos}`);
+    }
+
+    if (doc.getErroresComunes().length > 0) {
+      const errores = doc
+        .getErroresComunes()
+        .map(
+          (error) =>
+            `- ${error.descripcion}${
+              error.solucion ? ` → Mitigación: ${error.solucion}` : ""
+            }`,
+        )
+        .join("\n");
+      sections.push(`Errores frecuentes a evitar:\n${errores}`);
+    }
+
+    if (doc.getRecursosReferencia().length > 0) {
+      const recursos = doc
+        .getRecursosReferencia()
+        .map(
+          (recurso) =>
+            `- (${recurso.tipo}) ${recurso.titulo}${
+              recurso.descripcion ? ` — ${recurso.descripcion}` : ""
+            }${recurso.url ? ` [${recurso.url}]` : ""}`,
+        )
+        .join("\n");
+      sections.push(`Recursos sugeridos:\n${recursos}`);
+    }
+
+    return sections.join("\n\n");
+  }
+
+  private buildContextoCompleto(
+    programa: Programa,
+    fase: Fase,
+    proofPoint: ProofPoint,
+    documentation: string,
+    customContext?: string,
+  ): string {
+    const blocks: string[] = [
+      `Programa: ${programa.getNombre()}${
+        programa.getDescripcion() ? ` — ${programa.getDescripcion()}` : ""
+      }`,
+      `Fase ${fase.getNumeroFase()}: ${fase.getNombre()}${
+        fase.getDescripcion() ? ` — ${fase.getDescripcion()}` : ""
+      }\nObjetivos de aprendizaje: ${fase
+        .getObjetivosAprendizaje()
+        .join(", ")}`,
+      `Proof Point: ${proofPoint.getNombre()}\nPregunta central: ${
+        proofPoint.getPreguntaCentral() || "No definida"
+      }\nDocumentación clave: ${
+        proofPoint.getDocumentacionContexto() || "Sin documentación"
+      }`,
+    ];
+
+    if (documentation) {
+      blocks.push(`Documentación extendida de la fase:\n${documentation}`);
+    }
+
+    if (customContext && customContext.trim().length > 0) {
+      blocks.push(`Consideraciones del instructor:\n${customContext.trim()}`);
+    }
+
+    return blocks.join("\n\n");
+  }
+
+  private applyTemplate(template: string, data: Record<string, any>): string {
+    if (!template || !template.includes("{{")) {
+      return template;
+    }
+
+    return template.replace(/\{\{\s*([^{}]+)\s*\}\}/g, (_, expression) => {
+      const value = this.resolveTemplatePath(data, expression.trim());
+      return this.formatTemplateValue(value);
+    });
+  }
+
+  private resolveTemplatePath(source: Record<string, any>, path: string): any {
+    return path.split(".").reduce((acc: any, key: string) => {
+      if (acc === undefined || acc === null) {
+        return undefined;
+      }
+
+      return acc[key];
+    }, source);
+  }
+
+  private formatTemplateValue(value: any): string {
+    if (value === undefined || value === null) {
+      return "";
+    }
+
+    if (typeof value === "string") {
+      return value;
+    }
+
+    if (typeof value === "number" || typeof value === "boolean") {
+      return String(value);
+    }
+
+    if (Array.isArray(value)) {
+      return value
+        .map((entry) =>
+          typeof entry === "string" ? entry : JSON.stringify(entry),
+        )
+        .join(", ");
+    }
+
+    if (typeof value === "object") {
+      try {
+        return JSON.stringify(value, null, 2);
+      } catch {
+        return String(value);
+      }
+    }
+
+    return String(value);
   }
 
   private async requestStructuredCompletion(
@@ -354,6 +669,43 @@ IMPORTANTE:
     } catch (error) {
       this.logger.error("❌ Error generating completion with OpenAI", error);
       throw new Error(`Failed to generate completion: ${error.message}`);
+    }
+  }
+
+  /**
+   * Generates a chat-style completion with full control over messages
+   */
+  async generateChatResponse({
+    systemPrompt,
+    messages,
+    maxTokens,
+    responseFormat,
+  }: {
+    systemPrompt: string;
+    messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[];
+    maxTokens?: number;
+    responseFormat?: OpenAI.Chat.Completions.ChatCompletionCreateParams["response_format"];
+  }): Promise<{
+    content: string;
+    raw: OpenAI.Chat.Completions.ChatCompletion;
+  }> {
+    try {
+      const chatMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] =
+        [{ role: "system", content: systemPrompt }, ...messages];
+
+      const response = await this.client.chat.completions.create({
+        model: this.model,
+        messages: chatMessages,
+        max_completion_tokens: maxTokens,
+        response_format: responseFormat,
+      });
+
+      const content = this.extractMessageContent(response.choices[0]?.message);
+
+      return { content, raw: response };
+    } catch (error) {
+      this.logger.error("❌ Error generating chat response with OpenAI", error);
+      throw new Error(`Failed to generate chat response: ${error.message}`);
     }
   }
 

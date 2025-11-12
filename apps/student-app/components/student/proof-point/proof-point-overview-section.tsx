@@ -9,16 +9,18 @@ import { getExerciseTypeLabel } from "@/lib/proof-point"
 interface ProofPointOverviewSectionProps {
   proofPoint: ProofPointOverview
   highlightExercise: ProofPointExercise | null
-  objectives: string[]
+  objectives?: string[]
   onStartExercise: (exercise: ProofPointExercise) => void
 }
 
 export function ProofPointOverviewSection({
   proofPoint,
   highlightExercise,
-  objectives,
+  objectives = [],
   onStartExercise,
 }: ProofPointOverviewSectionProps) {
+  const hasObjectives = objectives.length > 0
+
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 px-6 py-8">
       <Card className="border-none bg-gradient-to-r from-primary/10 via-primary/5 to-white shadow-md">
@@ -84,14 +86,20 @@ export function ProofPointOverviewSection({
           <CardTitle>Objetivos de Aprendizaje</CardTitle>
         </CardHeader>
         <CardContent>
-          <ul className="space-y-3">
-            {objectives.map((objective) => (
-              <li key={objective} className="flex items-start gap-2 text-sm">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 text-primary" />
-                <span className="text-muted-foreground">{objective}</span>
-              </li>
-            ))}
-          </ul>
+          {hasObjectives ? (
+            <ul className="space-y-3">
+              {objectives.map((objective) => (
+                <li key={objective} className="flex items-start gap-2 text-sm">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 text-primary" />
+                  <span className="text-muted-foreground">{objective}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Aún no hay objetivos detallados para este proof point. Pronto estarán disponibles.
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

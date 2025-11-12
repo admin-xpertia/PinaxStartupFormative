@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import type { Phase } from "@/types/enrollment"
+import type { Phase } from "@shared-types/enrollment"
 import { cn } from "@/lib/utils"
 import { getPhaseProgress, getPhaseStatus, phaseStatusLabels, phaseStatusThemes } from "@/lib/dashboard"
 

@@ -8,7 +8,7 @@ import {
 import { IProgramRepository } from "../../../../domain/program-design/repositories/IProgramRepository";
 import { RecordId } from "../../../../domain/shared/value-objects/RecordId";
 import { SurrealDbService } from "../../../../core/database/surrealdb.service";
-import type { ProgramStructure } from "../../../../types/enrollment";
+import type { ProgramStructure } from "@xpertia/types/enrollment";
 import { Cohorte } from "../../../../domain/cohort/entities/Cohorte";
 import { Programa } from "../../../../domain/program-design/entities/Programa";
 

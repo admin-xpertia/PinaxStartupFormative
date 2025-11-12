@@ -34,6 +34,45 @@ export interface CompleteExerciseResponse {
   proofPointCompleted?: boolean
 }
 
+export interface LessonAssistantMessage {
+  role: "user" | "assistant"
+  content: string
+}
+
+export interface LessonAssistantRequest {
+  pregunta: string
+  seccionId: string
+  seccionTitulo: string
+  seccionContenido: string
+  historial?: LessonAssistantMessage[]
+  perfilComprension?: Record<string, any>
+  conceptoFocal?: string
+}
+
+export interface LessonAssistantResponse {
+  respuesta: string
+  referencias?: string[]
+  tokensUsados?: number
+}
+
+export interface EvaluateLessonQuestionRequest {
+  preguntaId: string
+  tipoPregunta: "respuesta_corta" | "multiple_choice" | "verdadero_falso"
+  enunciado: string
+  respuestaEstudiante: string
+  criteriosEvaluacion?: string[]
+  seccionContenido: string
+  seccionTitulo?: string
+  perfilComprension?: Record<string, any>
+}
+
+export interface EvaluateLessonQuestionResponse {
+  preguntaId: string
+  score: "correcto" | "parcialmente_correcto" | "incorrecto"
+  feedback: string
+  sugerencias?: string[]
+}
+
 export const exercisesApi = {
   /**
    * Obtener instancia de ejercicio con su contenido
@@ -100,5 +139,31 @@ export const exercisesApi = {
       // Log pero no interrumpe la experiencia
       console.warn("Auto-save failed:", error)
     }
+  },
+
+  /**
+   * Enviar pregunta al asistente contextual
+   */
+  async sendLessonAssistantMessage(
+    exerciseId: string,
+    payload: LessonAssistantRequest
+  ): Promise<LessonAssistantResponse> {
+    return apiClient.post(
+      `/student/exercises/${encodeURIComponent(exerciseId)}/assistant/chat`,
+      payload
+    )
+  },
+
+  /**
+   * Evaluar pregunta de respuesta corta
+   */
+  async evaluateLessonQuestion(
+    exerciseId: string,
+    payload: EvaluateLessonQuestionRequest
+  ): Promise<EvaluateLessonQuestionResponse> {
+    return apiClient.post(
+      `/student/exercises/${encodeURIComponent(exerciseId)}/questions/evaluate`,
+      payload
+    )
   },
 }

@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import type { ProgramStructure } from "../../../types/enrollment";
+import type { ProgramStructure } from "@xpertia/types/enrollment";
 
 class CohortProgramDto {
   @ApiProperty({ description: "ID del programa publicado" })

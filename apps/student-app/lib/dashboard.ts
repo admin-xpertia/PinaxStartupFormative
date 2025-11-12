@@ -1,4 +1,4 @@
-import type { Phase, ProofPoint } from "@/types/enrollment"
+import type { Phase, ProofPoint } from "@shared-types/enrollment"
 
 export const proofPointStatusThemes = {
   completed: {

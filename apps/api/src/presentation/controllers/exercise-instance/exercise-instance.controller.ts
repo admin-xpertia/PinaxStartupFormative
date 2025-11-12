@@ -765,6 +765,7 @@ export class ExerciseInstanceController {
     const contentQuery = `
       SELECT * FROM exercise_content
       WHERE exercise_instance = type::thing($exerciseId)
+        OR exercise_instance = $exerciseId
       ORDER BY created_at DESC
       LIMIT 1
     `;

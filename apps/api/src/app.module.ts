@@ -3,9 +3,9 @@ import { ConfigModule } from "@nestjs/config";
 import { APP_GUARD } from "@nestjs/core";
 import { SurrealDbModule } from "./core/database";
 import { AuthGuard } from "./core/guards/auth.guard";
-import { UsuariosModule } from "./domains/usuarios/usuarios.module";
 
 // New DDD Architecture Modules
+import { AuthModule } from "./modules/auth.module";
 import { ProgramDesignModule } from "./modules/program-design.module";
 import { ExerciseCatalogModule } from "./modules/exercise-catalog.module";
 import { ExerciseInstanceModule } from "./modules/exercise-instance.module";
@@ -29,10 +29,8 @@ import { CohortModule } from "./modules/cohort.module";
     // Database
     SurrealDbModule,
 
-    // Legacy: Auth module (temporal - will be migrated to DDD)
-    UsuariosModule,
-
     // DDD Bounded Context Modules
+    AuthModule,
     ProgramDesignModule,
     ExerciseCatalogModule,
     ExerciseInstanceModule,

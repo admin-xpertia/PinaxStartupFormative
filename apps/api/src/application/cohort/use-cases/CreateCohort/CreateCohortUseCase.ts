@@ -6,7 +6,7 @@ import { Timestamp } from "../../../../domain/shared/value-objects/Timestamp";
 import { Cohorte } from "../../../../domain/cohort/entities/Cohorte";
 import { ICohortRepository } from "../../../../domain/cohort/repositories/ICohortRepository";
 import { IProgramRepository } from "../../../../domain/program-design/repositories/IProgramRepository";
-import type { ProgramStructure } from "../../../../types/enrollment";
+import type { ProgramStructure } from "@xpertia/types/enrollment";
 import { ProgramSnapshotService } from "../../services/ProgramSnapshotService";
 import { CreateCohortDTO } from "./CreateCohortDTO";
 

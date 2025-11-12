@@ -1,21 +1,39 @@
 "use client"
 
-import { useState } from "react"
 import { ExercisePlayer } from "../base/ExercisePlayer"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { Upload, Download, BarChart3, FileText, CheckCircle2, TrendingUp } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-// Wizard de 3 pasos: Upload → Análisis → Resultados
+interface ThemeResult {
+  nombre: string
+  menciones?: number
+  citas?: string[]
+  resumen?: string
+}
+
+interface MatrixRow {
+  categoria?: string
+  valores?: Array<{ titulo: string; valor: string | number | boolean }>
+  descripcion?: string
+}
+
 interface AnalysisToolContent {
-  titulo: string
-  descripcion: string
-  tipoAnalisis: "interview_synthesis" | "data_analysis" | "competitor_analysis"
-  instrucciones: string[]
-  outputFormat: "themes" | "matrix" | "metrics"
+  titulo?: string
+  descripcion?: string
+  objetivo?: string
+  rolIA?: string
+  instrucciones?: string[]
+  pasos?: Array<{ titulo?: string; descripcion?: string }>
+  datasets?: Array<{ nombre: string; descripcion?: string; formato?: string }>
+  indicadores?: string[]
+  entregables?: string[]
+  insights?: string[]
+  resultados?: {
+    temas?: ThemeResult[]
+    matrices?: MatrixRow[]
+    citasDestacadas?: string[]
+  }
 }
 
 interface HerramientaAnalisisPlayerProps {
@@ -37,218 +55,287 @@ export function HerramientaAnalisisPlayer({
   onComplete,
   onExit,
 }: HerramientaAnalisisPlayerProps) {
-  const [currentStep, setCurrentStep] = useState<"upload" | "analyzing" | "results">("upload")
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
-  const [analysisResults, setAnalysisResults] = useState<any>(null)
-  const [editedResults, setEditedResults] = useState<any>(null)
-
-  const handleFileUpload = (files: FileList | null) => {
-    if (files) {
-      setUploadedFiles(Array.from(files))
-    }
-  }
-
-  const handleAnalyze = async () => {
-    setCurrentStep("analyzing")
-
-    // Simular análisis (en producción llamaría a la API)
-    setTimeout(() => {
-      const mockResults = {
-        themes: [
-          { name: "Problema Principal", frequency: 8, quotes: ["Quote 1", "Quote 2"] },
-          { name: "Solución Propuesta", frequency: 6, quotes: ["Quote 3"] },
-          { name: "Willingness to Pay", frequency: 5, quotes: ["Quote 4", "Quote 5"] },
-        ],
-        matrix: [
-          { problem: "Gestión de inventario", p1: true, p2: false, p3: true },
-          { problem: "Costos operativos", p1: true, p2: true, p3: false },
-        ],
-      }
-      setAnalysisResults(mockResults)
-      setEditedResults(mockResults)
-      setCurrentStep("results")
-    }, 2000)
-  }
-
-  const handleExport = () => {
-    // Exportar resultados editados
-    const dataStr = JSON.stringify(editedResults, null, 2)
-    const dataBlob = new Blob([dataStr], { type: "application/json" })
-    const url = URL.createObjectURL(dataBlob)
-    const link = document.createElement("a")
-    link.href = url
-    link.download = "analysis-results.json"
-    link.click()
-  }
-
-  const renderUploadStep = () => (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Paso 1: Cargar Datos para Análisis</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="border-2 border-dashed rounded-lg p-12 text-center">
-            <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-sm text-muted-foreground mb-4">
-              Arrastra archivos aquí o haz click para seleccionar
-            </p>
-            <input
-              type="file"
-              multiple
-              accept=".txt,.pdf,.doc,.docx"
-              onChange={(e) => handleFileUpload(e.target.files)}
-              className="hidden"
-              id="file-upload"
-            />
-            <Button asChild variant="outline">
-              <label htmlFor="file-upload" className="cursor-pointer">
-                Seleccionar Archivos
-              </label>
-            </Button>
-          </div>
-
-          {uploadedFiles.length > 0 && (
-            <div>
-              <h4 className="font-medium mb-2">Archivos Cargados ({uploadedFiles.length})</h4>
-              <div className="space-y-2">
-                {uploadedFiles.map((file, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-2 bg-muted rounded">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      <span className="text-sm">{file.name}</span>
-                    </div>
-                    <Badge variant="secondary">{(file.size / 1024).toFixed(1)} KB</Badge>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <Button
-            onClick={handleAnalyze}
-            disabled={uploadedFiles.length === 0}
-            className="w-full"
-            size="lg"
-          >
-            <BarChart3 className="h-5 w-5 mr-2" />
-            Analizar con IA
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
-  )
-
-  const renderAnalyzingStep = () => (
-    <Card>
-      <CardContent className="py-12">
-        <div className="text-center space-y-4">
-          <div className="inline-block h-16 w-16 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent" />
-          <h3 className="text-xl font-semibold">Analizando tus datos...</h3>
-          <p className="text-muted-foreground">
-            Esto puede tomar hasta 30 segundos
-          </p>
-          <Progress value={66} className="w-64 mx-auto" />
-        </div>
-      </CardContent>
-    </Card>
-  )
-
-  const renderResultsStep = () => (
-    <div className="space-y-6">
-      <Card className="bg-yellow-50 border-yellow-200">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-2">
-            <CheckCircle2 className="h-5 w-5 text-yellow-600 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium">Análisis Completo</p>
-              <p className="text-xs text-muted-foreground">
-                Revisa, edita y valida los resultados antes de exportar
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Tabs defaultValue="themes">
-        <TabsList>
-          <TabsTrigger value="themes">Temas Identificados</TabsTrigger>
-          <TabsTrigger value="matrix">Matriz de Problemas</TabsTrigger>
-          <TabsTrigger value="quotes">Citas Destacadas</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="themes" className="space-y-4">
-          {analysisResults?.themes.map((theme: any, idx: number) => (
-            <Card key={idx}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">{theme.name}</CardTitle>
-                  <Badge>{theme.frequency} menciones</Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <h5 className="text-sm font-medium">Citas representativas:</h5>
-                  {theme.quotes.map((quote: string, qIdx: number) => (
-                    <p key={qIdx} className="text-sm text-muted-foreground italic border-l-2 pl-3">
-                      "{quote}"
-                    </p>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </TabsContent>
-
-        <TabsContent value="matrix">
-          <Card>
-            <CardContent className="p-6">
-              <p className="text-sm text-muted-foreground">
-                Matriz de análisis cruzado (implementación pendiente)
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="quotes">
-          <Card>
-            <CardContent className="p-6">
-              <p className="text-sm text-muted-foreground">
-                Citas destacadas organizadas por tema (implementación pendiente)
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      <div className="flex gap-2">
-        <Button onClick={handleExport} variant="outline" className="flex-1">
-          <Download className="h-4 w-4 mr-2" />
-          Exportar Resultados
-        </Button>
-        <Button onClick={() => setCurrentStep("upload")} variant="outline">
-          Nuevo Análisis
-        </Button>
-      </div>
-    </div>
-  )
+  const instructions = normalizeStringArray(content.instrucciones)
+  const datasets = Array.isArray(content.datasets) ? content.datasets : []
+  const steps = Array.isArray(content.pasos) ? content.pasos : []
+  const indicadores = normalizeStringArray(content.indicadores)
+  const entregables = normalizeStringArray(content.entregables)
+  const insights = normalizeStringArray(content.insights)
+  const themes = normalizeThemes(content.resultados?.temas)
+  const matrices = Array.isArray(content.resultados?.matrices) ? content.resultados?.matrices! : []
+  const citasDestacadas = normalizeStringArray(content.resultados?.citasDestacadas)
 
   return (
     <ExercisePlayer
       exerciseId={exerciseId}
       exerciseName={exerciseName}
-      exerciseDescription={content.descripcion}
+      exerciseDescription={content.descripcion || content.objetivo}
       proofPointName={proofPointName}
-      totalSteps={3}
-      currentStep={currentStep === "upload" ? 1 : currentStep === "analyzing" ? 2 : 3}
+      totalSteps={1}
+      currentStep={1}
       onSave={onSave}
-      onComplete={currentStep === "results" ? onComplete : undefined}
+      onComplete={onComplete}
       onExit={onExit}
       showAIAssistant={false}
+      contentMaxWidthClassName="max-w-5xl"
     >
-      {currentStep === "upload" && renderUploadStep()}
-      {currentStep === "analyzing" && renderAnalyzingStep()}
-      {currentStep === "results" && renderResultsStep()}
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Contexto del análisis</CardTitle>
+            {content.objetivo && (
+              <CardDescription>
+                {content.objetivo}
+              </CardDescription>
+            )}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {instructions.length > 0 && (
+              <div>
+                <p className="text-sm font-medium mb-2">Instrucciones clave</p>
+                <ul className="list-disc space-y-1 pl-6 text-sm text-muted-foreground">
+                  {instructions.map((instruction, index) => (
+                    <li key={`instruction-${index}`}>{instruction}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {datasets.length > 0 && (
+              <div>
+                <p className="text-sm font-medium mb-2">Fuentes de datos</p>
+                <div className="space-y-2">
+                  {datasets.map((dataset, index) => (
+                    <div key={`dataset-${index}`} className="rounded-lg border p-3">
+                      <div className="flex items-center justify-between">
+                        <p className="font-medium">{dataset.nombre}</p>
+                        {dataset.formato && (
+                          <Badge variant="outline">{dataset.formato}</Badge>
+                        )}
+                      </div>
+                      {dataset.descripcion && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {dataset.descripcion}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {steps.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Secuencia sugerida</CardTitle>
+              <CardDescription>Avanza paso a paso validando hallazgos</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {steps.map((step, index) => (
+                <div key={`step-${index}`} className="flex gap-4 rounded-lg border p-4">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                    {index + 1}
+                  </div>
+                  <div>
+                    <p className="font-medium">{step.titulo || `Paso ${index + 1}`}</p>
+                    {step.descripcion && (
+                      <p className="text-sm text-muted-foreground mt-1">{step.descripcion}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {(themes.length > 0 || matrices.length > 0 || citasDestacadas.length > 0) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Resultados del análisis</CardTitle>
+              <CardDescription>Hallazgos listos para revisión con el instructor</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue={themes.length ? "temas" : matrices.length ? "matrices" : "citas"}>
+                <TabsList>
+                  {themes.length > 0 && <TabsTrigger value="temas">Temas</TabsTrigger>}
+                  {matrices.length > 0 && <TabsTrigger value="matrices">Matrices</TabsTrigger>}
+                  {citasDestacadas.length > 0 && <TabsTrigger value="citas">Citas</TabsTrigger>}
+                </TabsList>
+
+                {themes.length > 0 && (
+                  <TabsContent value="temas" className="space-y-4">
+                    {themes.map((theme, index) => (
+                      <Card key={`theme-${index}`}>
+                        <CardHeader className="flex flex-row items-start justify-between space-y-0">
+                          <div>
+                            <CardTitle className="text-lg">{theme.nombre}</CardTitle>
+                            {theme.resumen && (
+                              <CardDescription>{theme.resumen}</CardDescription>
+                            )}
+                          </div>
+                          {typeof theme.menciones === "number" && (
+                            <Badge variant="outline">{theme.menciones} menciones</Badge>
+                          )}
+                        </CardHeader>
+                        <CardContent>
+                          {theme.citas && theme.citas.length > 0 && (
+                            <div className="space-y-2">
+                              <p className="text-sm font-medium">Citas representativas</p>
+                              {theme.citas.map((quote, qIndex) => (
+                                <p
+                                  key={`quote-${index}-${qIndex}`}
+                                  className="text-sm text-muted-foreground italic border-l-2 pl-3"
+                                >
+                                  “{quote}”
+                                </p>
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </TabsContent>
+                )}
+
+                {matrices.length > 0 && (
+                  <TabsContent value="matrices" className="space-y-4">
+                    {matrices.map((row, index) => (
+                      <Card key={`matrix-${index}`}>
+                        <CardHeader>
+                          <CardTitle className="text-base font-semibold">
+                            {row.categoria || `Matriz ${index + 1}`}
+                          </CardTitle>
+                          {row.descripcion && (
+                            <CardDescription>{row.descripcion}</CardDescription>
+                          )}
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          {(row.valores || []).map((value, valueIndex) => (
+                            <div
+                              key={`matrix-value-${index}-${valueIndex}`}
+                              className="flex items-start justify-between rounded-md bg-muted/40 p-3 text-sm"
+                            >
+                              <span className="font-medium">{value.titulo}</span>
+                              <span className="text-muted-foreground">
+                                {formatMatrixValue(value.valor)}
+                              </span>
+                            </div>
+                          ))}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </TabsContent>
+                )}
+
+                {citasDestacadas.length > 0 && (
+                  <TabsContent value="citas">
+                    <div className="space-y-3">
+                      {citasDestacadas.map((quote, index) => (
+                        <p
+                          key={`highlight-${index}`}
+                          className="rounded-lg border bg-muted/40 p-4 text-sm italic text-muted-foreground"
+                        >
+                          “{quote}”
+                        </p>
+                      ))}
+                    </div>
+                  </TabsContent>
+                )}
+              </Tabs>
+            </CardContent>
+          </Card>
+        )}
+
+        {(indicadores.length > 0 || entregables.length > 0 || insights.length > 0) && (
+          <div className="grid gap-4 md:grid-cols-3">
+            {indicadores.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base font-semibold">Indicadores a monitorear</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {indicadores.map((indicator, index) => (
+                    <div key={`indicator-${index}`} className="rounded-md bg-muted/40 p-3 text-sm">
+                      {indicator}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {entregables.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base font-semibold">Entregables esperados</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {entregables.map((deliverable, index) => (
+                    <div key={`deliverable-${index}`} className="rounded-md bg-muted/40 p-3 text-sm">
+                      {deliverable}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {insights.length > 0 && (
+              <Card className="md:col-span-1">
+                <CardHeader>
+                  <CardTitle className="text-base font-semibold">Recomendaciones de IA</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm text-muted-foreground">
+                  {insights.map((insight, index) => (
+                    <p key={`insight-${index}`} className="rounded-md border p-3">
+                      {insight}
+                    </p>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+      </div>
     </ExercisePlayer>
   )
+}
+
+function normalizeStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((item) => (typeof item === "string" ? item.trim() : null))
+    .filter((item): item is string => Boolean(item && item.length > 0))
+}
+
+function normalizeThemes(value: unknown): ThemeResult[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((item) => {
+      if (typeof item === "string") {
+        return { nombre: item }
+      }
+      if (item && typeof item === "object") {
+        return {
+          nombre:
+            typeof (item as any).nombre === "string"
+              ? (item as any).nombre
+              : typeof (item as any).name === "string"
+                ? (item as any).name
+                : "Tema",
+          menciones: (item as any).menciones ?? (item as any).frequency,
+          citas: normalizeStringArray((item as any).citas ?? (item as any).quotes),
+          resumen: typeof (item as any).resumen === "string" ? (item as any).resumen : undefined,
+        }
+      }
+      return null
+    })
+    .filter((item): item is ThemeResult => Boolean(item))
+}
+
+function formatMatrixValue(value: unknown) {
+  if (typeof value === "boolean") {
+    return value ? "✓" : "✕"
+  }
+  return value ?? "—"
 }

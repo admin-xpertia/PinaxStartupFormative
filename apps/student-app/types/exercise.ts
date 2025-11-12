@@ -1,6 +1,6 @@
 // Tipos para Exercises (Ejercicios/Componentes)
 
-import { ExerciseType } from "./enrollment"
+import type { ExerciseType } from "@shared-types/enrollment"
 
 export interface ExerciseInstance {
   id: string

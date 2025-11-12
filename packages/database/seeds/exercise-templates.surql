@@ -30,42 +30,90 @@ CREATE exercise_template:leccion_interactiva CONTENT {
         incluir_glosario: true,
         numero_ejemplos: 3
     },
-    prompt_template: "Eres un diseñador instruccional experto creando una lección interactiva.\n\nCONTEXTO DEL PROGRAMA:\nPrograma: {{programa.nombre}}\nFase: {{fase.nombre}} - {{fase.descripcion}}\n\nCONTEXTO DEL PROOF POINT:\nPregunta Central: {{proof_point.pregunta_central}}\nDocumentación: {{proof_point.documentacion_contexto}}\n\nDOCUMENTACIÓN DE LA FASE:\n{{fase_documentation}}\n\nCONSIDERACIONES DEL INSTRUCTOR:\n{{consideraciones}}\n\nCONFIGURACIÓN:\nDuración: {{configuracion.duracion_minutos}} minutos\nProfundidad: {{configuracion.profundidad}}\nIncluir quizzes: {{configuracion.incluir_quizzes}}\nIncluir glosario: {{configuracion.incluir_glosario}}\nNúmero de ejemplos: {{configuracion.numero_ejemplos}}\n\nTAREA:\nGenera una lección interactiva que transmita conocimiento conceptual de manera activa. La lección debe:\n1. Tener una introducción enganchadora que conecte con la pregunta central del proof point\n2. Dividirse en 3-5 secciones lógicas, cada una con contenido markdown rico\n3. Incluir {{configuracion.numero_ejemplos}} ejemplos prácticos que ilustren los conceptos\n4. Si incluir_quizzes=true: Agregar 1 quiz por sección para verificar comprensión\n5. Si incluir_glosario=true: Crear glosario de términos técnicos clave\n6. Terminar con un resumen conciso y recursos adicionales\n\nOUTPUT ESPERADO (JSON):\n{{output_schema}}",
+    prompt_template: "Eres un diseñador instruccional experto creando una lección interactiva estilo tutor digital.\n\nCONTEXTO DEL PROGRAMA:\nPrograma: {{programa.nombre}}\nFase: {{fase.nombre}} - {{fase.descripcion}}\nProof Point: {{proof_point.pregunta_central}}\nDocumentación clave: {{proof_point.documentacion_contexto}}\n\nDOCUMENTACIÓN DE LA FASE:\n{{fase_documentation}}\n\nCONSIDERACIONES DEL INSTRUCTOR:\n{{consideraciones}}\n\nCONFIGURACIÓN:\nDuración objetivo: {{configuracion.duracion_minutos}} minutos\nProfundidad: {{configuracion.profundidad}}\nGlosario requerido: {{configuracion.incluir_glosario}}\nNúmero de ejemplos: {{configuracion.numero_ejemplos}}\n\nREQUISITOS DE FORMATO:\n- Entrega todo el contenido en un solo documento Markdown.\n- Usa encabezados H2 para temas principales y H3 para subtemas.\n- Cada subsección debe tener entre 3 y 5 párrafos conectados por transiciones claras.\n- Inserta cajas de énfasis usando la sintaxis :::callout ... ::: para conceptos críticos o advertencias.\n- Cada 3-4 párrafos inserta una pregunta de verificación usando un bloque ```verification { ... } ``` con el JSON descrito en el output_schema (incluye seccionId, opciones, feedback, accionChatSugerida).\n- Identifica términos técnicos clave y asegúrate de que aparezcan literalmente igual que en el glosario que entregarás.\n- Calcula metadatos (duración, conceptos clave, dificultad) basados en el contenido generado.\n\nOUTPUT ESPERADO (JSON):\n{{output_schema}}\n\nIMPORTANTE: Devuelve únicamente JSON válido que siga la estructura anterior. El campo markdown debe contener todo el artículo con las preguntas embebidas en los bloques ```verification```.",
     output_schema: {
-        titulo: "string",
-        introduccion: "string (markdown)",
-        secciones: [{
+        markdown: "string (documento markdown con H2/H3, :::callout y bloques ```verification```)",
+        metadata: {
             titulo: "string",
-            contenido: "string (markdown)",
-            ejemplos: ["string"],
-            quiz: {
-                pregunta: "string",
-                opciones: ["string"],
-                respuesta_correcta: "number",
-                explicacion: "string"
-            }
+            duracionMinutos: "number",
+            dificultad: "principiante|intermedio|avanzado",
+            conceptosClave: ["string"],
+            nivelNarrativa: "string",
+            objetivoPrincipal: "string"
+        },
+        glosario: [{ termino: "string", definicion: "string", slug: "string" }],
+        preguntasVerificacion: [{
+            id: "string",
+            seccionId: "string",
+            tipo: "multiple_choice|verdadero_falso|respuesta_corta",
+            enunciado: "string",
+            opciones: [{ id: "string", texto: "string", esCorrecta: "boolean" }],
+            respuestaCorrecta: "string|string[]|boolean",
+            criteriosEvaluacion: ["string"],
+            feedback: {
+                correcto: "string",
+                incorrecto: "string",
+                porOpcion: [{
+                    optionId: "string",
+                    feedback: "string",
+                    conceptoReferencia: "string"
+                }]
+            },
+            accionChatSugerida: "string"
         }],
-        glosario: [{ termino: "string", definicion: "string" }],
-        resumen: "string (markdown)",
-        recursos_adicionales: ["string"]
+        tracking: {
+            numeroSecciones: "number",
+            palabras: "number",
+            tiempoLecturaMinutos: "number",
+            tokensEstimados: "number"
+        }
     },
     preview_config: {
         demo_data: {
-            titulo: "Validación de Hipótesis en Emprendimiento",
-            introduccion: "# ¿Cómo sabemos si nuestra idea realmente resolverá un problema?\n\nAntes de invertir recursos...",
-            secciones: [
+            markdown: "## El tamaño sí importa, pero no como crees\n\nEl debate sobre si es mejor un modelo enorme o uno especializado ha cambiado.\n\n:::callout\nLos modelos de 13B parámetros ajustados al dominio pueden superar a gigantes genéricos si se entrenan con datos curados.\n:::\n\n```verification\n{\"id\":\"check-tamano\",\"seccionId\":\"el-tamano\",\"tipo\":\"multiple_choice\",\"enunciado\":\"¿Por qué un modelo de 13B bien ajustado puede ser más útil que uno de 175B?\",\"opciones\":[{\"id\":\"a\",\"texto\":\"Porque siempre es más barato\",\"esCorrecta\":false},{\"id\":\"b\",\"texto\":\"Porque puede enfocarse en el dominio y reducir latencia\",\"esCorrecta\":true}],\"respuestaCorrecta\":[\"b\"],\"feedback\":{\"correcto\":\"Exacto, el enfoque reduce tokens y hace más eficiente la inferencia.\",\"incorrecto\":\"Revisa la sección sobre compromisos de latencia.\",\"porOpcion\":[{\"optionId\":\"a\",\"feedback\":\"El costo ayuda, pero no es la razón principal\"}]},\"accionChatSugerida\":\"No entiendo cómo la latencia afecta la elección del modelo, ¿puedes explicarlo?\"}\n```\n\n### Restricciones del mundo real\nLos dispositivos móviles y el edge marcan límites claros...\n",
+            metadata: {
+                titulo: "El tamaño-rendimiento en LLMs",
+                duracionMinutos: 18,
+                dificultad: "intermedio",
+                conceptosClave: ["capacidad vs tamaño", "latencia", "edge deployment"],
+                nivelNarrativa: "socratico",
+                objetivoPrincipal: "Enseñar cómo balancear tamaño y desempeño en despliegues reales"
+            },
+            glosario: [
+                { termino: "latencia", definicion: "Tiempo que tarda el modelo en responder", slug: "latencia" },
+                { termino: "edge deployment", definicion: "Despliegue en dispositivos al borde de la red", slug: "edge-deployment" }
+            ],
+            preguntasVerificacion: [
                 {
-                    titulo: "Diferencia entre Validación y Verificación",
-                    contenido: "La **validación** responde: *¿Estamos construyendo lo correcto?*...",
-                    ejemplos: ["Airbnb validó la demanda rentando su propio apartamento"],
-                    quiz: {
-                        pregunta: "¿Cuál de estos es un ejemplo de validación?",
-                        opciones: ["Testear que el botón funciona", "Confirmar que usuarios pagarían por la solución"],
-                        respuesta_correcta: 1,
-                        explicacion: "Validar es confirmar que estamos resolviendo el problema correcto"
-                    }
+                    id: "check-tamano",
+                    seccionId: "el-tamano",
+                    tipo: "multiple_choice",
+                    enunciado: "¿Por qué un modelo de 13B bien ajustado puede ser más útil que uno de 175B?",
+                    opciones: [
+                        { id: "a", texto: "Porque siempre es más barato", esCorrecta: false },
+                        { id: "b", texto: "Porque puede enfocarse en el dominio y reducir latencia", esCorrecta: true }
+                    ],
+                    respuestaCorrecta: ["b"],
+                    criteriosEvaluacion: [
+                        "Menciona foco en dominio",
+                        "Hace referencia a latencia o costos operativos"
+                    ],
+                    feedback: {
+                        correcto: "Exacto, el enfoque reduce tokens y hace más eficiente la inferencia.",
+                        incorrecto: "Revisa la sección sobre compromisos de latencia.",
+                        porOpcion: [
+                            { optionId: "a", feedback: "El costo ayuda, pero no es la razón principal" }
+                        ]
+                    },
+                    accionChatSugerida: "No entiendo cómo la latencia afecta la elección del modelo, ¿puedes explicarlo?"
                 }
-            ]
+            ],
+            tracking: {
+                numeroSecciones: 3,
+                palabras: 820,
+                tiempoLecturaMinutos: 18,
+                tokensEstimados: 3200
+            }
         }
     },
     es_oficial: true,

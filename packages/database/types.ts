@@ -153,7 +153,7 @@ export interface PrerequisitosProofPoint {
  * @deprecated This interface represents the legacy 'nivel' table which has been removed.
  * The platform has migrated to a simplified 3-level hierarchy.
  * Use ExerciseInstance instead.
- * See LEGACY_CLEANUP.md for migration details.
+ * See DDD_ARCHITECTURE.md for migration details.
  */
 export interface Nivel {
   id: RecordId<'nivel'>;
@@ -173,7 +173,7 @@ export interface Nivel {
  * @deprecated This interface represents the legacy 'componente' table which has been removed.
  * The platform has migrated to a simplified 3-level hierarchy.
  * Use ExerciseInstance instead.
- * See LEGACY_CLEANUP.md for migration details.
+ * See DDD_ARCHITECTURE.md for migration details.
  */
 export interface Componente {
   id: RecordId<'componente'>;
@@ -190,7 +190,7 @@ export interface Componente {
 
 /**
  * @deprecated This interface represents the legacy 'prerequisitos_componente' table which has been removed.
- * See LEGACY_CLEANUP.md for migration details.
+ * See DDD_ARCHITECTURE.md for migration details.
  */
 export interface PrerequisitosComponente {
   id: RecordId<'prerequisitos_componente'>;
@@ -299,7 +299,7 @@ export interface ProgresoProofPoint {
 /**
  * @deprecated This interface represents the legacy 'progreso_nivel' table which has been removed.
  * Use ExerciseProgress instead.
- * See LEGACY_CLEANUP.md for migration details.
+ * See DDD_ARCHITECTURE.md for migration details.
  */
 export interface ProgresoNivel {
   id: RecordId<'progreso_nivel'>;
@@ -316,7 +316,7 @@ export interface ProgresoNivel {
 /**
  * @deprecated This interface represents the legacy 'progreso_componente' table which has been removed.
  * Use ExerciseProgress instead.
- * See LEGACY_CLEANUP.md for migration details.
+ * See DDD_ARCHITECTURE.md for migration details.
  */
 export interface ProgresoComponente {
   id: RecordId<'progreso_componente'>;
@@ -336,7 +336,7 @@ export interface ProgresoComponente {
 
 /**
  * @deprecated This interface represents the legacy 'datos_estudiante' table which has been removed.
- * See LEGACY_CLEANUP.md for migration details.
+ * See DDD_ARCHITECTURE.md for migration details.
  */
 export interface DatosEstudiante {
   id: RecordId<'datos_estudiante'>;
@@ -349,7 +349,7 @@ export interface DatosEstudiante {
 
 /**
  * @deprecated This interface represents the legacy 'evaluacion_resultado' table which has been removed.
- * See LEGACY_CLEANUP.md for migration details.
+ * See DDD_ARCHITECTURE.md for migration details.
  */
 export interface EvaluacionResultado {
   id: RecordId<'evaluacion_resultado'>;
@@ -364,7 +364,7 @@ export interface EvaluacionResultado {
 
 /**
  * @deprecated This interface represents the legacy 'feedback_generado' table which has been removed.
- * See LEGACY_CLEANUP.md for migration details.
+ * See DDD_ARCHITECTURE.md for migration details.
  */
 export interface FeedbackGenerado {
   id: RecordId<'feedback_generado'>;
@@ -530,7 +530,7 @@ export interface VersionContenido {
  * @deprecated This interface represents the legacy 'snapshot_programa' table which has been removed.
  * The snapshot system has been eliminated in favor of direct content storage in exercise_content.
  * See migrations/002-remove-snapshot-tables.surql for details.
- * See LEGACY_CLEANUP.md for migration details.
+ * See DDD_ARCHITECTURE.md for migration details.
  */
 export interface SnapshotPrograma {
   id: RecordId<'snapshot_programa'>;

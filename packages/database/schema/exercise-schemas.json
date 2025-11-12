@@ -41,29 +41,53 @@
         }
       },
       "output_schema": {
-        "titulo": "string",
-        "introduccion": "string (markdown)",
-        "secciones": [
-          {
-            "titulo": "string",
-            "contenido": "string (markdown)",
-            "ejemplos": ["string"],
-            "quiz": {
-              "pregunta": "string",
-              "opciones": ["string"],
-              "respuesta_correcta": "number (index)",
-              "explicacion": "string"
-            }
-          }
-        ],
+        "markdown": "string (documento completo en markdown con headers H2/H3, :::callout y bloques ```verification```)",
+        "metadata": {
+          "titulo": "string",
+          "duracionMinutos": "number",
+          "dificultad": "principiante|intermedio|avanzado",
+          "conceptosClave": ["string"],
+          "nivelNarrativa": "string",
+          "objetivoPrincipal": "string"
+        },
         "glosario": [
           {
             "termino": "string",
-            "definicion": "string"
+            "definicion": "string",
+            "slug": "string"
           }
         ],
-        "resumen": "string (markdown)",
-        "recursos_adicionales": ["string"]
+        "preguntasVerificacion": [
+          {
+            "id": "string",
+            "seccionId": "string",
+            "tipo": "multiple_choice|verdadero_falso|respuesta_corta",
+            "enunciado": "string",
+            "opciones": [
+              { "id": "string", "texto": "string", "esCorrecta": "boolean" }
+            ],
+            "respuestaCorrecta": "string|string[]|boolean",
+            "criteriosEvaluacion": ["string"],
+            "feedback": {
+              "correcto": "string",
+              "incorrecto": "string",
+              "porOpcion": [
+                {
+                  "optionId": "string",
+                  "feedback": "string",
+                  "conceptoReferencia": "string"
+                }
+              ]
+            },
+            "accionChatSugerida": "string"
+          }
+        ],
+        "tracking": {
+          "numeroSecciones": "number",
+          "palabras": "number",
+          "tiempoLecturaMinutos": "number",
+          "tokensEstimados": "number"
+        }
       }
     },
     {

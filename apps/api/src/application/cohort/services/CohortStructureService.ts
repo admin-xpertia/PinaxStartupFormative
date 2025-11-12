@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
-import type { ProgramStructure } from "../../../types/enrollment";
+import type { ProgramStructure } from "@xpertia/types/enrollment";
 import { ProgramSnapshotService } from "./ProgramSnapshotService";
 import type { ICohortRepository } from "../../../domain/cohort/repositories/ICohortRepository";
 import { RecordId } from "../../../domain/shared/value-objects/RecordId";

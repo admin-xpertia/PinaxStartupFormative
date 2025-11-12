@@ -88,15 +88,68 @@ export interface ContenidoMetadata {
   preguntas?: number
 }
 
-export interface LeccionContent {
-  markdown: string
-  estructura: SeccionLeccion[]
+export type LessonDifficulty = "principiante" | "intermedio" | "avanzado"
+
+export type LessonQuestionType = "multiple_choice" | "respuesta_corta" | "verdadero_falso"
+
+export interface LessonMetadata {
+  titulo: string
+  duracionMinutos?: number
+  dificultad?: LessonDifficulty
+  conceptosClave: string[]
+  nivelNarrativa?: string
+  objetivoPrincipal?: string
 }
 
-export interface SeccionLeccion {
-  tipo: "header" | "paragraph" | "list" | "quote" | "code" | "image" | "activity" | "quiz"
-  contenido: string
-  nivel?: number
+export interface GlossaryEntry {
+  termino: string
+  definicion: string
+  slug?: string
+  categoria?: string
+}
+
+export interface LessonQuestionOption {
+  id: string
+  texto: string
+  esCorrecta?: boolean
+  pista?: string
+}
+
+export interface LessonQuestionFeedbackEntry {
+  optionId?: string
+  feedback: string
+  conceptoReferencia?: string
+}
+
+export interface LessonVerificationQuestion {
+  id: string
+  seccionId: string
+  tipo: LessonQuestionType
+  enunciado: string
+  opciones?: LessonQuestionOption[]
+  respuestaCorrecta?: string | string[] | boolean
+  criteriosEvaluacion?: string[]
+  feedback: {
+    correcto: string
+    incorrecto?: string
+    porOpcion?: LessonQuestionFeedbackEntry[]
+  }
+  accionChatSugerida?: string
+}
+
+export interface LessonTrackingStats {
+  numeroSecciones?: number
+  palabras?: number
+  tiempoLecturaMinutos?: number
+  tokensEstimados?: number
+}
+
+export interface LeccionContent {
+  markdown: string
+  metadata: LessonMetadata
+  glosario?: GlossaryEntry[]
+  preguntasVerificacion?: LessonVerificationQuestion[]
+  tracking?: LessonTrackingStats
 }
 
 export interface CuadernoContent {

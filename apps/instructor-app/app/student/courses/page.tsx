@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo } from "react"
 import useSWR from "swr"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -16,56 +16,96 @@ import {
   ChevronRight,
   TrendingUp,
   Target,
-  Award
+  Award,
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { programsApi } from "@/services/api"
+import { apiClient } from "@/services/api"
+import { LoadingState } from "@/components/shared/loading-state"
+import { ErrorState } from "@/components/shared/error-state"
+import { EmptyState } from "@/components/shared/empty-state"
+import type { ProgramStructure, ProofPoint, ExerciseSummary } from "@/types/enrollment"
 
-// TODO: Replace with actual student enrollment API
-const mockStudentEnrollments = [
-  {
-    id: "cohort_1",
-    programId: "program_1",
-    programName: "Desarrollo de Liderazgo Transformacional",
-    instructorName: "Dr. María García",
-    progress: 45,
-    completedProofPoints: 12,
-    totalProofPoints: 27,
-    currentPhase: "Fase 2: Liderazgo Situacional",
-    nextExercise: {
-      id: "ex_123",
-      name: "Análisis de Estilos de Liderazgo",
-      proofPointName: "Adaptación Contextual",
-      type: "cuaderno_trabajo",
-    },
-  },
-  {
-    id: "cohort_2",
-    programId: "program_2",
-    programName: "Emprendimiento e Innovación",
-    instructorName: "Ing. Carlos Ruiz",
-    progress: 20,
-    completedProofPoints: 5,
-    totalProofPoints: 24,
-    currentPhase: "Fase 1: Mindset Emprendedor",
-    nextExercise: {
-      id: "ex_456",
-      name: "Identificación de Oportunidades",
-      proofPointName: "Visión de Mercado",
-      type: "herramienta_analisis",
-    },
-  },
-]
+interface StudentEnrollment {
+  id: string
+  studentId: string
+  cohortId: string
+  programId: string
+  programName: string
+  programDescription: string
+  instructorName: string
+  enrolledAt: string
+  status: "active" | "completed" | "dropped"
+  overallProgress: number
+  completedProofPoints: number
+  totalProofPoints: number
+  estimatedCompletionDate?: string
+  currentPhaseId?: string
+  currentProofPointId?: string
+  currentExerciseId?: string
+  snapshotStructure?: ProgramStructure
+}
+
+interface ExerciseWithContext extends ExerciseSummary {
+  proofPointName: string
+}
 
 export default function StudentCoursesPage() {
   const router = useRouter()
 
-  // TODO: Fetch real student enrollments
-  const enrollments = mockStudentEnrollments
+  const {
+    data: enrollments,
+    error,
+    isLoading,
+  } = useSWR<StudentEnrollment[]>("student/enrollments", () =>
+    apiClient.get<StudentEnrollment[]>("/student/enrollments"),
+  )
 
-  const handleContinueCourse = (courseId: string, exerciseId: string) => {
+  const courses = enrollments ?? []
+
+  const stats = useMemo(() => {
+    if (!courses.length) {
+      return { totalCourses: 0, completedProofPoints: 0, averageProgress: 0 }
+    }
+
+    const completedProofPoints = courses.reduce(
+      (sum, enrollment) => sum + enrollment.completedProofPoints,
+      0,
+    )
+
+    const averageProgress = Math.round(
+      courses.reduce((sum, enrollment) => sum + enrollment.overallProgress, 0) / courses.length,
+    )
+
+    return {
+      totalCourses: courses.length,
+      completedProofPoints,
+      averageProgress,
+    }
+  }, [courses])
+
+  const handleContinueCourse = (exerciseId?: string) => {
+    if (!exerciseId) return
     router.push(`/student/exercises/${exerciseId}`)
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <LoadingState text="Cargando cursos del estudiante..." />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-6">
+        <ErrorState
+          title="No pudimos cargar los cursos"
+          message="Verifica tu conexión o vuelve a intentarlo en unos minutos."
+        />
+      </div>
+    )
   }
 
   return (
@@ -108,12 +148,8 @@ export default function StudentCoursesPage() {
                     <BookOpen className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">
-                      {enrollments.length}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Cursos Activos
-                    </p>
+                    <p className="text-2xl font-bold">{stats.totalCourses}</p>
+                    <p className="text-sm text-muted-foreground">Cursos Activos</p>
                   </div>
                 </div>
               </CardContent>
@@ -126,12 +162,8 @@ export default function StudentCoursesPage() {
                     <CheckCircle2 className="h-6 w-6 text-green-600" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">
-                      {enrollments.reduce((sum, e) => sum + e.completedProofPoints, 0)}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Proof Points Completados
-                    </p>
+                    <p className="text-2xl font-bold">{stats.completedProofPoints}</p>
+                    <p className="text-sm text-muted-foreground">Proof Points Completados</p>
                   </div>
                 </div>
               </CardContent>
@@ -144,119 +176,159 @@ export default function StudentCoursesPage() {
                     <TrendingUp className="h-6 w-6 text-blue-600" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">
-                      {Math.round(enrollments.reduce((sum, e) => sum + e.progress, 0) / enrollments.length)}%
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Progreso Promedio
-                    </p>
+                    <p className="text-2xl font-bold">{stats.averageProgress}%</p>
+                    <p className="text-sm text-muted-foreground">Progreso Promedio</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Course Cards */}
-          <div className="space-y-6">
-            {enrollments.map((enrollment) => (
-              <Card key={enrollment.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-xl mb-2">
-                        {enrollment.programName}
-                      </CardTitle>
-                      <CardDescription className="flex items-center gap-2">
-                        <span>Por {enrollment.instructorName}</span>
-                        <span>•</span>
-                        <span>{enrollment.currentPhase}</span>
-                      </CardDescription>
-                    </div>
-                    <Badge variant="secondary">
-                      {enrollment.progress}% completado
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Progress Bar */}
-                  <div className="space-y-2">
-                    <Progress value={enrollment.progress} className="h-2" />
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <span>
-                        {enrollment.completedProofPoints} / {enrollment.totalProofPoints} Proof Points
-                      </span>
-                      <span>
-                        {enrollment.totalProofPoints - enrollment.completedProofPoints} restantes
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Next Exercise */}
-                  {enrollment.nextExercise && (
-                    <div className="p-4 rounded-lg border bg-muted/30">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-muted-foreground mb-1">
-                            Continuar con:
-                          </p>
-                          <h4 className="font-semibold mb-1">
-                            {enrollment.nextExercise.name}
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            {enrollment.nextExercise.proofPointName}
-                          </p>
-                        </div>
-                        <Button
-                          onClick={() => handleContinueCourse(
-                            enrollment.id,
-                            enrollment.nextExercise!.id
-                          )}
-                        >
-                          Continuar
-                          <ChevronRight className="h-4 w-4 ml-2" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Quick Actions */}
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/student/courses/${enrollment.id}/overview`}>
-                        <Target className="h-4 w-4 mr-2" />
-                        Ver Estructura
-                      </Link>
-                    </Button>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/student/courses/${enrollment.id}/progress`}>
-                        <Award className="h-4 w-4 mr-2" />
-                        Mi Progreso
-                      </Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Empty State */}
-          {enrollments.length === 0 && (
+          {!courses.length ? (
             <Card>
-              <CardContent className="flex flex-col items-center justify-center py-16">
-                <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center mb-4">
-                  <BookOpen className="h-12 w-12 text-muted-foreground" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">
-                  No estás inscrito en ningún curso
-                </h3>
-                <p className="text-muted-foreground text-center max-w-md">
-                  Contacta a tu instructor para que te asigne a un programa de aprendizaje
-                </p>
+              <CardContent>
+                <EmptyState
+                  icon={BookOpen}
+                  title="No tienes cursos asignados"
+                  description="Cuando un instructor te inscriba en una cohorte, verás el programa y su progreso en esta vista."
+                />
               </CardContent>
             </Card>
+          ) : (
+            <>
+              {/* Course Cards */}
+              <div className="space-y-6">
+                {courses.map((enrollment) => {
+                  const nextExercise = resolveNextExercise(enrollment)
+                  const phaseName = resolvePhaseName(enrollment)
+
+                  return (
+                    <Card key={enrollment.id} className="hover:shadow-lg transition-shadow">
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <CardTitle className="text-xl mb-2">{enrollment.programName}</CardTitle>
+                            <CardDescription className="flex items-center gap-2">
+                              <span>Por {enrollment.instructorName}</span>
+                              <span>•</span>
+                              <span>{phaseName}</span>
+                            </CardDescription>
+                          </div>
+                          <Badge variant="secondary">
+                            {Math.round(enrollment.overallProgress)}% completado
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        {/* Progress Bar */}
+                        <div className="space-y-2">
+                          <Progress value={enrollment.overallProgress} className="h-2" />
+                          <div className="flex items-center justify-between text-sm text-muted-foreground">
+                            <span>
+                              {enrollment.completedProofPoints} / {enrollment.totalProofPoints} Proof Points
+                            </span>
+                            <span>
+                              {enrollment.totalProofPoints - enrollment.completedProofPoints} restantes
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Next Exercise */}
+                        {nextExercise ? (
+                          <div className="p-4 rounded-lg border bg-muted/30">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-muted-foreground mb-1">
+                                  Continuar con:
+                                </p>
+                                <h4 className="text-lg font-semibold">{nextExercise.nombre}</h4>
+                                <p className="text-sm text-muted-foreground">{nextExercise.proofPointName}</p>
+                              </div>
+                              <Badge variant="outline" className="flex items-center gap-1">
+                                <Target className="h-4 w-4" />
+                                {formatExerciseType(nextExercise.tipo)}
+                              </Badge>
+                            </div>
+                            <Button className="mt-4 w-full" onClick={() => handleContinueCourse(nextExercise.id)}>
+                              Continuar ejercicio
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="p-4 rounded-lg border text-sm text-muted-foreground">
+                            No hay ejercicios pendientes en este programa.
+                          </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="grid gap-3 md:grid-cols-3">
+                          <Button variant="outline" asChild>
+                            <Link href={`/student/courses/${enrollment.id}/overview`}>Ver resumen</Link>
+                          </Button>
+                          <Button variant="outline" asChild>
+                            <Link href={`/student/courses/${enrollment.id}/progress`}>Progreso detallado</Link>
+                          </Button>
+                          <Button variant="secondary" asChild>
+                            <Link href={`/student/courses/${enrollment.id}/resources`}>
+                              Recursos
+                            </Link>
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+            </>
           )}
         </div>
       </main>
     </div>
   )
+}
+
+function formatExerciseType(tipo: string) {
+  return tipo.replace(/_/g, " ")
+}
+
+function resolvePhaseName(enrollment: StudentEnrollment) {
+  const phases = enrollment.snapshotStructure?.phases ?? []
+  const currentPhase =
+    phases.find((phase) => phase.id === enrollment.currentPhaseId) ?? phases[0]
+  return currentPhase?.nombre ?? "Fase no definida"
+}
+
+function resolveNextExercise(enrollment: StudentEnrollment): ExerciseWithContext | undefined {
+  const structure = enrollment.snapshotStructure
+  if (!structure) return undefined
+
+  const iterator = iterateExercises(structure)
+
+  if (enrollment.currentExerciseId) {
+    const exercise = iterator((item) => item.id === enrollment.currentExerciseId)
+    if (exercise) return exercise
+  }
+
+  if (enrollment.currentProofPointId) {
+    const exercise = iterator((_exercise, proofPoint) => proofPoint.id === enrollment.currentProofPointId)
+    if (exercise) return exercise
+  }
+
+  return iterator((exercise) => exercise.status !== "completed")
+}
+
+function iterateExercises(
+  structure: ProgramStructure,
+): (predicate: (exercise: ExerciseSummary, proofPoint: ProofPoint) => boolean) => ExerciseWithContext | undefined {
+  return (predicate) => {
+    for (const phase of structure.phases) {
+      for (const proofPoint of phase.proofPoints) {
+        for (const exercise of proofPoint.exercises) {
+          if (predicate(exercise, proofPoint)) {
+            return { ...exercise, proofPointName: proofPoint.nombre }
+          }
+        }
+      }
+    }
+    return undefined
+  }
 }

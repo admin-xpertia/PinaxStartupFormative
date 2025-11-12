@@ -50,6 +50,7 @@ export interface ExercisePlayerEnhancedProps {
   onExit?: () => void
   children: ReactNode
   aiContext?: string
+  onPromptAI?: (prompt: string) => Promise<string>
 }
 
 export function ExercisePlayerEnhanced({
@@ -70,6 +71,7 @@ export function ExercisePlayerEnhanced({
   onExit,
   children,
   aiContext,
+  onPromptAI,
 }: ExercisePlayerEnhancedProps) {
   const { toast } = useToast()
   const [isSaving, setIsSaving] = useState(false)
@@ -230,27 +232,40 @@ export function ExercisePlayerEnhanced({
   }
 
   const handleAIMessage = async () => {
-    if (!aiInput.trim()) return
+    if (!aiInput.trim() || aiLoading) return
 
-    const userMessage = aiInput
+    const userMessage = aiInput.trim()
     setAiInput("")
-    setAiMessages(prev => [...prev, { role: 'user', content: userMessage }])
+    const nextHistory = [...aiMessages, { role: "user" as const, content: userMessage }]
+    setAiMessages(nextHistory)
+
+    if (!onPromptAI) {
+      setAiMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "El asistente IA no está disponible en este momento.",
+        },
+      ])
+      return
+    }
+
     setAiLoading(true)
-
     try {
-      // TODO: Call actual AI API with context
-      // For now, simulate response
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
       const contextInfo = aiContext || `Estás trabajando en: ${exerciseName}`
-      const response = `Entiendo tu pregunta sobre "${userMessage}". ${contextInfo}. ¿Puedo ayudarte con algo más específico?`
-
-      setAiMessages(prev => [...prev, {
-        role: 'assistant',
-        content: response
-      }])
+      const response = await onPromptAI(
+        `${contextInfo}\n\nPregunta del estudiante: ${userMessage}`,
+      )
+      setAiMessages((prev) => [...prev, { role: "assistant", content: response }])
     } catch (error) {
-      console.error('AI message failed:', error)
+      console.error("AI message failed:", error)
+      setAiMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "No pude responder en este momento. Intenta de nuevo más tarde.",
+        },
+      ])
     } finally {
       setAiLoading(false)
     }

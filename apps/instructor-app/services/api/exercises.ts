@@ -65,6 +65,12 @@ export const exerciseInstancesApi = {
     apiClient.get<ExerciseInstanceResponse>(`/exercises/${id}`),
 
   /**
+   * Get exercise content payload
+   */
+  getContent: (id: string) =>
+    apiClient.get(`/exercises/${id}/content`),
+
+  /**
    * Add exercise to proof point
    */
   create: (proofPointId: string, data: AddExerciseToProofPointRequest) =>

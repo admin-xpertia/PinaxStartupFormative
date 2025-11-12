@@ -1,7 +1,7 @@
 // API Service para Enrollments (Inscripciones del estudiante)
 
 import { apiClient } from "./client"
-import type { Enrollment, ProgramStructure } from "@/types/enrollment"
+import type { Enrollment, ProgramStructure } from "@shared-types/enrollment"
 import type { ContinuePoint } from "@/types/progress"
 
 export const enrollmentsApi = {

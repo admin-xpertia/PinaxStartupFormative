@@ -7,7 +7,7 @@ import {
 } from "../../../domain/program-design/repositories/IProgramRepository";
 import { IExerciseInstanceRepository } from "../../../domain/exercise-instance/repositories/IExerciseInstanceRepository";
 import { SurrealDbService } from "../../../core/database/surrealdb.service";
-import type { ProgramStructure, ExerciseType } from "../../../types/enrollment";
+import type { ProgramStructure, ExerciseType } from "@xpertia/types/enrollment";
 import { ProofPoint } from "../../../domain/program-design/entities/ProofPoint";
 import { Fase } from "../../../domain/program-design/entities/Fase";
 

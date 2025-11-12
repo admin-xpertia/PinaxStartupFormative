@@ -60,7 +60,7 @@ export const progressApi = {
    */
   async autoSave(exerciseId: string, data: any): Promise<void> {
     // No espera respuesta, solo envía
-    return apiClient.post(`/student/exercises/${exerciseId}/auto-save`, { data })
+    await apiClient.post(`/student/exercises/${exerciseId}/auto-save`, { data })
       .catch((error) => {
         // Log pero no interrumpe la experiencia
         console.warn("Auto-save failed:", error)

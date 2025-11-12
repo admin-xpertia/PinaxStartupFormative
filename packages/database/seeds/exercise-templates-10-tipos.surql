@@ -28,19 +28,94 @@ CREATE exercise_template:leccion_interactiva SET
     incluir_visualizaciones: true,
     numero_casos_practica: 3
   },
-  prompt_template = 'Crea una lección interactiva sobre {{topico}} con nivel {{profundidad}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "objetivos": string[], "secciones": [{ "tipo": "texto"|"lista"|"concepto_clave", "contenido": string, "titulo"?: string, "items"?: string[] }], "conceptos_clave": string[], "quiz": [{ "pregunta": string, "tipo": "multiple_choice"|"verdadero_falso", "opciones": string[], "respuesta_correcta": string, "explicacion": string }], "recursos_adicionales": [{ "titulo": string, "url": string, "tipo": string }] }. Incluye al menos 3 secciones, {{numero_casos_practica}} preguntas de quiz, y conceptos clave.',
+  prompt_template = 'Eres un diseñador instruccional experto creando una lección interactiva estilo tutor digital.\n\nCONTEXTO DEL PROGRAMA:\nPrograma: {{programa.nombre}}\nFase: {{fase.nombre}} - {{fase.descripcion}}\nProof Point: {{proof_point.pregunta_central}}\nDocumentación clave: {{proof_point.documentacion_contexto}}\n\nDOCUMENTACIÓN DE LA FASE:\n{{fase_documentation}}\n\nCONSIDERACIONES DEL INSTRUCTOR:\n{{consideraciones}}\n\nCONFIGURACIÓN:\nDuración objetivo: {{configuracion.duracion_minutos}} minutos\nProfundidad: {{configuracion.profundidad}}\nGlosario requerido: {{configuracion.incluir_glosario}}\nNúmero de ejemplos: {{configuracion.numero_casos_practica}}\n\nREQUISITOS DE FORMATO:\n- Entrega todo el contenido en un solo documento Markdown.\n- Usa encabezados H2 para temas principales y H3 para subtemas.\n- Cada subsección debe tener entre 3 y 5 párrafos conectados por transiciones claras.\n- Inserta cajas de énfasis usando la sintaxis :::callout ... ::: para conceptos críticos o advertencias.\n- Cada 3-4 párrafos inserta una pregunta de verificación usando un bloque ```verification { ... } ``` con el JSON descrito en el output_schema (incluye seccionId, opciones, feedback, accionChatSugerida).\n- Identifica términos técnicos clave y asegúrate de que aparezcan literalmente igual que en el glosario que entregarás.\n- Calcula metadatos (duración, conceptos clave, dificultad) basados en el contenido generado.\n\nOUTPUT ESPERADO (JSON):\n{{output_schema}}\n\nIMPORTANTE: Devuelve únicamente JSON válido que siga la estructura anterior. El campo markdown debe contener todo el artículo con las preguntas embebidas en los bloques ```verification```.',
   output_schema = {
-    titulo: 'string',
-    objetivos: 'array',
-    secciones: 'array',
-    conceptos_clave: 'array',
-    quiz: 'array',
-    recursos_adicionales: 'array?'
+    markdown: 'string (documento markdown con H2/H3, :::callout y bloques ```verification```)',
+    metadata: {
+      titulo: 'string',
+      duracionMinutos: 'number',
+      dificultad: 'principiante|intermedio|avanzado',
+      conceptosClave: ['string'],
+      nivelNarrativa: 'string',
+      objetivoPrincipal: 'string'
+    },
+    glosario: [{ termino: 'string', definicion: 'string', slug: 'string' }],
+    preguntasVerificacion: [{
+      id: 'string',
+      seccionId: 'string',
+      tipo: 'multiple_choice|verdadero_falso|respuesta_corta',
+      enunciado: 'string',
+      opciones: [{ id: 'string', texto: 'string', esCorrecta: 'boolean' }],
+      respuestaCorrecta: 'string|string[]|boolean',
+      criteriosEvaluacion: ['string'],
+      feedback: {
+        correcto: 'string',
+        incorrecto: 'string',
+        porOpcion: [{
+          optionId: 'string',
+          feedback: 'string',
+          conceptoReferencia: 'string'
+        }]
+      },
+      accionChatSugerida: 'string'
+    }],
+    tracking: {
+      numeroSecciones: 'number',
+      palabras: 'number',
+      tiempoLecturaMinutos: 'number',
+      tokensEstimados: 'number'
+    }
   },
   preview_config = {
     mostrar_progreso: true,
     permitir_saltos: false,
-    tiempo_estimado_minutos: 15
+    tiempo_estimado_minutos: 15,
+    demo_data: {
+      markdown: '## El tamaño sí importa, pero no como crees\n\nEl debate sobre si es mejor un modelo enorme o uno especializado ha cambiado.\n\n:::callout\nLos modelos de 13B parámetros ajustados al dominio pueden superar a gigantes genéricos si se entrenan con datos curados.\n:::\n\n```verification\n{\"id\":\"check-tamano\",\"seccionId\":\"el-tamano\",\"tipo\":\"multiple_choice\",\"enunciado\":\"¿Por qué un modelo de 13B bien ajustado puede ser más útil que uno de 175B?\",\"opciones\":[{\"id\":\"a\",\"texto\":\"Porque siempre es más barato\",\"esCorrecta\":false},{\"id\":\"b\",\"texto\":\"Porque puede enfocarse en el dominio y reducir latencia\",\"esCorrecta\":true}],\"respuestaCorrecta\":[\"b\"],\"feedback\":{\"correcto\":\"Exacto, el enfoque reduce tokens y hace más eficiente la inferencia.\",\"incorrecto\":\"Revisa la sección sobre compromisos de latencia.\",\"porOpcion\":[{\"optionId\":\"a\",\"feedback\":\"El costo ayuda, pero no es la razón principal\"}]},\"accionChatSugerida\":\"No entiendo cómo la latencia afecta la elección del modelo, ¿puedes explicarlo?\"}\n```\n\n### Restricciones del mundo real\nLos dispositivos móviles y el edge marcan límites claros...\n',
+      metadata: {
+        titulo: 'El tamaño-rendimiento en LLMs',
+        duracionMinutos: 18,
+        dificultad: 'intermedio',
+        conceptosClave: ['capacidad vs tamaño', 'latencia', 'edge deployment'],
+        nivelNarrativa: 'socratico',
+        objetivoPrincipal: 'Enseñar cómo balancear tamaño y desempeño en despliegues reales'
+      },
+      glosario: [
+        { termino: 'latencia', definicion: 'Tiempo que tarda el modelo en responder', slug: 'latencia' },
+        { termino: 'edge deployment', definicion: 'Despliegue en dispositivos al borde de la red', slug: 'edge-deployment' }
+      ],
+      preguntasVerificacion: [
+        {
+          id: 'check-tamano',
+          seccionId: 'el-tamano',
+          tipo: 'multiple_choice',
+          enunciado: '¿Por qué un modelo de 13B bien ajustado puede ser más útil que uno de 175B?',
+          opciones: [
+            { id: 'a', texto: 'Porque siempre es más barato', esCorrecta: false },
+            { id: 'b', texto: 'Porque puede enfocarse en el dominio y reducir latencia', esCorrecta: true }
+          ],
+          respuestaCorrecta: ['b'],
+          criteriosEvaluacion: [
+            'Menciona foco en dominio',
+            'Hace referencia a latencia o costos operativos'
+          ],
+          feedback: {
+            correcto: 'Exacto, el enfoque reduce tokens y hace más eficiente la inferencia.',
+            incorrecto: 'Revisa la sección sobre compromisos de latencia.',
+            porOpcion: [
+              { optionId: 'a', feedback: 'El costo ayuda, pero no es la razón principal' }
+            ]
+          },
+          accionChatSugerida: 'No entiendo cómo la latencia afecta la elección del modelo, ¿puedes explicarlo?'
+        }
+      ],
+      tracking: {
+        numeroSecciones: 3,
+        palabras: 820,
+        tiempoLecturaMinutos: 18,
+        tokensEstimados: 3200
+      }
+    }
   },
   icono = '📖',
   color = '#6366f1',

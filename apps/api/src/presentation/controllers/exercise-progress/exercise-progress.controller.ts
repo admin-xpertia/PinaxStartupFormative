@@ -30,6 +30,11 @@ import {
   StudentProgressSummaryDto,
   ProofPointProgressResponseDto,
   ExerciseProgressSummaryDto,
+  LessonAssistantRequestDto,
+  LessonAssistantResponseDto,
+  LessonQuestionEvaluationDto,
+  LessonQuestionEvaluationResponseDto,
+  LessonQuestionTypeEnum,
 } from "../../dtos/exercise-progress";
 import { Public } from "../../../core/decorators";
 
@@ -701,7 +706,7 @@ export class ExerciseProgressController {
 
     // Get all exercises for this proof point
     const exercisesQuery = `
-      SELECT id, nombre, template, orden
+      SELECT id, nombre, template, orden, es_obligatorio
       FROM exercise_instance
       WHERE proof_point = type::thing($proofPointId)
         AND estado_contenido = 'publicado'
@@ -721,7 +726,21 @@ export class ExerciseProgressController {
         : [exercisesResult[0]];
     }
 
-    // Get progress records for these exercises
+    if (exercises.length === 0) {
+      return {
+        proofPointId: decodedProofPointId,
+        studentId: estudianteId,
+        status: "locked",
+        progress: 0,
+        completedExercises: 0,
+        totalExercises: 0,
+        requiredExercises: 0,
+        averageScore: 0,
+        exercises: [],
+      };
+    }
+
+    // Get all progress records for the student and cohort, then filter by proof point exercises
     const progressQuery = `
       SELECT
         id,
@@ -735,7 +754,6 @@ export class ExerciseProgressController {
       FROM exercise_progress
       WHERE estudiante = type::thing($estudianteId)
         AND cohorte = type::thing($cohorteId)
-        AND exercise_instance IN [${exercises.map((e) => `type::thing('${e.id}')`).join(", ")}]
     `;
 
     const progressResult = await this.db.query(progressQuery, {
@@ -743,12 +761,17 @@ export class ExerciseProgressController {
       cohorteId,
     });
 
-    let progressRecords: any[] = [];
+    let allProgressRecords: any[] = [];
     if (Array.isArray(progressResult) && progressResult.length > 0) {
-      progressRecords = Array.isArray(progressResult[0])
+      allProgressRecords = Array.isArray(progressResult[0])
         ? progressResult[0]
         : [progressResult[0]];
     }
+
+    const exerciseIds = new Set(exercises.map((exercise) => exercise.id));
+    const progressRecords = allProgressRecords.filter((record) =>
+      exerciseIds.has(record.exercise_instance),
+    );
 
     // Calculate exercise summaries
     const exerciseSummaries: ExerciseProgressSummaryDto[] = exercises.map(
@@ -791,7 +814,12 @@ export class ExerciseProgressController {
     const totalExercises = exercises.length;
     const progressPercentage =
       totalExercises > 0
-        ? Math.round((completedExercises / totalExercises) * 100)
+        ? Math.round(
+            exerciseSummaries.reduce(
+              (sum, summary) => sum + (summary.progress || 0),
+              0,
+            ) / totalExercises,
+          )
         : 0;
 
     // Calculate average score
@@ -801,16 +829,19 @@ export class ExerciseProgressController {
 
     const averageScore =
       scoresWithValues.length > 0
-        ? scoresWithValues.reduce((sum, s) => sum + s, 0) / scoresWithValues.length
+        ? scoresWithValues.reduce((sum, s) => sum + s, 0) /
+          scoresWithValues.length
         : 0;
 
     // Determine status
     let status: "locked" | "available" | "in_progress" | "completed" =
-      "available";
+      totalExercises === 0 ? "locked" : "available";
     if (completedExercises === totalExercises && totalExercises > 0) {
       status = "completed";
     } else if (
-      exerciseSummaries.some((e) => e.status === "in_progress" || e.status === "completed")
+      exerciseSummaries.some(
+        (e) => e.status === "in_progress" || e.status === "completed",
+      )
     ) {
       status = "in_progress";
     }
@@ -819,29 +850,39 @@ export class ExerciseProgressController {
     const completedProgressRecords = progressRecords.filter(
       (p) => p.estado === "completado",
     );
-    const startedAt = progressRecords.length > 0
-      ? progressRecords.reduce((earliest, p) => {
-          return !earliest || (p.fecha_inicio && p.fecha_inicio < earliest)
-            ? p.fecha_inicio
-            : earliest;
-        }, null)
-      : undefined;
+    const startedAtRaw = progressRecords
+      .map((p) => p.fecha_inicio)
+      .filter(Boolean)
+      .reduce<string | undefined>((earliest, fecha) => {
+        if (!earliest || fecha < earliest) {
+          return fecha;
+        }
+        return earliest;
+      }, undefined);
 
-    const completedAt =
-      status === "completed" && completedProgressRecords.length > 0
-        ? completedProgressRecords.reduce((latest, p) => {
-            return !latest || (p.fecha_completado && p.fecha_completado > latest)
-              ? p.fecha_completado
-              : latest;
-          }, null)
+    const completedAtRaw =
+      completedProgressRecords.length > 0
+        ? completedProgressRecords
+            .map((p) => p.fecha_completado)
+            .filter(Boolean)
+            .reduce<string | undefined>((latest, fecha) => {
+              if (!latest || fecha > latest) {
+                return fecha;
+              }
+              return latest;
+            }, undefined)
         : undefined;
 
-    // For now, assume all exercises are required
-    const requiredExercises = totalExercises;
+    const startedAt = startedAtRaw ? new Date(startedAtRaw) : undefined;
+    const completedAt = completedAtRaw ? new Date(completedAtRaw) : undefined;
+
+    const requiredExercises = exercises.filter(
+      (exercise) => exercise.es_obligatorio !== false,
+    ).length;
 
     return {
       proofPointId: decodedProofPointId,
-      studentId: `estudiante:⟨${estudianteId}⟩`,
+      studentId: estudianteId,
       status,
       progress: progressPercentage,
       completedExercises,
@@ -888,6 +929,181 @@ Feedback:`;
       // Fallback to generic message
       return `¡Excelente trabajo! Has completado el ejercicio "${exerciseName}" exitosamente. Continúa practicando para fortalecer tus habilidades.`;
     }
+  }
+
+  /**
+   * Contextual lesson assistant chat endpoint
+   */
+  @Public()
+  @Post("student/exercises/:exerciseId/assistant/chat")
+  @ApiOperation({
+    summary: "Enviar pregunta al asistente contextual de la lección",
+    description:
+      "El asistente recibe el contenido de la sección actual, historial recortado y perfil de comprensión para responder en tono socrático.",
+  })
+  async sendLessonAssistantMessage(
+    @Param("exerciseId") exerciseId: string,
+    @Body() assistantDto: LessonAssistantRequestDto,
+  ): Promise<LessonAssistantResponseDto> {
+    const limitedHistory =
+      assistantDto.historial?.slice(-10).map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      })) ?? [];
+
+    const profileSummary = assistantDto.perfilComprension
+      ? JSON.stringify(assistantDto.perfilComprension, null, 2)
+      : "No hay datos de progreso previos.";
+
+    const systemPrompt = `Eres el asistente pedagógico de Xpertia que acompaña a estudiantes dentro de una lección interactiva.
+Actúa como tutor socrático amable:
+- Siempre valida si la duda ya se resolvió en la sección actual antes de introducir información nueva.
+- Si el estudiante pregunta algo explicado en una sección previa que no ha leído, sugiérele regresar antes de responder en profundidad.
+- Responde en español, usando formato markdown y citando conceptos relevantes entre comillas cuando apliquen.
+- Formula preguntas guía que impulsen reflexión y conexión con el contenido.
+- Ajusta el nivel de profundidad según el historial y el perfil de comprensión compartido.
+- Termina cada respuesta con una línea "Referencias: <lista separada por ';'>" mencionando los encabezados concretos usados (al menos la sección actual).`;
+
+    const userContent = `SECCIÓN ACTUAL (${assistantDto.seccionTitulo} · ${assistantDto.seccionId})
+${assistantDto.seccionContenido}
+
+PERFIL DE COMPRENSIÓN
+${profileSummary}
+
+PREGUNTA DEL ESTUDIANTE
+${assistantDto.pregunta}
+
+CONCEPTO FOCAL
+${assistantDto.conceptoFocal ?? "No especificado"}
+
+Recuerda citar explícitamente las secciones que utilices y mantener el tono socrático.`;
+
+    const { content, raw } = await this.openAIService.generateChatResponse({
+      systemPrompt,
+      messages: [...limitedHistory, { role: "user", content: userContent }],
+      maxTokens: 900,
+    });
+
+    const { answer, references } = this.extractAssistantAnswer(content);
+
+    return {
+      respuesta: answer,
+      referencias:
+        references.length > 0
+          ? references
+          : [assistantDto.seccionTitulo].filter(Boolean),
+      tokensUsados: raw.usage?.total_tokens,
+    };
+  }
+
+  /**
+   * Evaluate short-answer questions with LLM when local grading is insufficient
+   */
+  @Public()
+  @Post("student/exercises/:exerciseId/questions/evaluate")
+  @ApiOperation({
+    summary: "Evaluar respuesta corta mediante IA",
+    description:
+      "Evalúa las preguntas de respuesta corta de la lección utilizando el contexto completo de la sección y criterios generados.",
+  })
+  async evaluateLessonQuestion(
+    @Param("exerciseId") exerciseId: string,
+    @Body() evaluationDto: LessonQuestionEvaluationDto,
+  ): Promise<LessonQuestionEvaluationResponseDto> {
+    if (evaluationDto.tipoPregunta !== LessonQuestionTypeEnum.RespuestaCorta) {
+      throw new BadRequestException(
+        "Solo se pueden evaluar con IA las preguntas de respuesta corta.",
+      );
+    }
+
+    const systemPrompt = `Eres un evaluador pedagógico preciso.
+- Revisa la pregunta, los criterios y la respuesta del estudiante.
+- Tu salida DEBE ser JSON con la forma: {"score":"correcto|parcialmente_correcto|incorrecto","feedback":"...","sugerencias":["..."]}.
+- El feedback debe citar evidencia textual (entre comillas) tomada de la respuesta del estudiante.
+- Las sugerencias deben ser accionables y referir a conceptos de la sección proporcionada.`;
+
+    const userContent = `PREGUNTA: ${evaluationDto.enunciado}
+CRITERIOS: ${JSON.stringify(evaluationDto.criteriosEvaluacion, null, 2)}
+SECCIÓN (${evaluationDto.seccionTitulo ?? "sin título"}):
+${evaluationDto.seccionContenido}
+PERFIL: ${JSON.stringify(evaluationDto.perfilComprension ?? {}, null, 2)}
+RESPUESTA DEL ESTUDIANTE:
+${evaluationDto.respuestaEstudiante}`;
+
+    const { content } = await this.openAIService.generateChatResponse({
+      systemPrompt,
+      messages: [{ role: "user", content: userContent }],
+      maxTokens: 500,
+      responseFormat: { type: "json_object" },
+    });
+
+    let parsed: any = {};
+    try {
+      parsed = content ? JSON.parse(content) : {};
+    } catch (error) {
+      this.logger.error(
+        "No se pudo parsear la respuesta de evaluación de IA",
+        error,
+      );
+    }
+
+    const normalizedScore = this.normalizeEvaluationScore(parsed.score);
+
+    return {
+      preguntaId: evaluationDto.preguntaId,
+      score: normalizedScore,
+      feedback:
+        parsed.feedback ||
+        "No pude evaluar automáticamente. Intenta reformular tu respuesta o contacta a tu instructor.",
+      sugerencias: parsed.sugerencias ?? [],
+    };
+  }
+
+  private extractAssistantAnswer(rawContent: string): {
+    answer: string;
+    references: string[];
+  } {
+    if (!rawContent) {
+      return { answer: "", references: [] };
+    }
+
+    const lines = rawContent.trim().split("\n");
+    let references: string[] = [];
+    while (lines.length > 0) {
+      const lastLine = lines[lines.length - 1].trim();
+      if (lastLine.length === 0) {
+        lines.pop();
+        continue;
+      }
+
+      if (/^referencias:/i.test(lastLine)) {
+        const refText = lastLine.replace(/^referencias:/i, "").trim();
+        references = refText
+          .split(/[,;]+/g)
+          .map((ref) => ref.trim())
+          .filter((ref) => ref.length > 0);
+        lines.pop();
+      }
+      break;
+    }
+
+    return {
+      answer: lines.join("\n").trim(),
+      references,
+    };
+  }
+
+  private normalizeEvaluationScore(
+    rawScore: string,
+  ): "correcto" | "parcialmente_correcto" | "incorrecto" {
+    const value = (rawScore || "").toLowerCase();
+    if (value.includes("parcial")) {
+      return "parcialmente_correcto";
+    }
+    if (value.includes("incorre") || value.includes("mal")) {
+      return "incorrecto";
+    }
+    return "correcto";
   }
 
   /**

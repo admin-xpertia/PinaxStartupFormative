@@ -88,7 +88,7 @@ export function SimulacionInteraccionPlayer({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = () => {
     if (!input.trim() || isThinking) return
 
     const userMessage: Message = {
@@ -98,48 +98,36 @@ export function SimulacionInteraccionPlayer({
       timestamp: new Date(),
     }
 
-    setMessages(prev => [...prev, userMessage])
+    const updatedMessages = [...messages, userMessage]
+    setMessages(updatedMessages)
     setInput("")
     setIsThinking(true)
 
-    // TODO: Call AI API with simulation context
-    // For now, simulate response
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: `ai-${Date.now()}`,
-        role: "assistant",
-        content: `[Respuesta de ${content.personaje_ia.nombre}] Entiendo tu punto. Como ${content.personaje_ia.rol}, mi perspectiva es...`,
-        timestamp: new Date(),
-      }
+    const aiResponse: Message = {
+      id: `ai-${Date.now()}`,
+      role: "assistant",
+      content: buildSimulationResponse(content, userMessage.content),
+      timestamp: new Date(),
+    }
 
-      // Randomly add feedback for demonstration
-      if (Math.random() > 0.5) {
-        aiResponse.feedback = {
-          tipo: Math.random() > 0.3 ? "positivo" : "mejora",
-          mensaje:
-            Math.random() > 0.3
-              ? "Excelente enfoque. Estás demostrando empatía y escucha activa."
-              : "Considera reformular tu mensaje para ser más específico.",
-        }
-      }
+    const feedback = buildFeedback(updatedMessages.length, content)
+    if (feedback) {
+      aiResponse.feedback = feedback
+    }
 
-      setMessages(prev => [...prev, aiResponse])
-      setIsThinking(false)
-
-      // Check if conversation objectives are met
-      checkSuccessCriteria(messages.length + 2)
-    }, 1500)
+    setMessages((prev) => [...prev, aiResponse])
+    setIsThinking(false)
+    checkSuccessCriteria(updatedMessages.length + 1)
   }
 
   const checkSuccessCriteria = (messageCount: number) => {
-    // Simple heuristic: mark criteria as met based on message count
-    // In production, this would use AI to analyze conversation
     const newMet = new Set(successCriteriaMet)
-    if (messageCount >= 4) newMet.add(0)
-    if (messageCount >= 8) newMet.add(1)
-    if (messageCount >= 12) newMet.add(2)
+    content.criterios_exito.forEach((_criterio, index) => {
+      if (messageCount >= (index + 1) * 4) {
+        newMet.add(index)
+      }
+    })
     setSuccessCriteriaMet(newMet)
-
     if (newMet.size >= content.criterios_exito.length) {
       setConversationComplete(true)
     }
@@ -438,4 +426,31 @@ export function SimulacionInteraccionPlayer({
       </div>
     </ExercisePlayer>
   )
+}
+
+function buildSimulationResponse(content: SimulationScenario, userMessage: string) {
+  const persona = content.personaje_ia
+  const foco = content.objetivo_estudiante
+  const section = content.criterios_exito[0] ?? "el objetivo del proof point"
+
+  return `[${persona.nombre} · ${persona.rol}] ${persona.personalidad || "Con un tono profesional"}, respondo a tu planteamiento "${userMessage}" considerando ${section}. ¿Cómo conectarías esto con ${foco}?`
+}
+
+function buildFeedback(messageCount: number, content: SimulationScenario) {
+  if (messageCount % 2 === 0) {
+    return {
+      tipo: "positivo" as const,
+      mensaje: "Buen paso. Estás avanzando hacia el objetivo del escenario.",
+    }
+  }
+
+  if (content.criterios_exito.length === 0) {
+    return undefined
+  }
+
+  const criterio = content.criterios_exito[(messageCount / 2) % content.criterios_exito.length] || ""
+  return {
+    tipo: "mejora" as const,
+    mensaje: `Profundiza en "${criterio}" para cerrar la brecha detectada.`,
+  }
 }

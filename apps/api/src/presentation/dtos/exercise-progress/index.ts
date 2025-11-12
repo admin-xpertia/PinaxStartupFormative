@@ -4,3 +4,5 @@ export * from "./complete-exercise.dto";
 export * from "./exercise-progress-response.dto";
 export * from "./student-progress-summary.dto";
 export * from "./proof-point-progress.dto";
+export * from "./lesson-assistant.dto";
+export * from "./lesson-question-evaluation.dto";

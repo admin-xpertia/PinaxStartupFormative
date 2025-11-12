@@ -8,8 +8,8 @@ import {
 import { CohorteInscripcion } from "../../../../domain/cohort/entities/CohorteInscripcion";
 import { RecordId } from "../../../../domain/shared/value-objects/RecordId";
 import { IProgramRepository } from "../../../../domain/program-design/repositories/IProgramRepository";
-import type { Enrollment } from "../../../../types/enrollment";
-import type { ProgramStructure } from "../../../../types/enrollment";
+import type { Enrollment } from "@xpertia/types/enrollment";
+import type { ProgramStructure } from "@xpertia/types/enrollment";
 import { SurrealDbService } from "../../../../core/database/surrealdb.service";
 import { CohortStructureService } from "../../services/CohortStructureService";
 

@@ -8,6 +8,7 @@ import {
   IProofPointRepository,
   IFaseRepository,
   IProgramRepository,
+  IFaseDocumentationRepository,
 } from "../../../../domain/program-design/repositories/IProgramRepository";
 import { ExerciseContent } from "../../../../domain/exercise-instance/entities/ExerciseContent";
 import { RecordId } from "../../../../domain/shared/value-objects/RecordId";
@@ -52,6 +53,8 @@ export class GenerateExerciseContentUseCase
     private readonly faseRepository: IFaseRepository,
     @Inject("IProgramRepository")
     private readonly programRepository: IProgramRepository,
+    @Inject("IFaseDocumentationRepository")
+    private readonly faseDocumentationRepository: IFaseDocumentationRepository,
     private readonly openAIService: OpenAIService,
   ) {}
 
@@ -136,6 +139,9 @@ export class GenerateExerciseContentUseCase
         );
       }
 
+      const faseDocumentation =
+        await this.faseDocumentationRepository.findByFase(fase.getId());
+
       // 7. Update instance status to "generating"
       instance.updateEstadoContenido(ContentStatus.generando());
       await this.instanceRepository.save(instance);
@@ -153,6 +159,7 @@ export class GenerateExerciseContentUseCase
             proofPoint,
             exerciseName: instance.getNombre(),
             customContext: instance.getConsideracionesContexto(),
+            faseDocumentation: faseDocumentation ?? undefined,
           },
         },
       );

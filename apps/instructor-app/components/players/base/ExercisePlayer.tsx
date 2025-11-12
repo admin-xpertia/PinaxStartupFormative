@@ -33,6 +33,8 @@ export interface ExercisePlayerProps {
   children: ReactNode
   showAIAssistant?: boolean
   aiContext?: string
+  contentMaxWidthClassName?: string
+  onAskAssistant?: (message: string, history: Array<{ role: "user" | "assistant"; content: string }>) => Promise<string>
 }
 
 export function ExercisePlayer({
@@ -51,12 +53,15 @@ export function ExercisePlayer({
   children,
   showAIAssistant = false,
   aiContext,
+  contentMaxWidthClassName,
+  onAskAssistant,
 }: ExercisePlayerProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [isCompleting, setIsCompleting] = useState(false)
   const [showAI, setShowAI] = useState(false)
   const [aiMessages, setAiMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([])
   const [aiInput, setAiInput] = useState("")
+  const shellClass = "mx-auto w-full max-w-[1600px] px-6"
 
   const progress = (currentStep / totalSteps) * 100
   const isLastStep = currentStep === totalSteps
@@ -85,25 +90,42 @@ export function ExercisePlayer({
   const handleAIMessage = async () => {
     if (!aiInput.trim()) return
 
-    const userMessage = aiInput
+    const userMessage = aiInput.trim()
     setAiInput("")
-    setAiMessages(prev => [...prev, { role: 'user', content: userMessage }])
+    const nextHistory = [...aiMessages, { role: "user" as const, content: userMessage }]
+    setAiMessages(nextHistory)
 
-    // TODO: Call AI API
-    // For now, simulate response
-    setTimeout(() => {
-      setAiMessages(prev => [...prev, {
-        role: 'assistant',
-        content: 'Estoy aquí para ayudarte. ¿Qué necesitas?'
-      }])
-    }, 1000)
+    if (!onAskAssistant) {
+      setAiMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "El asistente IA no está disponible en este momento.",
+        },
+      ])
+      return
+    }
+
+    try {
+      const response = await onAskAssistant(userMessage, nextHistory)
+      setAiMessages((prev) => [...prev, { role: "assistant", content: response }])
+    } catch (error) {
+      console.error("AI assistant error:", error)
+      setAiMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "No pude procesar tu pregunta. Intenta nuevamente.",
+        },
+      ])
+    }
   }
 
   return (
     <div className="flex h-screen flex-col bg-background">
       {/* Header */}
       <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between px-4">
+        <div className={`${shellClass} flex h-16 items-center justify-between`}>
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={onExit}>
               <X className="h-5 w-5" />
@@ -170,13 +192,20 @@ export function ExercisePlayer({
           "flex-1 overflow-y-auto",
           showAI && "lg:mr-96"
         )}>
-          <div className="container max-w-4xl py-8 px-4">
-            {exerciseDescription && (
-              <Card className="mb-6 p-4 bg-muted/50">
-                <p className="text-sm text-muted-foreground">{exerciseDescription}</p>
-              </Card>
-            )}
-            {children}
+          <div className={`${shellClass} py-8`}>
+            <div
+              className={cn(
+                "mx-auto w-full",
+                contentMaxWidthClassName ?? "max-w-4xl"
+              )}
+            >
+              {exerciseDescription && (
+                <Card className="mb-6 bg-muted/50 p-4">
+                  <p className="text-sm text-muted-foreground">{exerciseDescription}</p>
+                </Card>
+              )}
+              {children}
+            </div>
           </div>
         </div>
 
@@ -249,7 +278,7 @@ export function ExercisePlayer({
 
       {/* Footer */}
       <footer className="sticky bottom-0 z-10 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between px-4">
+        <div className={`${shellClass} flex h-16 items-center justify-between`}>
           <Button
             variant="outline"
             onClick={onPrevious}
