@@ -2,21 +2,21 @@
 -- SEED: Exercise Templates - 10 Tipos de Ejercicios Mediados por IA
 -- ============================================================================
 -- Este archivo contiene los 10 tipos de ejercicios con sus configuraciones
--- Ejecutar despues de aplicar el schema principal
+-- Ejecutar después de aplicar el schema principal
 -- ============================================================================
 
 -- 1. LECCIONES INTERACTIVAS
 CREATE exercise_template:leccion_interactiva SET
-  nombre = 'Leccion Interactiva',
+  nombre = 'Lección Interactiva',
   categoria = 'leccion_interactiva',
-  descripcion = 'Transmitir conocimiento conceptual de manera activa donde el aprendiz interactua con el contenido',
-  objetivo_pedagogico = 'Verificar comprension en tiempo real mediante interaccion activa con el contenido',
-  rol_ia = 'Facilitador de aprendizaje activo que evalua respuestas, proporciona feedback explicativo, genera casos de aplicacion, contextualiza terminos tecnicos, crea visualizaciones y adapta profundidad segun comprension',
+  descripcion = 'Transmitir conocimiento conceptual de manera activa donde el aprendiz interactúa con el contenido',
+  objetivo_pedagogico = 'Verificar comprensión en tiempo real mediante interacción activa con el contenido',
+  rol_ia = 'Facilitador de aprendizaje activo que evalúa respuestas, proporciona feedback explicativo, genera casos de aplicación, contextualiza términos técnicos, crea visualizaciones y adapta profundidad según comprensión',
   configuracion_schema = {
     type: 'object',
     properties: {
-      topico: { type: 'string', description: 'Tema o concepto a ensenar' },
-      profundidad: { type: 'string', enum: ['basico', 'intermedio', 'avanzado'] },
+      topico: { type: 'string', description: 'Tema o concepto a enseñar' },
+      profundidad: { type: 'string', enum: ['básico', 'intermedio', 'avanzado'] },
       incluir_glosario: { type: 'boolean', default: true },
       incluir_visualizaciones: { type: 'boolean', default: true },
       numero_casos_practica: { type: 'number', default: 3, minimum: 1, maximum: 10 }
@@ -28,7 +28,7 @@ CREATE exercise_template:leccion_interactiva SET
     incluir_visualizaciones: true,
     numero_casos_practica: 3
   },
-  prompt_template = 'Eres un disenador instruccional experto creando una leccion interactiva estilo tutor digital.\n\nCONTEXTO DEL PROGRAMA:\nPrograma: {{programa.nombre}}\nFase: {{fase.nombre}} - {{fase.descripcion}}\nProof Point: {{proof_point.pregunta_central}}\nDocumentacion clave: {{proof_point.documentacion_contexto}}\n\nDOCUMENTACION DE LA FASE:\n{{fase_documentation}}\n\nCONSIDERACIONES DEL INSTRUCTOR:\n{{consideraciones}}\n\nCONFIGURACION:\nDuracion objetivo: {{configuracion.duracion_minutos}} minutos\nProfundidad: {{configuracion.profundidad}}\nGlosario requerido: {{configuracion.incluir_glosario}}\nNumero de ejemplos: {{configuracion.numero_casos_practica}}\n\nREQUISITOS DE FORMATO:\n- Entrega todo el contenido en un solo documento Markdown.\n- Usa encabezados H2 para temas principales y H3 para subtemas.\n- Cada subseccion debe tener entre 3 y 5 parrafos conectados por transiciones claras.\n- Inserta cajas de enfasis usando la sintaxis :::callout ... ::: para conceptos criticos o advertencias.\n- Cada 3-4 parrafos inserta una pregunta de verificacion usando un bloque ```verification { ... } ``` con el JSON descrito en el output_schema (incluye seccionId, opciones, feedback, accionChatSugerida).\n- Identifica terminos tecnicos clave y asegurate de que aparezcan literalmente igual que en el glosario que entregaras.\n- Calcula metadatos (duracion, conceptos clave, dificultad) basados en el contenido generado.\n\nOUTPUT ESPERADO (JSON):\n{{output_schema}}\n\nIMPORTANTE: Devuelve unicamente JSON valido que siga la estructura anterior. El campo markdown debe contener todo el articulo con las preguntas embebidas en los bloques ```verification```.',
+  prompt_template = 'Eres un diseñador instruccional experto creando una lección interactiva estilo tutor digital.\n\nCONTEXTO DEL PROGRAMA:\nPrograma: {{programa.nombre}}\nFase: {{fase.nombre}} - {{fase.descripcion}}\nProof Point: {{proof_point.pregunta_central}}\nDocumentación clave: {{proof_point.documentacion_contexto}}\n\nDOCUMENTACIÓN DE LA FASE:\n{{fase_documentation}}\n\nCONSIDERACIONES DEL INSTRUCTOR:\n{{consideraciones}}\n\nCONFIGURACIÓN:\nDuración objetivo: {{configuracion.duracion_minutos}} minutos\nProfundidad: {{configuracion.profundidad}}\nGlosario requerido: {{configuracion.incluir_glosario}}\nNúmero de ejemplos: {{configuracion.numero_casos_practica}}\n\nREQUISITOS DE FORMATO:\n- Entrega todo el contenido en un solo documento Markdown.\n- Usa encabezados H2 para temas principales y H3 para subtemas.\n- Cada subsección debe tener entre 3 y 5 párrafos conectados por transiciones claras.\n- Inserta cajas de énfasis usando la sintaxis :::callout ... ::: para conceptos críticos o advertencias.\n- Cada 3-4 párrafos inserta una pregunta de verificación usando un bloque ```verification { ... } ``` con el JSON descrito en el output_schema (incluye seccionId, opciones, feedback, accionChatSugerida).\n- Identifica términos técnicos clave y asegúrate de que aparezcan literalmente igual que en el glosario que entregarás.\n- Calcula metadatos (duración, conceptos clave, dificultad) basados en el contenido generado.\n\nOUTPUT ESPERADO (JSON):\n{{output_schema}}\n\nIMPORTANTE: Devuelve únicamente JSON válido que siga la estructura anterior. El campo markdown debe contener todo el artículo con las preguntas embebidas en los bloques ```verification```.',
   output_schema = {
     markdown: 'string (documento markdown con H2/H3, :::callout y bloques ```verification```)',
     metadata: {
@@ -129,8 +129,8 @@ CREATE exercise_template:cuaderno_trabajo SET
   nombre = 'Cuaderno de Trabajo',
   categoria = 'cuaderno_trabajo',
   descripcion = 'Guiar al aprendiz a documentar, estructurar y reflexionar sobre su propio trabajo',
-  objetivo_pedagogico = 'Proporcionar andamiaje que gradualmente se retira mientras se evalua calidad y se ofrece feedback formativo',
-  rol_ia = 'Editor inteligente y evaluador de proceso que analiza patrones de pensamiento, proporciona feedback en tiempo real, valida completitud y coherencia, mapea conexiones causales, identifica gaps y evalua rigor del razonamiento',
+  objetivo_pedagogico = 'Proporcionar andamiaje que gradualmente se retira mientras se evalúa calidad y se ofrece feedback formativo',
+  rol_ia = 'Editor inteligente y evaluador de proceso que analiza patrones de pensamiento, proporciona feedback en tiempo real, valida completitud y coherencia, mapea conexiones causales, identifica gaps y evalúa rigor del razonamiento',
   configuracion_schema = {
     type: 'object',
     properties: {
@@ -140,9 +140,9 @@ CREATE exercise_template:cuaderno_trabajo SET
         items: {
           type: 'object',
           properties: {
-            tituloSeccion: { type: 'string', description: 'Titulo o Enfoque (Ej: "Analisis del Problema")' },
-            descripcionPrompt: { type: 'string', description: 'Descripcion para la IA (Que debe preguntar la IA?)' },
-            criteriosPrompt: { type: 'string', description: 'Rubrica para la IA (Que debe evaluar la IA?)' }
+            tituloSeccion: { type: 'string', description: 'Título o Enfoque (Ej: "Análisis del Problema")' },
+            descripcionPrompt: { type: 'string', description: 'Descripción para la IA (¿Qué debe preguntar la IA?)' },
+            criteriosPrompt: { type: 'string', description: 'Rúbrica para la IA (¿Qué debe evaluar la IA?)' }
           }
         }
       }
@@ -151,7 +151,7 @@ CREATE exercise_template:cuaderno_trabajo SET
   configuracion_default = {
     secciones: []
   },
-  prompt_template = 'Eres un disenador instruccional experto creando un cuaderno de trabajo interactivo.\n\nCONTEXTO DEL PROGRAMA:\nPrograma: {{programa.nombre}}\nFase: {{fase.nombre}} - {{fase.descripcion}}\nProof Point: {{proof_point.pregunta_central}}\nDocumentacion clave: {{proof_point.documentacion_contexto}}\n\nDOCUMENTACION DE LA FASE:\n{{fase_documentation}}\n\nCONSIDERACIONES DEL INSTRUCTOR:\n{{consideraciones}}\n\nSECCIONES DEFINIDAS POR EL INSTRUCTOR:\n{{#each configuracion.secciones}}\n\nSeccion {{@index}}: {{tituloSeccion}}\n- Descripcion/Objetivo: {{descripcionPrompt}}\n- Criterios de Evaluacion: {{criteriosPrompt}}\n{{/each}}\n\nCONFIGURACION:\nDuracion objetivo: {{configuracion.duracion_minutos}} minutos\n\nREQUISITOS DE FORMATO:\nPara cada seccion definida por el instructor, genera preguntas especificas (prompts) que guien al estudiante.\n\nEl contenido debe seguir esta estructura JSON:\n{\n  "titulo": string,\n  "objetivo": string,\n  "contexto": string,\n  "secciones": [{\n    "titulo": string,\n    "descripcion": string,\n    "instrucciones": string,\n    "criteriosDeEvaluacion": string[],\n    "prompts": [{\n      "tipo": "texto_corto"|"texto_largo"|"lista"|"tabla"|"reflexion",\n      "pregunta": string,\n      "guia": string,\n      "min_palabras"?: number,\n      "max_palabras"?: number,\n      "placeholder"?: string,\n      "criteriosDeEvaluacion": string[]\n    }]\n  }],\n  "criterios_evaluacion": string[],\n  "tiempo_sugerido": number\n}\n\nIMPORTANTE:\n- Cada seccion del cuaderno debe corresponder a una seccion definida por el instructor\n- Usa la "descripcionPrompt" para entender que preguntas generar\n- Usa los "criteriosPrompt" para definir los criteriosDeEvaluacion de cada pregunta\n- Los criteriosDeEvaluacion deben ser especificos, medibles y estar alineados con la rubrica definida por el instructor\n- Crea entre 2-5 prompts por seccion segun su complejidad\n- Devuelve unicamente JSON valido',
+  prompt_template = 'Eres un diseñador instruccional experto creando un cuaderno de trabajo interactivo.\n\nCONTEXTO DEL PROGRAMA:\nPrograma: {{programa.nombre}}\nFase: {{fase.nombre}} - {{fase.descripcion}}\nProof Point: {{proof_point.pregunta_central}}\nDocumentación clave: {{proof_point.documentacion_contexto}}\n\nDOCUMENTACIÓN DE LA FASE:\n{{fase_documentation}}\n\nCONSIDERACIONES DEL INSTRUCTOR:\n{{consideraciones}}\n\nSECCIONES DEFINIDAS POR EL INSTRUCTOR:\n{{#each configuracion.secciones}}\n\nSección {{@index}}: {{tituloSeccion}}\n- Descripción/Objetivo: {{descripcionPrompt}}\n- Criterios de Evaluación: {{criteriosPrompt}}\n{{/each}}\n\nCONFIGURACIÓN:\nDuración objetivo: {{configuracion.duracion_minutos}} minutos\n\nREQUISITOS DE FORMATO:\nPara cada sección definida por el instructor, genera preguntas específicas (prompts) que guíen al estudiante.\n\nEl contenido debe seguir esta estructura JSON:\n{\n  "titulo": string,\n  "objetivo": string,\n  "contexto": string,\n  "secciones": [{\n    "titulo": string,\n    "descripcion": string,\n    "instrucciones": string,\n    "criteriosDeEvaluacion": string[],\n    "prompts": [{\n      "tipo": "texto_corto"|"texto_largo"|"lista"|"tabla"|"reflexion",\n      "pregunta": string,\n      "guia": string,\n      "min_palabras"?: number,\n      "max_palabras"?: number,\n      "placeholder"?: string,\n      "criteriosDeEvaluacion": string[]\n    }]\n  }],\n  "criterios_evaluacion": string[],\n  "tiempo_sugerido": number\n}\n\nIMPORTANTE:\n- Cada sección del cuaderno debe corresponder a una sección definida por el instructor\n- Usa la "descripcionPrompt" para entender qué preguntas generar\n- Usa los "criteriosPrompt" para definir los criteriosDeEvaluacion de cada pregunta\n- Los criteriosDeEvaluacion deben ser específicos, medibles y estar alineados con la rúbrica definida por el instructor\n- Crea entre 2-5 prompts por sección según su complejidad\n- Devuelve únicamente JSON válido',
   output_schema = {
     titulo: 'string',
     objetivo: 'string',
@@ -171,20 +171,20 @@ CREATE exercise_template:cuaderno_trabajo SET
   created_at = time::now(),
   updated_at = time::now();
 
--- 3. SIMULACIONES DE INTERACCION
+-- 3. SIMULACIONES DE INTERACCIÓN
 CREATE exercise_template:simulacion_interaccion SET
-  nombre = 'Simulacion de Interaccion',
+  nombre = 'Simulación de Interacción',
   categoria = 'simulacion_interaccion',
-  descripcion = 'Practica de habilidades interpersonales en entorno seguro con agentes IA que simulan roles especificos',
-  objetivo_pedagogico = 'Permitir practica de habilidades situacionales con feedback sobre tecnica y comportamiento',
-  rol_ia = 'Agente que encarna personajes coherentes (clientes, usuarios, inversores), mantiene personalidad consistente, ajusta respuestas segun calidad de interaccion, simula senales paraverbales y genera analisis post-interaccion',
+  descripcion = 'Práctica de habilidades interpersonales en entorno seguro con agentes IA que simulan roles específicos',
+  objetivo_pedagogico = 'Permitir práctica de habilidades situacionales con feedback sobre técnica y comportamiento',
+  rol_ia = 'Agente que encarna personajes coherentes (clientes, usuarios, inversores), mantiene personalidad consistente, ajusta respuestas según calidad de interacción, simula señales paraverbales y genera análisis post-interacción',
   configuracion_schema = {
     type: 'object',
     properties: {
       rol_simulado: { type: 'string', description: 'Rol que simula la IA (cliente, usuario, inversor, etc.)' },
       nivel_dificultad: { type: 'string', enum: ['cooperativo', 'neutral', 'desafiante'] },
       personalidad: { type: 'object', description: 'Rasgos de personalidad del personaje' },
-      contexto_situacion: { type: 'string', description: 'Contexto de la interaccion' },
+      contexto_situacion: { type: 'string', description: 'Contexto de la interacción' },
       duracion_minutos: { type: 'number', default: 10, minimum: 5, maximum: 30 }
     }
   },
@@ -192,7 +192,7 @@ CREATE exercise_template:simulacion_interaccion SET
     nivel_dificultad: 'neutral',
     duracion_minutos: 10
   },
-  prompt_template = 'Crea una simulacion de interaccion con {{rol_simulado}} en contexto: {{contexto_situacion}}. Nivel de dificultad: {{nivel_dificultad}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "descripcion": string, "personaje_ia": { "nombre": string, "rol": string, "personalidad": string, "tono": string, "contexto": string }, "objetivo_estudiante": string, "situacion_inicial": string, "criterios_exito": string[], "nivel_dificultad": "principiante"|"intermedio"|"avanzado", "tiempo_sugerido": number }. El personaje debe tener personalidad coherente{{#if personalidad}} con rasgos: {{personalidad}}{{/if}}.',
+  prompt_template = 'Crea una simulación de interacción con {{rol_simulado}} en contexto: {{contexto_situacion}}. Nivel de dificultad: {{nivel_dificultad}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "descripcion": string, "personaje_ia": { "nombre": string, "rol": string, "personalidad": string, "tono": string, "contexto": string }, "objetivo_estudiante": string, "situacion_inicial": string, "criterios_exito": string[], "nivel_dificultad": "principiante"|"intermedio"|"avanzado", "tiempo_sugerido": number }. El personaje debe tener personalidad coherente{{#if personalidad}} con rasgos: {{personalidad}}{{/if}}.',
   output_schema = {
     titulo: 'string',
     descripcion: 'string',
@@ -218,25 +218,25 @@ CREATE exercise_template:simulacion_interaccion SET
 CREATE exercise_template:mentor_asesor_ia SET
   nombre = 'Mentor/Asesor IA',
   categoria = 'mentor_asesor_ia',
-  descripcion = 'Guidance especializado desde perspectiva de experto con cuestionamiento socratico',
-  objetivo_pedagogico = 'Desarrollar capacidad de razonamiento independiente mediante guia no directiva',
-  rol_ia = 'Experto con conocimiento profundo que hace preguntas socraticas, identifica trade-offs, evalua decisiones con criterios del campo, explica mejores practicas y contextualiza metodologias',
+  descripcion = 'Guidance especializado desde perspectiva de experto con cuestionamiento socrático',
+  objetivo_pedagogico = 'Desarrollar capacidad de razonamiento independiente mediante guía no directiva',
+  rol_ia = 'Experto con conocimiento profundo que hace preguntas socráticas, identifica trade-offs, evalúa decisiones con criterios del campo, explica mejores prácticas y contextualiza metodologías',
   configuracion_schema = {
     type: 'object',
     properties: {
-      dominio_experto: { type: 'string', description: 'Area de expertise del mentor' },
-      estilo_mentoria: { type: 'string', enum: ['socratico', 'directivo', 'colaborativo'] },
+      dominio_experto: { type: 'string', description: 'Área de expertise del mentor' },
+      estilo_mentoria: { type: 'string', enum: ['socrático', 'directivo', 'colaborativo'] },
       es_panel: { type: 'boolean', default: false, description: 'Panel multidisciplinario' },
       expertos_panel: { type: 'array', items: { type: 'string' }, description: 'Si es panel, lista de expertos' },
       profundidad_tecnica: { type: 'string', enum: ['conceptual', 'aplicada', 'experta'] }
     }
   },
   configuracion_default = {
-    estilo_mentoria: 'socratico',
+    estilo_mentoria: 'socrático',
     es_panel: false,
     profundidad_tecnica: 'aplicada'
   },
-  prompt_template = 'Crea una sesion de mentoria con {{dominio_experto}} usando estilo {{estilo_mentoria}}{{#if es_panel}} como panel con: {{expertos_panel}}{{/if}}. Profundidad: {{profundidad_tecnica}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "objetivo_general": string, "contexto_mentor": { "nombre": string, "especialidad": string, "estilo": string, "enfoque": string }, "pasos": [{ "numero": number, "titulo": string, "descripcion": string, "preguntas_guia": string[], "recursos_recomendados": string[] }], "reflexion_final": string, "metricas_seguimiento": string[] }. Usa preguntas socraticas, identifica trade-offs, evalua con criterios del campo.',
+  prompt_template = 'Crea una sesión de mentoría con {{dominio_experto}} usando estilo {{estilo_mentoria}}{{#if es_panel}} como panel con: {{expertos_panel}}{{/if}}. Profundidad: {{profundidad_tecnica}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "objetivo_general": string, "contexto_mentor": { "nombre": string, "especialidad": string, "estilo": string, "enfoque": string }, "pasos": [{ "numero": number, "titulo": string, "descripcion": string, "preguntas_guia": string[], "recursos_recomendados": string[] }], "reflexion_final": string, "metricas_seguimiento": string[] }. Usa preguntas socráticas, identifica trade-offs, evalúa con criterios del campo.',
   output_schema = {
     titulo: 'string',
     objetivo_general: 'string',
@@ -256,18 +256,18 @@ CREATE exercise_template:mentor_asesor_ia SET
   created_at = time::now(),
   updated_at = time::now();
 
--- 5. HERRAMIENTAS DE ANALISIS Y EVALUACION
+-- 5. HERRAMIENTAS DE ANÁLISIS Y EVALUACIÓN
 CREATE exercise_template:herramienta_analisis SET
-  nombre = 'Herramienta de Analisis',
+  nombre = 'Herramienta de Análisis',
   categoria = 'herramienta_analisis',
-  descripcion = 'Procesar trabajo del aprendiz y generar analisis estructurado con diagnostico y recomendaciones',
-  objetivo_pedagogico = 'Proporcionar evaluacion rigurosa contra multiples dimensiones con feedback accionable',
-  rol_ia = 'Analista que identifica patrones no conscientes, evalua contra multiples dimensiones con evidencia, detecta gaps criticos, valida coherencia, mapea claims a evidencia, evalua sofisticacion de razonamiento',
+  descripcion = 'Procesar trabajo del aprendiz y generar análisis estructurado con diagnóstico y recomendaciones',
+  objetivo_pedagogico = 'Proporcionar evaluación rigurosa contra múltiples dimensiones con feedback accionable',
+  rol_ia = 'Analista que identifica patrones no conscientes, evalúa contra múltiples dimensiones con evidencia, detecta gaps críticos, valida coherencia, mapea claims a evidencia, evalúa sofisticación de razonamiento',
   configuracion_schema = {
     type: 'object',
     properties: {
-      dimensiones_evaluar: { type: 'array', items: { type: 'string' }, description: 'Dimensiones de evaluacion' },
-      criterios_calidad: { type: 'object', description: 'Criterios especificos de calidad' },
+      dimensiones_evaluar: { type: 'array', items: { type: 'string' }, description: 'Dimensiones de evaluación' },
+      criterios_calidad: { type: 'object', description: 'Criterios específicos de calidad' },
       generar_metricas: { type: 'boolean', default: true },
       identificar_patrones: { type: 'boolean', default: true },
       comparar_con_ejemplares: { type: 'boolean', default: false }
@@ -278,7 +278,7 @@ CREATE exercise_template:herramienta_analisis SET
     identificar_patrones: true,
     comparar_con_ejemplares: false
   },
-  prompt_template = 'Crea una herramienta de analisis para evaluar: {{dimensiones_evaluar}}. Criterios: {{criterios_calidad}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "descripcion": string, "tipoAnalisis": "interview_synthesis"|"data_analysis"|"competitor_analysis", "instrucciones": string[], "outputFormat": "themes"|"matrix"|"metrics" }. Proporciona instrucciones claras para que el estudiante realice el analisis, identifique patrones{{#if generar_metricas}}, genere metricas{{/if}}{{#if comparar_con_ejemplares}}, y compare con ejemplares{{/if}}.',
+  prompt_template = 'Crea una herramienta de análisis para evaluar: {{dimensiones_evaluar}}. Criterios: {{criterios_calidad}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "descripcion": string, "tipoAnalisis": "interview_synthesis"|"data_analysis"|"competitor_analysis", "instrucciones": string[], "outputFormat": "themes"|"matrix"|"metrics" }. Proporciona instrucciones claras para que el estudiante realice el análisis, identifique patrones{{#if generar_metricas}}, genere métricas{{/if}}{{#if comparar_con_ejemplares}}, y compare con ejemplares{{/if}}.',
   output_schema = {
     titulo: 'string',
     descripcion: 'string',
@@ -297,13 +297,13 @@ CREATE exercise_template:herramienta_analisis SET
   created_at = time::now(),
   updated_at = time::now();
 
--- 6. HERRAMIENTAS DE CREACION Y GENERACION
+-- 6. HERRAMIENTAS DE CREACIÓN Y GENERACIÓN
 CREATE exercise_template:herramienta_creacion SET
-  nombre = 'Herramienta de Creacion',
+  nombre = 'Herramienta de Creación',
   categoria = 'herramienta_creacion',
-  descripcion = 'Asistir en crear outputs proporcionando andamiaje generativo que acelera produccion',
-  objetivo_pedagogico = 'Acelerar ciclos de iteracion sin reemplazar pensamiento critico del aprendiz',
-  rol_ia = 'Asistente creativo que traduce informacion en visualizaciones, genera borradores imperfectos que requieren refinamiento, crea variaciones para experimentacion, produce escenarios coherentes y mantiene voz del aprendiz',
+  descripcion = 'Asistir en crear outputs proporcionando andamiaje generativo que acelera producción',
+  objetivo_pedagogico = 'Acelerar ciclos de iteración sin reemplazar pensamiento crítico del aprendiz',
+  rol_ia = 'Asistente creativo que traduce información en visualizaciones, genera borradores imperfectos que requieren refinamiento, crea variaciones para experimentación, produce escenarios coherentes y mantiene voz del aprendiz',
   configuracion_schema = {
     type: 'object',
     properties: {
@@ -321,7 +321,7 @@ CREATE exercise_template:herramienta_creacion SET
     incluir_explicacion_logica: true,
     mantener_voz_aprendiz: true
   },
-  prompt_template = 'Crea una herramienta de creacion para generar {{tipo_output}} en nivel {{nivel_completitud}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "tipoCreacion": "business_model"|"value_proposition"|"pitch_deck"|"otro", "promptsIniciales": string[], "plantillas": [{ "nombre": string, "descripcion": string, "secciones": string[], "ejemplos": string[] }], "criterios_calidad": string[], "iteraciones_sugeridas": number }. Crea {{numero_variaciones}} variaciones diferentes{{#if incluir_explicacion_logica}} con explicacion de logica{{/if}}. Los borradores deben forzar refinamiento del estudiante.',
+  prompt_template = 'Crea una herramienta de creación para generar {{tipo_output}} en nivel {{nivel_completitud}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "tipoCreacion": "business_model"|"value_proposition"|"pitch_deck"|"otro", "promptsIniciales": string[], "plantillas": [{ "nombre": string, "descripcion": string, "secciones": string[], "ejemplos": string[] }], "criterios_calidad": string[], "iteraciones_sugeridas": number }. Crea {{numero_variaciones}} variaciones diferentes{{#if incluir_explicacion_logica}} con explicación de lógica{{/if}}. Los borradores deben forzar refinamiento del estudiante.',
   output_schema = {
     titulo: 'string',
     tipoCreacion: 'string',
@@ -346,16 +346,16 @@ CREATE exercise_template:sistema_tracking SET
   nombre = 'Sistema de Tracking',
   categoria = 'sistema_tracking',
   descripcion = 'Mantener visibilidad continua del progreso e identificar tendencias longitudinales',
-  objetivo_pedagogico = 'Alertar proactivamente cuando atencion o intervencion es necesaria',
-  rol_ia = 'Sistema de vigilancia inteligente que visualiza estado vs objetivos, solicita updates, detecta patrones problematicos, contextualiza metricas, monitorea adherencia a proceso y dispara intervenciones',
+  objetivo_pedagogico = 'Alertar proactivamente cuando atención o intervención es necesaria',
+  rol_ia = 'Sistema de vigilancia inteligente que visualiza estado vs objetivos, solicita updates, detecta patrones problemáticos, contextualiza métricas, monitorea adherencia a proceso y dispara intervenciones',
   configuracion_schema = {
     type: 'object',
     properties: {
-      metricas_seguimiento: { type: 'array', items: { type: 'string' }, description: 'Que metricas trackear' },
+      metricas_seguimiento: { type: 'array', items: { type: 'string' }, description: 'Qué métricas trackear' },
       frecuencia_updates: { type: 'string', enum: ['diaria', 'semanal', 'por_hito'], default: 'semanal' },
       detectar_estancamiento: { type: 'boolean', default: true },
       detectar_frustration: { type: 'boolean', default: true },
-      benchmarks: { type: 'object', description: 'Benchmarks de comparacion' },
+      benchmarks: { type: 'object', description: 'Benchmarks de comparación' },
       disparar_intervenciones: { type: 'boolean', default: true }
     }
   },
@@ -365,7 +365,7 @@ CREATE exercise_template:sistema_tracking SET
     detectar_frustration: true,
     disparar_intervenciones: true
   },
-  prompt_template = 'Crea un sistema de tracking para monitorear: {{metricas_seguimiento}}. Frecuencia: {{frecuencia_updates}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "descripcion": string, "metricas": [{ "nombre": string, "descripcion": string, "tipo": "numerico"|"booleano"|"porcentaje", "umbral_critico": number, "meta": number }], "dashboard": { "graficos": string[], "kpis_principales": string[] }, "alertas": [{ "condicion": string, "mensaje": string, "nivel": "info"|"warning"|"critico" }], "recomendaciones_mejora": string[] }{{#if detectar_estancamiento}}. Detecta estancamiento{{/if}}{{#if disparar_intervenciones}}. Dispara intervenciones automaticas{{/if}}.',
+  prompt_template = 'Crea un sistema de tracking para monitorear: {{metricas_seguimiento}}. Frecuencia: {{frecuencia_updates}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "descripcion": string, "metricas": [{ "nombre": string, "descripcion": string, "tipo": "numerico"|"booleano"|"porcentaje", "umbral_critico": number, "meta": number }], "dashboard": { "graficos": string[], "kpis_principales": string[] }, "alertas": [{ "condicion": string, "mensaje": string, "nivel": "info"|"warning"|"critico" }], "recomendaciones_mejora": string[] }{{#if detectar_estancamiento}}. Detecta estancamiento{{/if}}{{#if disparar_intervenciones}}. Dispara intervenciones automáticas{{/if}}.',
   output_schema = {
     titulo: 'string',
     descripcion: 'string',
@@ -385,13 +385,13 @@ CREATE exercise_template:sistema_tracking SET
   created_at = time::now(),
   updated_at = time::now();
 
--- 8. HERRAMIENTAS DE REVISION Y FEEDBACK
+-- 8. HERRAMIENTAS DE REVISIÓN Y FEEDBACK
 CREATE exercise_template:herramienta_revision SET
-  nombre = 'Herramienta de Revision',
+  nombre = 'Herramienta de Revisión',
   categoria = 'herramienta_revision',
-  descripcion = 'Proporcionar retroalimentacion formativa especifica, accionable y balanceada',
+  descripcion = 'Proporcionar retroalimentación formativa específica, accionable y balanceada',
   objetivo_pedagogico = 'Dar feedback adaptado al nivel de dominio que sea honesto pero motivador',
-  rol_ia = 'Revisor experto que proporciona feedback no-intrusivo priorizando senalamientos, genera analisis comprehensivo comenzando con fortalezas, compara con ejemplares, adapta tipo/profundidad segun estado liminal',
+  rol_ia = 'Revisor experto que proporciona feedback no-intrusivo priorizando señalamientos, genera análisis comprehensivo comenzando con fortalezas, compara con ejemplares, adapta tipo/profundidad según estado liminal',
   configuracion_schema = {
     type: 'object',
     properties: {
@@ -411,7 +411,7 @@ CREATE exercise_template:herramienta_revision SET
     adaptar_a_nivel_dominio: true,
     incluir_recursos_mejora: true
   },
-  prompt_template = 'Crea una herramienta de revision {{momento_feedback}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "descripcion": string, "criterios_revision": [{ "categoria": string, "aspectos": string[], "peso": number }], "rubrica": [{ "criterio": string, "excelente": string, "bueno": string, "necesita_mejora": string }], "preguntas_autoevaluacion": string[], "ejemplos_comparativos": [{ "nivel": "excelente"|"bueno"|"necesita_mejora", "descripcion": string, "ejemplo": string }], "recursos_mejora": [{ "titulo": string, "tipo": "articulo"|"video"|"plantilla", "url": string }] }{{#if priorizar_senalamientos}}. Prioriza 3-5 senalamientos clave{{/if}}{{#if comenzar_con_fortalezas}}. Comienza con fortalezas{{/if}}.',
+  prompt_template = 'Crea una herramienta de revisión {{momento_feedback}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "descripcion": string, "criterios_revision": [{ "categoria": string, "aspectos": string[], "peso": number }], "rubrica": [{ "criterio": string, "excelente": string, "bueno": string, "necesita_mejora": string }], "preguntas_autoevaluacion": string[], "ejemplos_comparativos": [{ "nivel": "excelente"|"bueno"|"necesita_mejora", "descripcion": string, "ejemplo": string }], "recursos_mejora": [{ "titulo": string, "tipo": "articulo"|"video"|"plantilla", "url": string }] }{{#if priorizar_senalamientos}}. Prioriza 3-5 señalamientos clave{{/if}}{{#if comenzar_con_fortalezas}}. Comienza con fortalezas{{/if}}.',
   output_schema = {
     titulo: 'string',
     descripcion: 'string',
@@ -437,8 +437,8 @@ CREATE exercise_template:simulador_entorno SET
   nombre = 'Simulador de Entorno',
   categoria = 'simulador_entorno',
   descripcion = 'Crear entornos virtuales donde experimentar sin consecuencias del mundo real',
-  objetivo_pedagogico = 'Acelerar ciclos de aprendizaje mediante experimentacion segura y multiples intentos',
-  rol_ia = 'Constructor de mundos simulados que responden realisticamente, generan datos sinteticos coherentes, proporcionan entornos de experimentacion controlados, simulan resultados con variabilidad realista y explican relaciones causales',
+  objetivo_pedagogico = 'Acelerar ciclos de aprendizaje mediante experimentación segura y múltiples intentos',
+  rol_ia = 'Constructor de mundos simulados que responden realísticamente, generan datos sintéticos coherentes, proporcionan entornos de experimentación controlados, simulan resultados con variabilidad realista y explican relaciones causales',
   configuracion_schema = {
     type: 'object',
     properties: {
@@ -480,17 +480,17 @@ CREATE exercise_template:simulador_entorno SET
   created_at = time::now(),
   updated_at = time::now();
 
--- 10. SISTEMAS DE PROGRESION Y DESBLOQUEO
+-- 10. SISTEMAS DE PROGRESIÓN Y DESBLOQUEO
 CREATE exercise_template:sistema_progresion SET
-  nombre = 'Sistema de Progresion',
+  nombre = 'Sistema de Progresión',
   categoria = 'sistema_progresion',
   descripcion = 'Gestionar flujo del aprendiz asegurando dominio suficiente antes de avanzar',
-  objetivo_pedagogico = 'Personalizar ruta segun fortalezas/debilidades manteniendo motivacion mediante desbloqueos apropiados',
-  rol_ia = 'Guardian pedagogico que evalua objetivamente contra criterios de suficiencia, diagnostica estado de dominio, recomienda rutas adaptativas, verifica pre-requisitos, permite reintentos con diagnostico claro y documenta evidencia de dominio',
+  objetivo_pedagogico = 'Personalizar ruta según fortalezas/debilidades manteniendo motivación mediante desbloqueos apropiados',
+  rol_ia = 'Guardián pedagógico que evalúa objetivamente contra criterios de suficiencia, diagnostica estado de dominio, recomienda rutas adaptativas, verifica pre-requisitos, permite reintentos con diagnóstico claro y documenta evidencia de dominio',
   configuracion_schema = {
     type: 'object',
     properties: {
-      criterios_suficiencia: { type: 'object', description: 'Criterios para permitir progresion' },
+      criterios_suficiencia: { type: 'object', description: 'Criterios para permitir progresión' },
       umbrales_dominio: { type: 'object', description: 'Umbrales de dominio por concepto' },
       permitir_rutas_alternativas: { type: 'boolean', default: true },
       verificar_prerequisitos: { type: 'boolean', default: true },
@@ -506,7 +506,7 @@ CREATE exercise_template:sistema_progresion SET
     max_reintentos: 3,
     diagnostico_entre_intentos: true
   },
-  prompt_template = 'Crea un sistema de progresion contra criterios: {{criterios_suficiencia}} con umbrales: {{umbrales_dominio}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "descripcion": string, "niveles": [{ "numero": number, "nombre": string, "descripcion": string, "requisitos": string[], "objetivos_aprendizaje": string[], "contenido_desbloqueado": string[] }], "arbol_dependencias": [{ "nivel": number, "prerequisitos": number[], "opcional": boolean }], "criterios_evaluacion": [{ "nivel": number, "criterio": string, "umbral": number, "metodo_evaluacion": string }], "rutas_alternativas": [{ "nombre": string, "niveles_incluidos": number[], "enfoque": string }] }{{#if verificar_prerequisitos}}. Verifica pre-requisitos{{/if}}{{#if permitir_rutas_alternativas}}. Incluye rutas adaptativas{{/if}}.',
+  prompt_template = 'Crea un sistema de progresión contra criterios: {{criterios_suficiencia}} con umbrales: {{umbrales_dominio}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "descripcion": string, "niveles": [{ "numero": number, "nombre": string, "descripcion": string, "requisitos": string[], "objetivos_aprendizaje": string[], "contenido_desbloqueado": string[] }], "arbol_dependencias": [{ "nivel": number, "prerequisitos": number[], "opcional": boolean }], "criterios_evaluacion": [{ "nivel": number, "criterio": string, "umbral": number, "metodo_evaluacion": string }], "rutas_alternativas": [{ "nombre": string, "niveles_incluidos": number[], "enfoque": string }] }{{#if verificar_prerequisitos}}. Verifica pre-requisitos{{/if}}{{#if permitir_rutas_alternativas}}. Incluye rutas adaptativas{{/if}}.',
   output_schema = {
     titulo: 'string',
     descripcion: 'string',
@@ -527,7 +527,7 @@ CREATE exercise_template:sistema_progresion SET
   updated_at = time::now();
 
 -- ============================================================================
--- VERIFICACION
+-- VERIFICACIÓN
 -- ============================================================================
 
 -- Verificar que se crearon los 10 templates

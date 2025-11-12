@@ -21,6 +21,7 @@ interface ExerciseConfigFormProps {
 }
 
 export function ExerciseConfigForm({ template, proofPointId, onClose, onSuccess }: ExerciseConfigFormProps) {
+  const isCuadernoTemplate = template.categoria === "cuaderno_trabajo"
   const [formData, setFormData] = useState<AddExerciseToProofPointRequest>({
     templateId: template.id,
     nombre: "",
@@ -39,7 +40,7 @@ export function ExerciseConfigForm({ template, proofPointId, onClose, onSuccess 
       return
     }
 
-    if (!formData.consideracionesContexto.trim()) {
+    if (!isCuadernoTemplate && !formData.consideracionesContexto.trim()) {
       toast.error("Las consideraciones de contexto son requeridas")
       return
     }
@@ -298,21 +299,36 @@ export function ExerciseConfigForm({ template, proofPointId, onClose, onSuccess 
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="consideraciones">
-              Consideraciones de Contexto <span className="text-destructive">*</span>
-            </Label>
-            <Textarea
-              id="consideraciones"
-              placeholder="Información importante para el instructor: objetivos específicos, puntos de atención, contexto pedagógico..."
-              rows={4}
-              value={formData.consideracionesContexto}
-              onChange={e => setFormData({ ...formData, consideracionesContexto: e.target.value })}
-            />
-            <p className="text-xs text-muted-foreground">
-              Esta información ayuda al sistema de IA a generar contenido más relevante
-            </p>
-          </div>
+          {!isCuadernoTemplate ? (
+            <div className="space-y-2">
+              <Label htmlFor="consideraciones">
+                Consideraciones de Contexto <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="consideraciones"
+                placeholder="Información importante para el instructor: objetivos específicos, puntos de atención, contexto pedagógico..."
+                rows={4}
+                value={formData.consideracionesContexto}
+                onChange={e => setFormData({ ...formData, consideracionesContexto: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Esta información ayuda al sistema de IA a generar contenido más relevante
+              </p>
+            </div>
+          ) : (
+            <Card className="border-dashed bg-muted/50">
+              <CardContent className="p-4 space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Info className="h-4 w-4" />
+                  Configuración por secciones
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Este cuaderno utiliza secciones personalizadas. Define el propósito y la rúbrica de cada
+                  sección desde la pestaña <strong>Configuración</strong> para guiar a la IA.
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -354,7 +370,9 @@ export function ExerciseConfigForm({ template, proofPointId, onClose, onSuccess 
             <CardHeader>
               <CardTitle className="text-sm">Configuración Específica del Template</CardTitle>
               <CardDescription>
-                Personaliza los parámetros de este tipo de ejercicio
+                {isCuadernoTemplate
+                  ? "Construye las secciones del cuaderno definiendo propósito y rúbrica para cada una."
+                  : "Personaliza los parámetros de este tipo de ejercicio"}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">{renderConfigFields()}</CardContent>

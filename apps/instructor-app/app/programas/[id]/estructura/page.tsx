@@ -33,6 +33,7 @@ export default function ProgramEstructuraPage({ params }: { params: Promise<{ id
   const { sidebarCollapsed } = useUIStore()
   const [selectedFaseId, setSelectedFaseId] = useState<string | null>(null)
   const [fasesRefreshKey, setFasesRefreshKey] = useState(0)
+  const [publishing, setPublishing] = useState(false)
 
   // Load program
   const {
@@ -40,7 +41,7 @@ export default function ProgramEstructuraPage({ params }: { params: Promise<{ id
     error: programError,
     isLoading: programLoading,
     mutate: mutateProgram,
-  } = useSWR<Program>(id ? `program-${id}` : null, () => (id ? programsApi.getById(id) : null))
+  } = useSWR<Program>(id ? `program-${id}` : null, id ? () => programsApi.getById(id) : null)
 
   // Load fases
   const {
@@ -50,7 +51,7 @@ export default function ProgramEstructuraPage({ params }: { params: Promise<{ id
     mutate: mutateFases,
   } = useSWR<FaseResponse[]>(
     id ? `fases-${id}-${fasesRefreshKey}` : null,
-    () => (id ? fasesApi.getByProgram(id) : null)
+    id ? () => fasesApi.getByProgram(id) : null
   )
 
   const handleFaseCreated = () => {
@@ -96,7 +97,6 @@ export default function ProgramEstructuraPage({ params }: { params: Promise<{ id
   }
 
   const selectedFase = fases?.find(f => f.id === selectedFaseId)
-  const [publishing, setPublishing] = useState(false)
 
   const handlePublish = async () => {
     try {

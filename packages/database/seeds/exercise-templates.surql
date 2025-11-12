@@ -130,18 +130,24 @@ CREATE exercise_template:cuaderno_trabajo CONTENT {
     icono: "📝",
     color: "#8b5cf6",
     configuracion_schema: {
-        duracion_minutos: { type: "number", label: "Duración estimada (minutos)", default: 45, min: 20, max: 120 },
-        numero_secciones: { type: "number", label: "Número de secciones", default: 4, min: 2, max: 8 },
-        tipo_preguntas: { type: "multiselect", label: "Tipos de preguntas", options: ["reflexion", "aplicacion", "analisis", "sintesis"], default: ["reflexion", "aplicacion"] },
-        nivel_andamiaje: { type: "select", label: "Nivel de andamiaje", options: ["alto", "medio", "bajo"], default: "medio" },
-        feedback_tiempo_real: { type: "boolean", label: "Activar feedback en tiempo real", default: true }
+        type: "object",
+        properties: {
+            secciones: {
+                type: "array",
+                description: "Define las secciones estructuradas del cuaderno.",
+                items: {
+                    type: "object",
+                    properties: {
+                        tituloSeccion: { type: "string", description: "Título o Enfoque (Ej: 'Análisis del Problema')" },
+                        descripcionPrompt: { type: "string", description: "Descripción para la IA (¿Qué debe preguntar la IA?)" },
+                        criteriosPrompt: { type: "string", description: "Rúbrica para la IA (¿Qué debe evaluar la IA?)" }
+                    }
+                }
+            }
+        }
     },
     configuracion_default: {
-        duracion_minutos: 45,
-        numero_secciones: 4,
-        tipo_preguntas: ["reflexion", "aplicacion"],
-        nivel_andamiaje: "medio",
-        feedback_tiempo_real: true
+        secciones: []
     },
     prompt_template: "Eres un diseñador instruccional experto creando un cuaderno de trabajo reflexivo.\n\nCONTEXTO: {{contexto_completo}}\n\nTAREA:\nGenera un cuaderno de trabajo con {{configuracion.numero_secciones}} secciones que guíe al estudiante a documentar y reflexionar sobre su trabajo relacionado con: {{proof_point.pregunta_central}}\n\nEl cuaderno debe:\n1. Proporcionar instrucciones claras y contextualizadas\n2. Incluir preguntas guía del tipo: {{configuracion.tipo_preguntas}}\n3. Mostrar ejemplos de respuestas fuertes\n4. Definir criterios de evaluación claros\n5. Nivel de andamiaje: {{configuracion.nivel_andamiaje}}\n\nOUTPUT (JSON): {{output_schema}}",
     output_schema: {
