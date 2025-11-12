@@ -188,20 +188,22 @@ export function LeccionInteractivaPlayer({
   }, [])
 
   const layout = (
-    <div className="flex w-full flex-col gap-8 xl:flex-row xl:items-start">
-      <div className="flex-1">
-        <InteractiveLessonRenderer
-          content={normalizedContent}
-          onSectionsMetadata={setSections}
-          onSectionChange={setCurrentSection}
-          onQuestionResult={handleQuestionResult}
-          onRequestDeepDive={(_, prompt) => prompt && handleDeepDive(prompt)}
-          evaluateShortAnswer={handleEvaluateShortAnswer}
-        />
+    <div className="-mx-6 -my-8 flex h-[calc(100vh-4rem-4px-4rem)] flex-col gap-8 px-6 py-8 xl:flex-row">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="pr-4">
+          <InteractiveLessonRenderer
+            content={normalizedContent}
+            onSectionsMetadata={setSections}
+            onSectionChange={setCurrentSection}
+            onQuestionResult={handleQuestionResult}
+            onRequestDeepDive={(_, prompt) => prompt && handleDeepDive(prompt)}
+            evaluateShortAnswer={handleEvaluateShortAnswer}
+          />
+        </div>
       </div>
 
-      <Card className="lg:w-[360px]">
-        <CardHeader className="flex flex-row items-start justify-between space-y-0">
+      <Card className="w-full lg:w-[360px] h-full flex flex-col flex-shrink-0">
+        <CardHeader className="flex flex-row items-start justify-between space-y-0 flex-shrink-0">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Tutor IA</p>
             <CardTitle className="mt-1 flex items-center gap-2 text-lg">
@@ -223,8 +225,8 @@ export function LeccionInteractivaPlayer({
         </CardHeader>
         {assistantOpen && (
           <>
-            <CardContent className="space-y-4">
-              <div className="rounded-2xl bg-muted/40 p-3 text-xs text-muted-foreground">
+            <CardContent className="space-y-4 flex-1 flex flex-col min-h-0">
+              <div className="rounded-2xl bg-muted/40 p-3 text-xs text-muted-foreground flex-shrink-0">
                 <p className="font-semibold text-foreground">Perfil de Comprensión</p>
                 <p>
                   ✓ {profile.correctas} respondidas correctamente • ∆ {profile.parciales} parciales • !{" "}
@@ -232,7 +234,7 @@ export function LeccionInteractivaPlayer({
                 </p>
               </div>
 
-              <ScrollArea className="h-64 rounded-2xl border border-muted">
+              <ScrollArea className="flex-1 rounded-2xl border border-muted min-h-0">
                 <div className="space-y-3 p-3">
                   {aiMessages.length === 0 && (
                     <div className="rounded-xl border border-dashed border-muted-foreground/30 p-4 text-center text-xs text-muted-foreground">
@@ -264,7 +266,7 @@ export function LeccionInteractivaPlayer({
                 </div>
               </ScrollArea>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 flex-shrink-0">
                 {defaultSuggestions.map((suggestion) => (
                   <Button
                     key={suggestion}
@@ -278,7 +280,7 @@ export function LeccionInteractivaPlayer({
                 ))}
               </div>
 
-              <div className="space-y-2 rounded-2xl border border-muted bg-white/80 p-3 shadow-inner">
+              <div className="space-y-2 rounded-2xl border border-muted bg-white/80 p-3 shadow-inner flex-shrink-0">
                 <Textarea
                   value={aiInput}
                   placeholder="Formula tu pregunta..."

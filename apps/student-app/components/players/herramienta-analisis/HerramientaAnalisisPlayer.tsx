@@ -311,7 +311,7 @@ function normalizeStringArray(value: unknown): string[] {
 function normalizeThemes(value: unknown): ThemeResult[] {
   if (!Array.isArray(value)) return []
   return value
-    .map((item) => {
+    .map((item): ThemeResult | null => {
       if (typeof item === "string") {
         return { nombre: item }
       }
@@ -330,12 +330,15 @@ function normalizeThemes(value: unknown): ThemeResult[] {
       }
       return null
     })
-    .filter((item): item is ThemeResult => Boolean(item))
+    .filter((item): item is ThemeResult => item !== null)
 }
 
-function formatMatrixValue(value: unknown) {
+function formatMatrixValue(value: unknown): string {
   if (typeof value === "boolean") {
     return value ? "✓" : "✕"
   }
-  return value ?? "—"
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value)
+  }
+  return value ? String(value) : "—"
 }

@@ -109,12 +109,15 @@ export function HerramientaCreacionPlayer({
                   <p className="text-xs text-muted-foreground">{prompt.descripcion}</p>
                 )}
                 <Textarea
-                  value={answers[prompt.id] || ""}
+                  value={prompt.id ? (answers[prompt.id] || "") : ""}
                   onChange={(event) => {
-                    setAnswers((prev) => ({
-                      ...prev,
-                      [prompt.id]: event.target.value,
-                    }))
+                    const promptId = prompt.id
+                    if (promptId) {
+                      setAnswers((prev) => ({
+                        ...prev,
+                        [promptId]: event.target.value,
+                      }))
+                    }
                   }}
                   placeholder={prompt.placeholder || "Escribe aquí..."}
                 />

@@ -83,7 +83,7 @@ function DashboardContent() {
           }
         }
 
-        const status =
+        const status: "completed" | "available" | "in_progress" =
           stat.totalExercises > 0 && stat.completedExercises >= stat.totalExercises
             ? "completed"
             : stat.completedExercises > 0 || stat.completionPercentage > 0
