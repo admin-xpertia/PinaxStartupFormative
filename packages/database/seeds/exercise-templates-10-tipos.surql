@@ -134,20 +134,24 @@ CREATE exercise_template:cuaderno_trabajo SET
   configuracion_schema = {
     type: 'object',
     properties: {
-      tipo_trabajo: { type: 'string', enum: ['documentación', 'reflexión', 'análisis', 'síntesis', 'investigación'] },
-      secciones_requeridas: { type: 'array', items: { type: 'string' } },
-      nivel_andamiaje: { type: 'string', enum: ['alto', 'medio', 'bajo'] },
-      feedback_tiempo_real: { type: 'boolean', default: true },
-      validar_coherencia: { type: 'boolean', default: true }
+      secciones: {
+        type: 'array',
+        description: 'Define las secciones estructuradas del cuaderno.',
+        items: {
+          type: 'object',
+          properties: {
+            tituloSeccion: { type: 'string', description: 'Título o Enfoque (Ej: "Análisis del Problema")' },
+            descripcionPrompt: { type: 'string', description: 'Descripción para la IA (¿Qué debe preguntar la IA?)' },
+            criteriosPrompt: { type: 'string', description: 'Rúbrica para la IA (¿Qué debe evaluar la IA?)' }
+          }
+        }
+      }
     }
   },
   configuracion_default = {
-    tipo_trabajo: 'documentación',
-    nivel_andamiaje: 'medio',
-    feedback_tiempo_real: true,
-    validar_coherencia: true
+    secciones: []
   },
-  prompt_template = 'Crea un cuaderno de trabajo tipo {{tipo_trabajo}} con nivel de andamiaje {{nivel_andamiaje}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "objetivo": string, "contexto": string, "secciones": [{ "titulo": string, "descripcion": string, "instrucciones": string, "prompts": [{ "tipo": "texto_corto"|"texto_largo"|"lista"|"tabla"|"reflexion", "pregunta": string, "guia": string, "min_palabras"?: number, "placeholder"?: string }] }], "criterios_evaluacion": string[], "tiempo_sugerido": number }. Crea al menos 3 secciones con múltiples prompts guía que ayuden al estudiante a documentar y reflexionar sobre su trabajo.',
+  prompt_template = 'Eres un diseñador instruccional experto creando un cuaderno de trabajo interactivo.\n\nCONTEXTO DEL PROGRAMA:\nPrograma: {{programa.nombre}}\nFase: {{fase.nombre}} - {{fase.descripcion}}\nProof Point: {{proof_point.pregunta_central}}\nDocumentación clave: {{proof_point.documentacion_contexto}}\n\nDOCUMENTACIÓN DE LA FASE:\n{{fase_documentation}}\n\nCONSIDERACIONES DEL INSTRUCTOR:\n{{consideraciones}}\n\nSECCIONES DEFINIDAS POR EL INSTRUCTOR:\n{{#each configuracion.secciones}}\n\nSección {{@index}}: {{tituloSeccion}}\n- Descripción/Objetivo: {{descripcionPrompt}}\n- Criterios de Evaluación: {{criteriosPrompt}}\n{{/each}}\n\nCONFIGURACIÓN:\nDuración objetivo: {{configuracion.duracion_minutos}} minutos\n\nREQUISITOS DE FORMATO:\nPara cada sección definida por el instructor, genera preguntas específicas (prompts) que guíen al estudiante.\n\nEl contenido debe seguir esta estructura JSON:\n{\n  "titulo": string,\n  "objetivo": string,\n  "contexto": string,\n  "secciones": [{\n    "titulo": string,\n    "descripcion": string,\n    "instrucciones": string,\n    "criteriosDeEvaluacion": string[],\n    "prompts": [{\n      "tipo": "texto_corto"|"texto_largo"|"lista"|"tabla"|"reflexion",\n      "pregunta": string,\n      "guia": string,\n      "min_palabras"?: number,\n      "max_palabras"?: number,\n      "placeholder"?: string,\n      "criteriosDeEvaluacion": string[]\n    }]\n  }],\n  "criterios_evaluacion": string[],\n  "tiempo_sugerido": number\n}\n\nIMPORTANTE:\n- Cada sección del cuaderno debe corresponder a una sección definida por el instructor\n- Usa la "descripcionPrompt" para entender qué preguntas generar\n- Usa los "criteriosPrompt" para definir los criteriosDeEvaluacion de cada pregunta\n- Los criteriosDeEvaluacion deben ser específicos, medibles y estar alineados con la rúbrica definida por el instructor\n- Crea entre 2-5 prompts por sección según su complejidad\n- Devuelve únicamente JSON válido',
   output_schema = {
     titulo: 'string',
     objetivo: 'string',

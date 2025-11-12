@@ -73,6 +73,19 @@ export interface EvaluateLessonQuestionResponse {
   sugerencias?: string[]
 }
 
+export interface AnalyzeDraftRequest {
+  questionId: string
+  draftText: string
+}
+
+export interface AnalyzeDraftResponse {
+  questionId: string
+  suggestion: string
+  strengths?: string[]
+  improvements?: string[]
+  rubricAlignment?: number
+}
+
 export const exercisesApi = {
   /**
    * Obtener instancia de ejercicio con su contenido
@@ -163,6 +176,19 @@ export const exercisesApi = {
   ): Promise<EvaluateLessonQuestionResponse> {
     return apiClient.post(
       `/student/exercises/${encodeURIComponent(exerciseId)}/questions/evaluate`,
+      payload
+    )
+  },
+
+  /**
+   * Analizar borrador contra rúbrica (feedback proactivo)
+   */
+  async analyzeDraft(
+    exerciseId: string,
+    payload: AnalyzeDraftRequest
+  ): Promise<AnalyzeDraftResponse> {
+    return apiClient.post(
+      `/student/exercises/${encodeURIComponent(exerciseId)}/analyze-draft`,
       payload
     )
   },

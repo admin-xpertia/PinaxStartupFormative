@@ -27,6 +27,7 @@ interface WorkbookPrompt {
   min_palabras?: number
   max_palabras?: number
   placeholder?: string
+  criteriosDeEvaluacion?: string[]
 }
 
 interface WorkbookSection {
@@ -34,6 +35,7 @@ interface WorkbookSection {
   descripcion?: string
   instrucciones: string
   prompts: WorkbookPrompt[]
+  criteriosDeEvaluacion?: string[]
 }
 
 interface WorkbookContent {
@@ -395,11 +397,33 @@ export function CuadernoTrabajoPlayer({
           {/* Prompts */}
           <div className="space-y-6">
             {currentSectionData.prompts.map((prompt, pIdx) => (
-              <Card key={pIdx}>
-                <CardContent className="p-6">
-                  {renderPrompt(prompt, pIdx)}
-                </CardContent>
-              </Card>
+              <div key={pIdx} className="space-y-3">
+                <Card>
+                  <CardContent className="p-6">
+                    {renderPrompt(prompt, pIdx)}
+                  </CardContent>
+                </Card>
+
+                {/* Rubric Preview for Instructors */}
+                {prompt.criteriosDeEvaluacion && prompt.criteriosDeEvaluacion.length > 0 && (
+                  <Card className="bg-muted/50 border-dashed">
+                    <CardContent className="p-3">
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-semibold text-muted-foreground">
+                          Rúbrica de Evaluación
+                        </h4>
+                        <ul className="space-y-1 ml-4">
+                          {prompt.criteriosDeEvaluacion.map((criterio, cIdx) => (
+                            <li key={cIdx} className="text-xs text-muted-foreground list-disc">
+                              {criterio}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             ))}
           </div>
 
