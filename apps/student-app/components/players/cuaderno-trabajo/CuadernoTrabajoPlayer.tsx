@@ -39,6 +39,8 @@ interface WorkbookSection {
   descripcion?: string
   instrucciones: string
   prompts: WorkbookPrompt[]
+  criteriosDeEvaluacion?: string[]
+  criterios_evaluacion?: string[]
 }
 
 interface WorkbookContent {
@@ -156,6 +158,85 @@ export function CuadernoTrabajoPlayer({
       debouncedAnalyzeDraft(questionId, value)
     },
     [cancelDebouncedAnalyze, debouncedAnalyzeDraft, getPromptQuestionId]
+  )
+
+  const buildSectionContext = useCallback(
+    (section?: WorkbookSection) => {
+      if (!section) {
+        return (
+          content.contexto ||
+          content.objetivo ||
+          `Cuaderno "${content.titulo}" sin contexto adicional`
+        )
+      }
+
+      const sectionCriteria = [
+        ...(section.criteriosDeEvaluacion || []),
+        ...(section.criterios_evaluacion || []),
+      ]
+      const globalCriteria = content.criterios_evaluacion || []
+
+      const promptsSummary = section.prompts
+        .map((prompt, idx) => {
+          const promptCriteria = (prompt.criteriosDeEvaluacion || prompt.criteriosEvaluacion || []).join("; ")
+          return [
+            `Prompt ${idx + 1} (${prompt.tipo}): ${prompt.pregunta}`,
+            prompt.guia && `Guía: ${prompt.guia}`,
+            promptCriteria && `Criterios: ${promptCriteria}`,
+          ]
+            .filter(Boolean)
+            .join("\n")
+        })
+        .filter(Boolean)
+        .join("\n\n")
+
+      return [
+        section.descripcion && `Descripción: ${section.descripcion}`,
+        `Instrucciones: ${section.instrucciones}`,
+        promptsSummary && `Prompts:\n${promptsSummary}`,
+        sectionCriteria.length > 0 && `Criterios de la sección: ${sectionCriteria.join("; ")}`,
+        globalCriteria.length > 0 && `Criterios globales del cuaderno: ${globalCriteria.join("; ")}`,
+      ]
+        .filter(Boolean)
+        .join("\n\n")
+    },
+    [content.contexto, content.objetivo, content.criterios_evaluacion, content.titulo]
+  )
+
+  const handleAskAssistant = useCallback(
+    async (
+      message: string,
+      history: Array<{ role: "user" | "assistant"; content: string }>
+    ) => {
+      const section = currentSectionData
+      const sectionContext = buildSectionContext(section)
+      const perfilComprension = {
+        seccionesCompletadas: completedSections.size,
+        totalSecciones: totalSections,
+        progresoActual: (currentSection + 1) / totalSections,
+      }
+
+      const response = await exercisesApi.sendLessonAssistantMessage(exerciseId, {
+        pregunta: message,
+        seccionId: `cuaderno_section_${currentSection}`,
+        seccionTitulo: section?.titulo || `Sección ${currentSection + 1}`,
+        seccionContenido: sectionContext,
+        historial: history.slice(-10),
+        perfilComprension,
+        conceptoFocal: section?.titulo || content.titulo,
+      })
+
+      return response.respuesta
+    },
+    [
+      buildSectionContext,
+      completedSections,
+      content.titulo,
+      currentSection,
+      currentSectionData,
+      exerciseId,
+      totalSections,
+    ]
   )
 
   const updateResponse = (sectionIdx: number, promptIdx: number, value: any) => {
@@ -435,6 +516,8 @@ export function CuadernoTrabajoPlayer({
       onNext={currentSection < totalSections - 1 ? handleNext : undefined}
       onExit={onExit}
       showAIAssistant={true}
+      aiContext={currentSectionData.titulo}
+      onAskAssistant={handleAskAssistant}
     >
       <div className="space-y-6">
         {/* Context Card */}
