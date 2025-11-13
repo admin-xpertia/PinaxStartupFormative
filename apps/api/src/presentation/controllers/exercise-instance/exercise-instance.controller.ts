@@ -743,31 +743,39 @@ export class ExerciseInstanceController {
   })
   @ApiResponse({ status: 404, description: "Exercise or content not found" })
   @ApiResponse({ status: 400, description: "Analysis failed" })
+  async analyzeDraftStudent(
+    @Param("id") id: string,
+    @Body() analyzeDraftDto: AnalyzeDraftRequestDto,
+  ): Promise<AnalyzeDraftResponseDto> {
+    return this.handleAnalyzeDraft(id, analyzeDraftDto);
+  }
+
+  /**
+   * Analyze draft alias for backwards compatibility (Tutor IA Proactivo)
+   */
+  @Public()
+  @Post("exercises/:id/analyze-draft")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Analyze student draft (general endpoint)",
+    description:
+      "Alias endpoint that enables proactive tutor feedback without the /student prefix",
+  })
+  @ApiParam({
+    name: "id",
+    description: "ExerciseInstance ID",
+    example: "exercise_instance:abc123",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Draft analysis with suggestions",
+    type: AnalyzeDraftResponseDto,
+  })
   async analyzeDraft(
     @Param("id") id: string,
     @Body() analyzeDraftDto: AnalyzeDraftRequestDto,
   ): Promise<AnalyzeDraftResponseDto> {
-    const result = await this.analyzeDraftUseCase.execute({
-      exerciseInstanceId: id,
-      questionId: analyzeDraftDto.questionId,
-      draftText: analyzeDraftDto.draftText,
-    });
-
-    return result.match({
-      ok: (response) => ({
-        questionId: response.questionId,
-        suggestion: response.suggestion,
-        strengths: response.strengths,
-        improvements: response.improvements,
-        rubricAlignment: response.rubricAlignment,
-      }),
-      fail: (error) => {
-        if (error.message.includes("not found")) {
-          throw new NotFoundException(error.message);
-        }
-        throw new BadRequestException(error.message);
-      },
-    });
+    return this.handleAnalyzeDraft(id, analyzeDraftDto);
   }
 
   /**
@@ -849,6 +857,33 @@ export class ExerciseInstanceController {
       created_at: content.created_at,
       updated_at: content.updated_at,
     };
+  }
+
+  private async handleAnalyzeDraft(
+    id: string,
+    analyzeDraftDto: AnalyzeDraftRequestDto,
+  ): Promise<AnalyzeDraftResponseDto> {
+    const result = await this.analyzeDraftUseCase.execute({
+      exerciseInstanceId: id,
+      questionId: analyzeDraftDto.questionId,
+      draftText: analyzeDraftDto.draftText,
+    });
+
+    return result.match({
+      ok: (response) => ({
+        questionId: response.questionId,
+        suggestion: response.suggestion,
+        strengths: response.strengths,
+        improvements: response.improvements,
+        rubricAlignment: response.rubricAlignment,
+      }),
+      fail: (error) => {
+        if (error.message.includes("not found")) {
+          throw new NotFoundException(error.message);
+        }
+        throw new BadRequestException(error.message);
+      },
+    });
   }
 
   /**

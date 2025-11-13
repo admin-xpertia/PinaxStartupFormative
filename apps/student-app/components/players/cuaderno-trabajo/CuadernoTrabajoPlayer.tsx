@@ -9,15 +9,14 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { useDebouncedCallback } from "@/hooks/useDebouncedCallback"
+import { ProactiveSuggestionCard } from "./ProactiveSuggestionCard"
 import {
-  PenTool,
   CheckCircle2,
   Circle,
   AlertCircle,
   Lightbulb,
   FileText,
-  Sparkles,
-  Loader2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -30,6 +29,9 @@ interface WorkbookPrompt {
   min_palabras?: number
   max_palabras?: number
   placeholder?: string
+  id?: string
+  criteriosDeEvaluacion?: string[]
+  criteriosEvaluacion?: string[]
 }
 
 interface WorkbookSection {
@@ -74,14 +76,87 @@ export function CuadernoTrabajoPlayer({
   const [completedSections, setCompletedSections] = useState<Set<number>>(new Set())
   const [proactiveFeedback, setProactiveFeedback] = useState<Record<string, string | null>>({})
   const [isAnalyzing, setIsAnalyzing] = useState<Record<string, boolean>>({})
-  const [debounceTimers, setDebounceTimers] = useState<Record<string, NodeJS.Timeout>>({})
 
   const totalSections = content.secciones.length
   const currentSectionData = content.secciones[currentSection]
 
-  const getResponseKey = (sectionIdx: number, promptIdx: number) => {
+  const getResponseKey = useCallback((sectionIdx: number, promptIdx: number) => {
     return `s${sectionIdx}_p${promptIdx}`
-  }
+  }, [])
+
+  const getPromptQuestionId = useCallback(
+    (sectionIdx: number, promptIdx: number) => {
+      const prompt = content.secciones[sectionIdx]?.prompts[promptIdx]
+      if (!prompt) {
+        return getResponseKey(sectionIdx, promptIdx)
+      }
+
+      if (prompt.id) {
+        return String(prompt.id)
+      }
+
+      const questionText = (prompt.pregunta || (prompt as any)?.enunciado || "").trim()
+      if (!questionText) {
+        return getResponseKey(sectionIdx, promptIdx)
+      }
+
+      const normalized = questionText.substring(0, 30).replace(/\s+/g, "_")
+      return normalized || getResponseKey(sectionIdx, promptIdx)
+    },
+    [content, getResponseKey]
+  )
+
+  const analyzeDraft = useCallback(
+    async (questionId: string, draftText: string) => {
+      const trimmed = draftText.trim()
+      if (!trimmed || trimmed.length < 30) {
+        setProactiveFeedback(prev => ({ ...prev, [questionId]: null }))
+        setIsAnalyzing(prev => ({ ...prev, [questionId]: false }))
+        return
+      }
+
+      setIsAnalyzing(prev => ({ ...prev, [questionId]: true }))
+      setProactiveFeedback(prev => ({ ...prev, [questionId]: null }))
+
+      try {
+        const response = await exercisesApi.analyzeDraft(exerciseId, {
+          questionId,
+          draftText: trimmed,
+        })
+
+        setProactiveFeedback(prev => ({ ...prev, [questionId]: response.suggestion }))
+      } catch (error) {
+        console.error("Error analyzing draft:", error)
+      } finally {
+        setIsAnalyzing(prev => ({ ...prev, [questionId]: false }))
+      }
+    },
+    [exerciseId]
+  )
+
+  const [debouncedAnalyzeDraft, cancelDebouncedAnalyze] = useDebouncedCallback(
+    (questionId: string, draftText: string) => {
+      void analyzeDraft(questionId, draftText)
+    },
+    1500
+  )
+
+  const scheduleProactiveAnalysis = useCallback(
+    (sectionIdx: number, promptIdx: number, value: string) => {
+      const questionId = getPromptQuestionId(sectionIdx, promptIdx)
+      const trimmed = value.trim()
+
+      if (!trimmed || trimmed.length < 30) {
+        cancelDebouncedAnalyze(questionId)
+        setProactiveFeedback(prev => ({ ...prev, [questionId]: null }))
+        setIsAnalyzing(prev => ({ ...prev, [questionId]: false }))
+        return
+      }
+
+      debouncedAnalyzeDraft(questionId, value)
+    },
+    [cancelDebouncedAnalyze, debouncedAnalyzeDraft, getPromptQuestionId]
+  )
 
   const updateResponse = (sectionIdx: number, promptIdx: number, value: any) => {
     const key = getResponseKey(sectionIdx, promptIdx)
@@ -90,52 +165,16 @@ export function CuadernoTrabajoPlayer({
     // Trigger proactive feedback analysis for long text responses
     const prompt = content.secciones[sectionIdx]?.prompts[promptIdx]
     if (prompt && (prompt.tipo === "texto_largo" || prompt.tipo === "reflexion")) {
-      debouncedAnalyzeDraft(key, value)
+      scheduleProactiveAnalysis(sectionIdx, promptIdx, value || "")
     }
   }
-
-  // Debounced analysis function
-  const debouncedAnalyzeDraft = useCallback((questionId: string, draftText: string) => {
-    // Clear existing timer for this question
-    if (debounceTimers[questionId]) {
-      clearTimeout(debounceTimers[questionId])
-    }
-
-    // Only analyze if there's substantial text (>30 characters)
-    if (!draftText || draftText.trim().length < 30) {
-      setProactiveFeedback(prev => ({ ...prev, [questionId]: null }))
-      return
-    }
-
-    // Set new timer
-    const timer = setTimeout(async () => {
-      setIsAnalyzing(prev => ({ ...prev, [questionId]: true }))
-      setProactiveFeedback(prev => ({ ...prev, [questionId]: null }))
-
-      try {
-        const response = await exercisesApi.analyzeDraft(exerciseId, {
-          questionId,
-          draftText,
-        })
-
-        setProactiveFeedback(prev => ({ ...prev, [questionId]: response.suggestion }))
-      } catch (error) {
-        console.error("Error analyzing draft:", error)
-        // Silent fail - don't interrupt student workflow
-      } finally {
-        setIsAnalyzing(prev => ({ ...prev, [questionId]: false }))
-      }
-    }, 1500) // 1.5 second debounce
-
-    setDebounceTimers(prev => ({ ...prev, [questionId]: timer }))
-  }, [exerciseId, debounceTimers])
 
   // Cleanup timers on unmount
   useEffect(() => {
     return () => {
-      Object.values(debounceTimers).forEach(timer => clearTimeout(timer))
+      cancelDebouncedAnalyze()
     }
-  }, [debounceTimers])
+  }, [cancelDebouncedAnalyze])
 
   const getResponse = (sectionIdx: number, promptIdx: number) => {
     const key = getResponseKey(sectionIdx, promptIdx)
@@ -200,7 +239,7 @@ export function CuadernoTrabajoPlayer({
         const minWords = prompt.min_palabras || 0
         const maxWords = prompt.max_palabras || 1000
         const isWordCountValid = wordCount >= minWords && wordCount <= maxWords
-        const questionKey = getResponseKey(currentSection, promptIdx)
+        const questionId = getPromptQuestionId(currentSection, promptIdx)
 
         return (
           <div className="space-y-3">
@@ -239,36 +278,10 @@ export function CuadernoTrabajoPlayer({
                 </Button>
               )}
             </div>
-
-            {/* Proactive AI Feedback */}
-            {isAnalyzing[questionKey] && (
-              <Card className="bg-blue-50 border-blue-200">
-                <CardContent className="p-3">
-                  <div className="flex items-center gap-2 text-sm text-blue-700">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Analizando tu respuesta...</span>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {!isAnalyzing[questionKey] && proactiveFeedback[questionKey] && (
-              <Card className="bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <Sparkles className="h-5 w-5 text-purple-600 mt-0.5 flex-shrink-0" />
-                    <div className="space-y-2 flex-1">
-                      <h4 className="text-sm font-semibold text-purple-900">
-                        Sugerencia del Tutor IA
-                      </h4>
-                      <p className="text-sm text-purple-800 leading-relaxed">
-                        {proactiveFeedback[questionKey]}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            <ProactiveSuggestionCard
+              isAnalyzing={isAnalyzing[questionId]}
+              suggestion={proactiveFeedback[questionId]}
+            />
           </div>
         )
 

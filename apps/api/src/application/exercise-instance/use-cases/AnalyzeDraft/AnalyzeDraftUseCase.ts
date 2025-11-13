@@ -110,12 +110,13 @@ Proporciona feedback formativo en formato JSON con esta estructura:
 
       // 4. Call OpenAI
       this.logger.debug("Calling OpenAI for draft analysis");
-      const { content: aiResponse } = await this.openAIService.generateChatResponse({
-        systemPrompt,
-        messages: [{ role: "user", content: userPrompt }],
-        maxTokens: 800,
-        responseFormat: { type: "json_object" },
-      });
+      const { content: aiResponse } =
+        await this.openAIService.generateChatResponse({
+          systemPrompt,
+          messages: [{ role: "user", content: userPrompt }],
+          maxTokens: 800,
+          responseFormat: { type: "json_object" },
+        });
 
       // 5. Parse AI response
       let analysis: AnalyzeDraftResponse;
@@ -123,7 +124,8 @@ Proporciona feedback formativo en formato JSON con esta estructura:
         const parsed = JSON.parse(aiResponse);
         analysis = {
           questionId: request.questionId,
-          suggestion: parsed.suggestion || "Continúa desarrollando tu respuesta.",
+          suggestion:
+            parsed.suggestion || "Continúa desarrollando tu respuesta.",
           strengths: parsed.strengths || [],
           improvements: parsed.improvements || [],
           rubricAlignment: parsed.rubricAlignment || 50,
@@ -133,14 +135,18 @@ Proporciona feedback formativo en formato JSON con esta estructura:
         // Fallback response
         analysis = {
           questionId: request.questionId,
-          suggestion: aiResponse || "Continúa desarrollando tu respuesta con más detalle.",
+          suggestion:
+            aiResponse ||
+            "Continúa desarrollando tu respuesta con más detalle.",
           strengths: [],
           improvements: [],
           rubricAlignment: 50,
         };
       }
 
-      this.logger.log(`✅ Draft analysis completed for question ${request.questionId}`);
+      this.logger.log(
+        `✅ Draft analysis completed for question ${request.questionId}`,
+      );
       return Result.ok(analysis);
     } catch (error) {
       this.logger.error("❌ Error analyzing draft", error);
@@ -158,6 +164,12 @@ Proporciona feedback formativo en formato JSON con esta estructura:
     contenido: any,
     questionId: string,
   ): { question: any; criterios: string[] } {
+    // 0. Try indexed keys (e.g., s0_p1) used by frontends
+    const indexedMatch = this.findQuestionByIndexedKey(contenido, questionId);
+    if (indexedMatch) {
+      return indexedMatch;
+    }
+
     let question: any = null;
     let criterios: string[] = [];
 
@@ -179,21 +191,23 @@ Proporciona feedback formativo en formato JSON con esta estructura:
 
           // Also check section-level criteria if question is found in this section
           if (question && seccion.criteriosDeEvaluacion) {
-            criterios = [
-              ...criterios,
-              ...seccion.criteriosDeEvaluacion,
-            ];
+            criterios = [...criterios, ...seccion.criteriosDeEvaluacion];
           }
         }
       }
 
       // For Leccion Interactiva and other exercise types with preguntas
-      if (!question && contenido.preguntas && Array.isArray(contenido.preguntas)) {
-        question = contenido.preguntas.find(
-          (p: any) => p.id === questionId,
-        );
+      if (
+        !question &&
+        contenido.preguntas &&
+        Array.isArray(contenido.preguntas)
+      ) {
+        question = contenido.preguntas.find((p: any) => p.id === questionId);
         if (question) {
-          criterios = question.criteriosDeEvaluacion || question.criteriosEvaluacion || [];
+          criterios =
+            question.criteriosDeEvaluacion ||
+            question.criteriosEvaluacion ||
+            [];
         }
       }
 
@@ -202,13 +216,40 @@ Proporciona feedback formativo en formato JSON con esta estructura:
         criterios = contenido.criterios_evaluacion;
       }
     } catch (error) {
-      this.logger.error(
-        "Error finding question and criteria",
-        error,
-      );
+      this.logger.error("Error finding question and criteria", error);
     }
 
     return { question, criterios };
+  }
+
+  private findQuestionByIndexedKey(
+    contenido: any,
+    questionId: string,
+  ): { question: any; criterios: string[] } | null {
+    if (!contenido?.secciones || !Array.isArray(contenido.secciones)) {
+      return null;
+    }
+
+    const match = questionId.match(/^(?:section|s)(\d+)_p(?:rompt)?(\d+)$/i);
+    if (!match) {
+      return null;
+    }
+
+    const sectionIdx = Number(match[1]);
+    const promptIdx = Number(match[2]);
+
+    const section = contenido.secciones[sectionIdx];
+    if (!section || !section.prompts || !section.prompts[promptIdx]) {
+      return null;
+    }
+
+    const prompt = section.prompts[promptIdx];
+    const criterios = [
+      ...(prompt.criteriosDeEvaluacion || prompt.criteriosEvaluacion || []),
+      ...(section.criteriosDeEvaluacion || []),
+    ];
+
+    return { question: prompt, criterios };
   }
 
   /**

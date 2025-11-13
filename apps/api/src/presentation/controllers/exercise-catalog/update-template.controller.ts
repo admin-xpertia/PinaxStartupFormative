@@ -1,10 +1,4 @@
-import {
-  Controller,
-  Post,
-  HttpCode,
-  HttpStatus,
-  Logger,
-} from "@nestjs/common";
+import { Controller, Post, HttpCode, HttpStatus, Logger } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
 import { SurrealDbService } from "../../../core/database/surrealdb.service";
 import { Public } from "../../../core/decorators";
@@ -25,7 +19,8 @@ export class UpdateTemplateController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: "Update Cuaderno de Trabajo template schema",
-    description: "Temporary endpoint to update the template with new rubric-based schema",
+    description:
+      "Temporary endpoint to update the template with new rubric-based schema",
   })
   @ApiResponse({ status: 200, description: "Template updated successfully" })
   async updateCuadernoSchema(): Promise<any> {
@@ -76,12 +71,14 @@ export class UpdateTemplateController {
       return {
         success: true,
         message: "Cuaderno de Trabajo template schema updated successfully",
-        template: updatedTemplate ? {
-          id: updatedTemplate.id,
-          nombre: updatedTemplate.nombre,
-          configuracion_schema: updatedTemplate.configuracion_schema,
-          configuracion_default: updatedTemplate.configuracion_default,
-        } : null,
+        template: updatedTemplate
+          ? {
+              id: updatedTemplate.id,
+              nombre: updatedTemplate.nombre,
+              configuracion_schema: updatedTemplate.configuracion_schema,
+              configuracion_default: updatedTemplate.configuracion_default,
+            }
+          : null,
       };
     } catch (error) {
       this.logger.error("❌ Error updating template", error);

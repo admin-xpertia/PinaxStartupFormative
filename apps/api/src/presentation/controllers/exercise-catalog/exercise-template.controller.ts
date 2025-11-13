@@ -18,6 +18,7 @@ import { RecordId } from "../../../domain/shared/value-objects/RecordId";
 import { ExerciseCategory } from "../../../domain/exercise-catalog/value-objects/ExerciseCategory";
 import { ExerciseTemplateResponseDto } from "../../dtos/exercise-catalog";
 import { SurrealDbService } from "../../../core/database/surrealdb.service";
+import { Public } from "../../../core/decorators";
 
 /**
  * ExerciseTemplateController
@@ -38,6 +39,7 @@ export class ExerciseTemplateController {
   /**
    * List all exercise templates
    */
+  @Public()
   @Get()
   @ApiOperation({
     summary: "List all exercise templates",
@@ -56,6 +58,7 @@ export class ExerciseTemplateController {
   /**
    * Get exercise templates grouped by category
    */
+  @Public()
   @Get("grouped")
   @ApiOperation({
     summary: "Get templates grouped by category",
@@ -122,6 +125,7 @@ export class ExerciseTemplateController {
   /**
    * Get exercise template by ID
    */
+  @Public()
   @Get(":id")
   @ApiOperation({
     summary: "Get exercise template by ID",
@@ -156,6 +160,7 @@ export class ExerciseTemplateController {
   /**
    * Get exercise templates by category
    */
+  @Public()
   @Get("category/:category")
   @ApiOperation({
     summary: "Get templates by category",

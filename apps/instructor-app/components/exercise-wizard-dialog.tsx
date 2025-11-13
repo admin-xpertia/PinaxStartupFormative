@@ -28,46 +28,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, Sparkles, Eye, Plus, Edit3 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { apiClient } from "@/services/api/client"
-
-interface ExerciseTemplate {
-  id: string
-  nombre: string
-  categoria: string
-  descripcion: string
-  objetivo_pedagogico: string
-  rol_ia: string
-  icono: string
-  color: string
-  configuracion_schema?: Record<string, ConfigField> | null
-  configuracion_default?: Record<string, any> | null
-}
-
-interface ConfigField {
-  type: "number" | "string" | "boolean" | "select" | "multiselect"
-  label: string
-  default?: any
-  min?: number
-  max?: number
-  options?: string[]
-}
-
-interface ExerciseInstance {
-  id: string
-  template: string
-  nombre: string
-  descripcionBreve?: string
-  consideracionesContexto: string
-  configuracionPersonalizada: Record<string, any>
-  duracionEstimadaMinutos: number
-  esObligatorio: boolean
-}
+import type {
+  ExerciseTemplateResponse,
+  ExerciseInstanceResponse,
+} from "@/types/api"
 
 interface ExerciseWizardDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  template: ExerciseTemplate | null
+  template: ExerciseTemplateResponse | null
   proofPointId: string
-  existingInstance?: ExerciseInstance | null
+  existingInstance?: ExerciseInstanceResponse | null
   onSuccess: () => void
 }
 
@@ -107,10 +78,10 @@ export function ExerciseWizardDialog({
       setNombre(template.nombre)
       setDescripcionBreve("")
       setConsideraciones("")
-      setConfiguracion(template.configuracion_default || {})
+      setConfiguracion(template.configuracionDefault || {})
 
       // Get default duration from config
-      const defaultDuration = template.configuracion_default?.duracion_minutos || 20
+      const defaultDuration = template.configuracionDefault?.duracion_minutos || 20
       setDuracion(defaultDuration)
       setEsObligatorio(true)
     }
@@ -185,57 +156,87 @@ export function ExerciseWizardDialog({
     }
   }
 
-  const updateConfigValue = (key: string, value: any) => {
+  const handleConfigChange = (key: string, value: any) => {
     setConfiguracion((prev) => ({
       ...prev,
       [key]: value,
     }))
   }
 
-  const renderConfigField = (key: string, field: ConfigField) => {
-    const value = configuracion[key] ?? field.default
+  const handleAddSection = (key: string) => {
+    const currentSections = (configuracion[key] as any[]) || []
+    handleConfigChange(key, [
+      ...currentSections,
+      { tituloSeccion: "", descripcionPrompt: "", criteriosPrompt: "" },
+    ])
+  }
 
-    switch (field.type) {
-      case "number":
+  const handleRemoveSection = (key: string, index: number) => {
+    const currentSections = (configuracion[key] as any[]) || []
+    handleConfigChange(
+      key,
+      currentSections.filter((_, i) => i !== index),
+    )
+  }
+
+  const handleSectionFieldChange = (
+    arrayKey: string,
+    index: number,
+    fieldKey: string,
+    value: any,
+  ) => {
+    const currentSections = [...((configuracion[arrayKey] as any[]) || [])]
+    currentSections[index] = {
+      ...currentSections[index],
+      [fieldKey]: value,
+    }
+    handleConfigChange(arrayKey, currentSections)
+  }
+
+  const renderConfigFields = () => {
+    const schema = template?.configuracionSchema
+
+    if (!schema || !schema.properties) {
+      return (
+        <p className="text-sm text-muted-foreground">
+          Este tipo de ejercicio no tiene configuración adicional
+        </p>
+      )
+    }
+
+    return Object.entries(schema.properties).map(([key, fieldSchema]: [string, any]) => {
+      const value = configuracion[key] ?? fieldSchema.default ?? ""
+
+      if (fieldSchema.type === "string" && !fieldSchema.enum) {
         return (
           <div key={key} className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor={key}>{field.label}</Label>
-              <span className="text-sm text-muted-foreground">{value}</span>
-            </div>
-            <Slider
+            <Label htmlFor={key}>
+              {fieldSchema.description || key}
+              {schema.required?.includes(key) && <span className="text-destructive ml-1">*</span>}
+            </Label>
+            <Input
               id={key}
-              min={field.min || 0}
-              max={field.max || 100}
-              step={1}
-              value={[value]}
-              onValueChange={([newValue]) => updateConfigValue(key, newValue)}
+              value={value}
+              onChange={(e) => handleConfigChange(key, e.target.value)}
+              placeholder={fieldSchema.default}
             />
           </div>
         )
+      }
 
-      case "boolean":
-        return (
-          <div key={key} className="flex items-center justify-between">
-            <Label htmlFor={key}>{field.label}</Label>
-            <Switch
-              id={key}
-              checked={value}
-              onCheckedChange={(checked) => updateConfigValue(key, checked)}
-            />
-          </div>
-        )
-
-      case "select":
+      if (fieldSchema.enum) {
         return (
           <div key={key} className="space-y-2">
-            <Label htmlFor={key}>{field.label}</Label>
-            <Select value={value} onValueChange={(val) => updateConfigValue(key, val)}>
+            <Label htmlFor={key}>
+              {fieldSchema.description || key}
+              {schema.required?.includes(key) && <span className="text-destructive ml-1">*</span>}
+            </Label>
+            <Select value={value} onValueChange={(val) => handleConfigChange(key, val)}>
               <SelectTrigger id={key}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {field.options?.map((option) => (
+                {fieldSchema.enum.map((option: string) => (
                   <SelectItem key={option} value={option}>
                     {option}
                   </SelectItem>
@@ -244,50 +245,107 @@ export function ExerciseWizardDialog({
             </Select>
           </div>
         )
+      }
 
-      case "multiselect":
+      if (fieldSchema.type === "number") {
         return (
           <div key={key} className="space-y-2">
-            <Label>{field.label}</Label>
-            <div className="flex flex-wrap gap-2">
-              {field.options?.map((option) => {
-                const isSelected = Array.isArray(value) && value.includes(option)
-                return (
-                  <Badge
-                    key={option}
-                    variant={isSelected ? "default" : "outline"}
-                    className="cursor-pointer"
-                    onClick={() => {
-                      const current = Array.isArray(value) ? value : []
-                      const newValue = isSelected
-                        ? current.filter((v) => v !== option)
-                        : [...current, option]
-                      updateConfigValue(key, newValue)
-                    }}
-                  >
-                    {option}
-                  </Badge>
-                )
-              })}
-            </div>
-          </div>
-        )
-
-      case "string":
-        return (
-          <div key={key} className="space-y-2">
-            <Label htmlFor={key}>{field.label}</Label>
+            <Label htmlFor={key}>
+              {fieldSchema.description || key}
+              {schema.required?.includes(key) && <span className="text-destructive ml-1">*</span>}
+            </Label>
             <Input
               id={key}
+              type="number"
+              min={fieldSchema.minimum}
+              max={fieldSchema.maximum}
               value={value}
-              onChange={(e) => updateConfigValue(key, e.target.value)}
+              onChange={(e) =>
+                handleConfigChange(key, e.target.value ? parseInt(e.target.value, 10) : 0)
+              }
             />
           </div>
         )
+      }
 
-      default:
-        return null
-    }
+      if (fieldSchema.type === "boolean") {
+        return (
+          <div key={key} className="flex items-center justify-between">
+            <Label htmlFor={key}>{fieldSchema.description || key}</Label>
+            <Switch
+              id={key}
+              checked={!!value}
+              onCheckedChange={(checked) => handleConfigChange(key, checked)}
+            />
+          </div>
+        )
+      }
+
+      if (fieldSchema.type === "array" && fieldSchema.items?.type === "object") {
+        const sections = (configuracion[key] as any[]) || []
+        const itemProperties = fieldSchema.items.properties || {}
+
+        return (
+          <div key={key} className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-base font-semibold">
+                {fieldSchema.description || key}
+                {schema.required?.includes(key) && <span className="text-destructive ml-1">*</span>}
+              </Label>
+              <Button variant="outline" size="sm" onClick={() => handleAddSection(key)}>
+                + Añadir sección
+              </Button>
+            </div>
+
+            {sections.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                Aún no has configurado secciones para este cuaderno.
+              </p>
+            )}
+
+            <div className="space-y-3">
+              {sections.map((section: any, idx: number) => (
+                <Card key={`${key}-${idx}`} className="border">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm font-medium">Sección {idx + 1}</CardTitle>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 text-destructive hover:text-destructive"
+                        onClick={() => handleRemoveSection(key, idx)}
+                      >
+                        Eliminar
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {Object.entries(itemProperties).map(([fieldKey, fieldDef]: [string, any]) => (
+                      <div key={fieldKey} className="space-y-2">
+                        <Label htmlFor={`${key}_${idx}_${fieldKey}`} className="text-sm">
+                          {fieldDef.description || fieldKey}
+                        </Label>
+                        <Textarea
+                          id={`${key}_${idx}_${fieldKey}`}
+                          value={section[fieldKey] || ""}
+                          onChange={(e) =>
+                            handleSectionFieldChange(key, idx, fieldKey, e.target.value)
+                          }
+                          placeholder={fieldDef.description}
+                          rows={3}
+                        />
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )
+      }
+
+      return null
+    })
   }
 
   if (!template && !existingInstance) return null
@@ -295,7 +353,7 @@ export function ExerciseWizardDialog({
   const dialogTitle = isEditing ? `Editar Ejercicio: ${nombre}` : `Configurar: ${template?.nombre}`
   const dialogDescription = isEditing
     ? "Modifica la configuración del ejercicio"
-    : template?.objetivo_pedagogico
+    : template?.objetivoPedagogico
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -398,17 +456,7 @@ export function ExerciseWizardDialog({
                     Personaliza los parámetros específicos de este tipo de ejercicio
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {template.configuracion_schema && Object.entries(template.configuracion_schema).map(([key, field]) =>
-                    renderConfigField(key, field)
-                  )}
-
-                  {(!template.configuracion_schema || Object.keys(template.configuracion_schema).length === 0) && (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      Este tipo de ejercicio no tiene configuración adicional
-                    </p>
-                  )}
-                </CardContent>
+                <CardContent className="space-y-4">{renderConfigFields()}</CardContent>
               </Card>
             </TabsContent>
 

@@ -19,7 +19,10 @@ export class AnalyzeDraftResponseDto {
 
   @ApiProperty({
     description: "Strengths identified in the draft",
-    example: ["Identificaste el problema principal", "Usaste ejemplos concretos"],
+    example: [
+      "Identificaste el problema principal",
+      "Usaste ejemplos concretos",
+    ],
     required: false,
   })
   strengths?: string[];

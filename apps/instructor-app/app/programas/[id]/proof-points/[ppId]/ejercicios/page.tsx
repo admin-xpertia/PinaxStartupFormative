@@ -37,7 +37,7 @@ import { ExerciseWizardDialog } from "@/components/exercise-wizard-dialog"
 import { ExercisePreviewDialog } from "@/components/exercise-preview-dialog"
 import { useToast } from "@/hooks/use-toast"
 import { apiClient } from "@/services/api/client"
-import type { ExerciseInstanceResponse } from "@/types/api"
+import type { ExerciseInstanceResponse, ExerciseTemplateResponse } from "@/types/api"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,22 +48,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-
-// Types
-interface ExerciseTemplate {
-  id: string
-  nombre: string
-  categoria: string
-  descripcion: string
-  objetivo_pedagogico: string
-  rol_ia: string
-  icono: string
-  color: string
-  configuracion_schema: Record<string, any>
-  configuracion_default: Record<string, any>
-  es_oficial: boolean
-  activo: boolean
-}
 
 interface ProofPoint {
   id: string
@@ -140,7 +124,7 @@ export default function ExerciseLibraryPage({
 
   // Fetch all templates grouped by category
   const { data: templatesResponse, isLoading: templatesLoading } = useSWR<{
-    data: Record<string, ExerciseTemplate[]>
+    data: Record<string, ExerciseTemplateResponse[]>
   }>(`/api/v1/exercise-templates/grouped`, fetcher)
 
   const exerciseInstances = instances || []
@@ -231,7 +215,7 @@ export default function ExerciseLibraryPage({
   }
 
   // Handle add template
-  const handleAddTemplate = (template: ExerciseTemplate) => {
+  const handleAddTemplate = (template: ExerciseTemplateResponse) => {
     setSelectedTemplate(template)
     setWizardOpen(true)
   }
@@ -240,7 +224,7 @@ export default function ExerciseLibraryPage({
   const handleEdit = (instance: ExerciseInstanceResponse) => {
     // Find the template for this instance
     const templateId = instance.template
-    let foundTemplate: ExerciseTemplate | null = null
+    let foundTemplate: ExerciseTemplateResponse | null = null
 
     // Search through all grouped templates
     for (const templates of Object.values(templatesGrouped)) {
@@ -447,7 +431,7 @@ export default function ExerciseLibraryPage({
                           <CardTitle className="text-xl flex items-center gap-2">
                             {CATEGORY_NAMES[categoria] || categoria}
                           </CardTitle>
-                          <CardDescription>{templates[0]?.objetivo_pedagogico}</CardDescription>
+                          <CardDescription>{templates[0]?.objetivoPedagogico}</CardDescription>
                         </CardHeader>
                         <CardContent>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -709,8 +693,8 @@ function ExerciseTemplateCard({
   onSelect,
   onAdd,
 }: {
-  template: ExerciseTemplate
-  onSelect: (template: ExerciseTemplate) => void
+  template: ExerciseTemplateResponse
+  onSelect: (template: ExerciseTemplateResponse) => void
   onAdd: () => void
 }) {
   const Icon = CATEGORY_ICONS[template.categoria] || BookOpen
@@ -731,7 +715,7 @@ function ExerciseTemplateCard({
 
           <div className="flex-1 min-w-0">
             <h4 className="font-semibold text-sm mb-1 line-clamp-1">{template.nombre}</h4>
-            {template.es_oficial && (
+            {template.esOficial && (
               <Badge variant="secondary" className="text-xs">
                 Oficial
               </Badge>

@@ -1,6 +1,6 @@
 // API Service para Exercises (Ejercicios/Componentes)
 
-import { apiClient } from "./client"
+import { apiClient, APIError } from "./client"
 import type { ExerciseInstance, ExerciseProgress, CompletionResult } from "@/types/exercise"
 
 export interface StartExerciseParams {
@@ -187,9 +187,20 @@ export const exercisesApi = {
     exerciseId: string,
     payload: AnalyzeDraftRequest
   ): Promise<AnalyzeDraftResponse> {
-    return apiClient.post(
-      `/student/exercises/${encodeURIComponent(exerciseId)}/analyze-draft`,
-      payload
-    )
+    try {
+      return await apiClient.post(
+        `/exercises/${encodeURIComponent(exerciseId)}/analyze-draft`,
+        payload
+      )
+    } catch (error) {
+      if (error instanceof APIError && error.statusCode === 404) {
+        // Backwards compatibility with older endpoint
+        return apiClient.post(
+          `/student/exercises/${encodeURIComponent(exerciseId)}/analyze-draft`,
+          payload
+        )
+      }
+      throw error
+    }
   },
 }

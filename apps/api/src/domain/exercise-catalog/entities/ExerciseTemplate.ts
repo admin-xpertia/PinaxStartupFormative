@@ -146,6 +146,14 @@ export class ExerciseTemplate extends AggregateRoot<ExerciseTemplateProps> {
     return this.props.activo;
   }
 
+  getCreatedAt(): Timestamp {
+    return this.props.createdAt;
+  }
+
+  getUpdatedAt(): Timestamp {
+    return this.props.updatedAt;
+  }
+
   // ========== Business Methods ==========
 
   /**
