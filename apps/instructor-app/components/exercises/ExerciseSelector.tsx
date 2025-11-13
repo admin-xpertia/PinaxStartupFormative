@@ -43,13 +43,15 @@ export function ExerciseSelector({ proofPointId, proofPointName }: ExerciseSelec
   }
 
   const handleSelectTemplate = async (template: ExerciseTemplateResponse) => {
-    // Fetch the latest version of the template to ensure we have the most up-to-date schema
+    // Reload all templates to get the latest schemas before opening the modal
     try {
-      const latestTemplate = await exerciseTemplatesApi.getById(template.id)
-      setSelectedTemplate(latestTemplate)
+      const freshTemplates = await exerciseTemplatesApi.getAll()
+      const latestTemplate = freshTemplates.find(t => t.id === template.id)
+      setTemplates(freshTemplates) // Update the cache
+      setSelectedTemplate(latestTemplate || template)
       setIsDialogOpen(true)
     } catch (error) {
-      console.error("Error loading template details:", error)
+      console.error("Error reloading templates:", error)
       // Fallback to cached template if fetch fails
       setSelectedTemplate(template)
       setIsDialogOpen(true)
