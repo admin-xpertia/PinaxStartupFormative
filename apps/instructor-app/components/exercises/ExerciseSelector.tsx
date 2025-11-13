@@ -42,9 +42,18 @@ export function ExerciseSelector({ proofPointId, proofPointName }: ExerciseSelec
     }
   }
 
-  const handleSelectTemplate = (template: ExerciseTemplateResponse) => {
-    setSelectedTemplate(template)
-    setIsDialogOpen(true)
+  const handleSelectTemplate = async (template: ExerciseTemplateResponse) => {
+    // Fetch the latest version of the template to ensure we have the most up-to-date schema
+    try {
+      const latestTemplate = await exerciseTemplatesApi.getById(template.id)
+      setSelectedTemplate(latestTemplate)
+      setIsDialogOpen(true)
+    } catch (error) {
+      console.error("Error loading template details:", error)
+      // Fallback to cached template if fetch fails
+      setSelectedTemplate(template)
+      setIsDialogOpen(true)
+    }
   }
 
   const handleCloseDialog = () => {
