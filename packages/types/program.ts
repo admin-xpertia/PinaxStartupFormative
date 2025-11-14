@@ -31,6 +31,7 @@ export interface Program {
   estadisticas?: {
     fases: number
     proof_points: number
+    ejercicios: number
     duracion: string
     estudiantes: number
   }

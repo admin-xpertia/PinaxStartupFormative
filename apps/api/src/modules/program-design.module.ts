@@ -16,11 +16,16 @@ import { PublishProgramUseCase } from "../application/program-design/use-cases/P
 import { ArchiveProgramUseCase } from "../application/program-design/use-cases/ArchiveProgram/ArchiveProgramUseCase";
 import { AddFaseToProgramUseCase } from "../application/program-design/use-cases/AddFaseToProgram/AddFaseToProgramUseCase";
 import { AddProofPointToFaseUseCase } from "../application/program-design/use-cases/AddProofPointToFase/AddProofPointToFaseUseCase";
+import { RecommendExercisePlanUseCase } from "../application/program-design/use-cases/RecommendExercisePlan/RecommendExercisePlanUseCase";
 
 // Controllers
 import { ProgramController } from "../presentation/controllers/program-design/program.controller";
 import { FaseController } from "../presentation/controllers/program-design/fase.controller";
 import { ProofPointController } from "../presentation/controllers/program-design/proof-point.controller";
+
+// Import modules that provide dependencies for the new UseCase
+import { ExerciseCatalogModule } from "./exercise-catalog.module";
+import { ExerciseInstanceModule } from "./exercise-instance.module";
 
 /**
  * ProgramDesignModule
@@ -33,7 +38,7 @@ import { ProofPointController } from "../presentation/controllers/program-design
  * - REST API controllers
  */
 @Module({
-  imports: [SurrealDbModule],
+  imports: [SurrealDbModule, ExerciseCatalogModule, ExerciseInstanceModule],
   providers: [
     // Mappers
     ProgramMapper,
@@ -62,6 +67,7 @@ import { ProofPointController } from "../presentation/controllers/program-design
     ArchiveProgramUseCase,
     AddFaseToProgramUseCase,
     AddProofPointToFaseUseCase,
+    RecommendExercisePlanUseCase,
   ],
   controllers: [
     // REST API Controllers
@@ -82,6 +88,7 @@ import { ProofPointController } from "../presentation/controllers/program-design
     ArchiveProgramUseCase,
     AddFaseToProgramUseCase,
     AddProofPointToFaseUseCase,
+    RecommendExercisePlanUseCase,
 
     // Export mapper for potential reuse
     ProgramMapper,

@@ -25,6 +25,8 @@ import {
 import { CreateProgramUseCase } from "../../../application/program-design/use-cases/CreateProgram/CreateProgramUseCase";
 import { PublishProgramUseCase } from "../../../application/program-design/use-cases/PublishProgram/PublishProgramUseCase";
 import { ArchiveProgramUseCase } from "../../../application/program-design/use-cases/ArchiveProgram/ArchiveProgramUseCase";
+import { RecommendExercisePlanUseCase } from "../../../application/program-design/use-cases/RecommendExercisePlan/RecommendExercisePlanUseCase";
+import { AddExerciseToProofPointUseCase } from "../../../application/exercise-instance/use-cases/AddExerciseToProofPoint/AddExerciseToProofPointUseCase";
 import {
   IProgramRepository,
   IFaseRepository,
@@ -52,12 +54,16 @@ export class ProgramController {
     private readonly createProgramUseCase: CreateProgramUseCase,
     private readonly publishProgramUseCase: PublishProgramUseCase,
     private readonly archiveProgramUseCase: ArchiveProgramUseCase,
+    private readonly recommendExercisePlanUseCase: RecommendExercisePlanUseCase,
+    private readonly addExerciseToProofPointUseCase: AddExerciseToProofPointUseCase,
     @Inject("IProgramRepository")
     private readonly programRepository: IProgramRepository,
     @Inject("IFaseRepository")
     private readonly faseRepository: IFaseRepository,
     @Inject("IProofPointRepository")
     private readonly proofPointRepository: IProofPointRepository,
+    @Inject("IExerciseInstanceRepository")
+    private readonly exerciseInstanceRepository: any,
   ) {}
 
   /**
@@ -335,6 +341,113 @@ export class ProgramController {
   }
 
   /**
+   * Recommend exercise plan for program
+   * Uses AI to analyze proof points and recommend exercises
+   */
+  @Post(":id/recommend-exercise-plan")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Generate AI-powered exercise recommendations",
+    description:
+      "Analyzes proof point contexts and returns exercise recommendations using AI",
+  })
+  @ApiParam({
+    name: "id",
+    description: "Program ID",
+    example: "programa:abc123",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Exercise recommendations generated",
+  })
+  @ApiResponse({ status: 404, description: "Program not found" })
+  async recommendExercisePlan(
+    @Param("id") programId: string,
+    @Body() body: { proofPointContexts: Record<string, any> },
+  ): Promise<{ recommendations: any[] }> {
+    const result = await this.recommendExercisePlanUseCase.execute({
+      programId,
+      proofPointContexts: body.proofPointContexts,
+    });
+
+    return result.match({
+      ok: (response) => response,
+      fail: (error) => {
+        if (error.message.includes("not found")) {
+          throw new NotFoundException(error.message);
+        }
+        throw new BadRequestException(error.message);
+      },
+    });
+  }
+
+  /**
+   * Apply exercise plan to program
+   * Creates exercise instances from AI recommendations
+   */
+  @Post(":id/apply-exercise-plan")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Apply AI-generated exercise plan",
+    description: "Creates exercise instances from recommendations",
+  })
+  @ApiParam({
+    name: "id",
+    description: "Program ID",
+    example: "programa:abc123",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Exercises created successfully",
+  })
+  @ApiResponse({ status: 404, description: "Program not found" })
+  async applyExercisePlan(
+    @Param("id") programId: string,
+    @Body() body: { recommendationsToApply: any[] },
+  ): Promise<{ success: boolean; created: number }> {
+    try {
+      this.logger.log(
+        `Applying ${body.recommendationsToApply.length} exercises to program ${programId}`,
+      );
+
+      let createdCount = 0;
+
+      // Create each exercise using the AddExerciseToProofPointUseCase
+      for (const recommendation of body.recommendationsToApply) {
+        const result = await this.addExerciseToProofPointUseCase.execute({
+          proofPointId: recommendation.proofPointId,
+          templateId: recommendation.templateId,
+          nombre: recommendation.nombre,
+          descripcionBreve: recommendation.descripcionBreve,
+          consideraciones: recommendation.consideracionesContexto,
+          configuracion: recommendation.configuracionPersonalizada,
+          duracionMinutos: recommendation.duracionEstimadaMinutos,
+          esObligatorio: recommendation.esObligatorio,
+        });
+
+        result.match({
+          ok: () => {
+            createdCount++;
+          },
+          fail: (error) => {
+            this.logger.warn(
+              `Failed to create exercise "${recommendation.nombre}": ${error.message}`,
+            );
+            // Continue with other exercises
+          },
+        });
+      }
+
+      return { success: true, created: createdCount };
+    } catch (error) {
+      this.logger.error("Failed to apply exercise plan", error);
+      throw new BadRequestException(
+        `Failed to apply exercise plan: ${error.message}`,
+      );
+    }
+  }
+
+  /**
    * Delete program
    */
   @Delete(":id")
@@ -370,13 +483,22 @@ export class ProgramController {
     const fases = await this.faseRepository.findByPrograma(programaId);
     const numFases = fases.length;
 
-    // Count total proof points across all fases
+    // Count total proof points and exercises across all fases
     let numProofPoints = 0;
+    let numEjercicios = 0;
     for (const fase of fases) {
       const proofPoints = await this.proofPointRepository.findByFase(
         fase.getId(),
       );
       numProofPoints += proofPoints.length;
+
+      // Count exercises for each proof point
+      for (const proofPoint of proofPoints) {
+        const exercises = await this.exerciseInstanceRepository.findByProofPoint(
+          proofPoint.getId(),
+        );
+        numEjercicios += exercises.length;
+      }
     }
 
     const duracionSemanas = programa.getDuracion().toWeeks();
@@ -403,6 +525,7 @@ export class ProgramController {
       estadisticas: {
         fases: numFases,
         proof_points: numProofPoints,
+        ejercicios: numEjercicios,
         duracion: duracionTexto,
         estudiantes: 0, // TODO: Calculate when cohort system is implemented
       },
