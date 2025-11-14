@@ -28,6 +28,7 @@ type CategoryFilter = ExerciseCategory | typeof DEFAULT_CATEGORY
 const CATEGORY_ENTRIES = Object.entries(exerciseCategoriesMetadata) as Array<
   [ExerciseCategory, (typeof exerciseCategoriesMetadata)[ExerciseCategory]]
 >
+const TOTAL_CATEGORY_FAMILIES = CATEGORY_ENTRIES.length
 
 export function TemplateLibrary() {
   const [category, setCategory] = useState<CategoryFilter>(DEFAULT_CATEGORY)
@@ -110,7 +111,7 @@ export function TemplateLibrary() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Plantillas disponibles</h1>
             <p className="text-muted-foreground">
-              Explora las 10 familias de ejercicios, filtra por categoría y revisa los objetivos pedagógicos
+              Explora las {TOTAL_CATEGORY_FAMILIES} familias de ejercicios, filtra por categoría y revisa los objetivos pedagógicos
               asociados a cada plantilla oficial.
             </p>
           </div>
@@ -152,7 +153,9 @@ export function TemplateLibrary() {
         <Card>
           <CardHeader>
             <CardTitle>Cobertura por categoría</CardTitle>
-            <CardDescription>Distribución frente a las 10 familias</CardDescription>
+            <CardDescription>
+              Distribución frente a las {TOTAL_CATEGORY_FAMILIES} familias
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-3">

@@ -182,4 +182,22 @@ export const exerciseCategoriesMetadata: Record<
     color: '#a855f7',
     descripcionCorta: 'Desbloqueables y reconocimiento de logros',
   },
+  caso: {
+    nombre: 'Caso de Análisis',
+    icono: '⚖️',
+    color: '#d946ef',
+    descripcionCorta: 'Analiza narrativas complejas para desarrollar juicio profesional',
+  },
+  instrucciones: {
+    nombre: 'Instrucciones de Actividad',
+    icono: '📋',
+    color: '#f97316',
+    descripcionCorta: 'Guías paso a paso para actividades auténticas en el mundo real',
+  },
+  metacognicion: {
+    nombre: 'Metacognición',
+    icono: '🧠',
+    color: '#f43f5e',
+    descripcionCorta: 'Sesiones de reflexión guiada para profundizar en el aprendizaje y la transferencia',
+  },
 }

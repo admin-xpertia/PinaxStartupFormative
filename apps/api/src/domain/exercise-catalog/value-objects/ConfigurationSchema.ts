@@ -84,13 +84,55 @@ export class ConfigurationSchema extends ValueObject<{
       return new ConfigurationSchema(converted.fields, converted.sourceSchema);
     }
 
-    return new ConfigurationSchema(
+    const normalized = this.normalizeInternalSchema(
       schema as Record<string, ConfigurationField>,
     );
+
+    return new ConfigurationSchema(normalized);
   }
 
   static empty(): ConfigurationSchema {
     return new ConfigurationSchema({});
+  }
+
+  private static normalizeInternalSchema(
+    schema: Record<string, ConfigurationField>,
+  ): Record<string, ConfigurationField> {
+    const normalized: Record<string, ConfigurationField> = {};
+
+    for (const [fieldName, fieldDef] of Object.entries(schema)) {
+      if (!fieldDef) {
+        continue;
+      }
+
+      normalized[fieldName] = {
+        ...fieldDef,
+        type: fieldDef.type || "text",
+        label:
+          fieldDef.label ||
+          fieldDef.description ||
+          this.formatFieldNameAsLabel(fieldName),
+      };
+    }
+
+    return normalized;
+  }
+
+  private static formatFieldNameAsLabel(fieldName: string): string {
+    if (!fieldName) {
+      return "Campo";
+    }
+
+    const cleaned = fieldName
+      .replace(/[_-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (!cleaned) {
+      return "Campo";
+    }
+
+    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
   }
 
   getFields(): Record<string, ConfigurationField> {

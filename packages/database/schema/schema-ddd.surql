@@ -90,7 +90,10 @@ DEFINE FIELD categoria ON exercise_template TYPE string ASSERT $value IN [
   'sistema_tracking',
   'herramienta_revision',
   'simulador_entorno',
-  'sistema_progresion'
+  'sistema_progresion',
+  'caso',
+  'instrucciones',
+  'metacognicion'
 ];
 DEFINE FIELD descripcion ON exercise_template TYPE string;
 DEFINE FIELD objetivo_pedagogico ON exercise_template TYPE option<string>;

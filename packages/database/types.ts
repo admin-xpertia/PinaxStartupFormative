@@ -558,7 +558,10 @@ export type ExerciseCategory =
   | 'sistema_tracking'
   | 'herramienta_revision'
   | 'simulador_entorno'
-  | 'sistema_progresion';
+  | 'sistema_progresion'
+  | 'caso'
+  | 'instrucciones'
+  | 'metacognicion';
 
 export interface ConfigurationField {
   type: 'number' | 'string' | 'boolean' | 'select' | 'multiselect';

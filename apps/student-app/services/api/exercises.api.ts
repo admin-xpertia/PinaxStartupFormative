@@ -47,6 +47,7 @@ export interface LessonAssistantRequest {
   historial?: LessonAssistantMessage[]
   perfilComprension?: Record<string, any>
   conceptoFocal?: string
+  systemPromptOverride?: string
 }
 
 export interface LessonAssistantResponse {

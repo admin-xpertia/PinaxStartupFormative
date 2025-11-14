@@ -958,7 +958,7 @@ Feedback:`;
       ? JSON.stringify(assistantDto.perfilComprension, null, 2)
       : "No hay datos de progreso previos.";
 
-    const systemPrompt = `Eres el asistente pedagógico de Xpertia que acompaña a estudiantes dentro de una lección interactiva.
+    const defaultSystemPrompt = `Eres el asistente pedagógico de Xpertia que acompaña a estudiantes dentro de una lección interactiva.
 Actúa como tutor socrático amable:
 - Siempre valida si la duda ya se resolvió en la sección actual antes de introducir información nueva.
 - Si el estudiante pregunta algo explicado en una sección previa que no ha leído, sugiérele regresar antes de responder en profundidad.
@@ -966,6 +966,11 @@ Actúa como tutor socrático amable:
 - Formula preguntas guía que impulsen reflexión y conexión con el contenido.
 - Ajusta el nivel de profundidad según el historial y el perfil de comprensión compartido.
 - Termina cada respuesta con una línea "Referencias: <lista separada por ';'>" mencionando los encabezados concretos usados (al menos la sección actual).`;
+
+    const systemPrompt =
+      assistantDto.systemPromptOverride?.trim().length
+        ? assistantDto.systemPromptOverride
+        : defaultSystemPrompt;
 
     const userContent = `SECCIÓN ACTUAL (${assistantDto.seccionTitulo} · ${assistantDto.seccionId})
 ${assistantDto.seccionContenido}

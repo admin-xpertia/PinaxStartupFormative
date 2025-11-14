@@ -91,6 +91,143 @@
       }
     },
     {
+      "nombre": "Caso de Análisis",
+      "categoria": "caso",
+      "descripcion": "Presenta una narrativa rica (real o realista) para que el estudiante aplique frameworks y desarrolle juicio profesional.",
+      "objetivo_pedagogico": "Desarrollar juicio contextualizado aplicando teoría a situaciones ambiguas.",
+      "rol_ia": "Consultor socrático que cuestiona el razonamiento del estudiante para desarrollar rigor analítico.",
+      "icono": "⚖️",
+      "color": "#d946ef",
+      "configuracion_schema": {
+        "duracion_minutos": {
+          "type": "number",
+          "label": "Duración estimada (minutos)",
+          "default": 45,
+          "min": 15,
+          "max": 90
+        },
+        "narrativa_caso": {
+          "type": "rich-text",
+          "label": "Narrativa del Caso",
+          "description": "Escribe o pega la historia completa del caso, incluyendo contexto, protagonistas, datos y el dilema central."
+        },
+        "preguntas_analisis": {
+          "type": "list",
+          "label": "Preguntas de Análisis Guiado",
+          "item_schema": {
+            "pregunta_guia": {
+              "type": "string",
+              "label": "Pregunta para el Estudiante"
+            },
+            "criterios_ia": {
+              "type": "textarea",
+              "label": "Criterios para el Asistente IA"
+            }
+          }
+        }
+      },
+      "output_schema": {
+        "titulo": "string",
+        "narrativa_markdown": "string",
+        "secciones_analisis": "array"
+      }
+    },
+    {
+      "nombre": "Instrucciones de Actividad",
+      "categoria": "instrucciones",
+      "descripcion": "Guía paso a paso para ejecutar actividades auténticas fuera de la plataforma (entrevistas, experimentos de campo).",
+      "objetivo_pedagogico": "Proporcionar andamiaje procedimental y soporte IA 'just-in-time' para actividades en el mundo real.",
+      "rol_ia": "Coaching asíncrono que ayuda a preparar, ejecutar y reflexionar sobre la actividad.",
+      "icono": "📋",
+      "color": "#f97316",
+      "configuracion_schema": {
+        "duracion_minutos": {
+          "type": "number",
+          "label": "Duración estimada (minutos)",
+          "default": 60,
+          "min": 10,
+          "max": 240
+        },
+        "objetivo_actividad": {
+          "type": "textarea",
+          "label": "Objetivo de la Actividad",
+          "description": "¿Qué debe lograr el estudiante en el mundo real?"
+        },
+        "contexto_ia": {
+          "type": "textarea",
+          "label": "Contexto para el Asistente IA",
+          "description": "Contexto clave que la IA debe conocer para dar buen coaching. (Ej: 'El estudiante entrevistará usuarios B2B por primera vez')"
+        },
+        "checklists_preparacion": {
+          "type": "list",
+          "label": "Checklists de Preparación",
+          "item_schema": {
+            "titulo": {
+              "type": "string",
+              "label": "Título del Checklist (Ej: 'Antes de salir')"
+            },
+            "items": {
+              "type": "tags",
+              "label": "Tareas"
+            }
+          }
+        }
+      },
+      "output_schema": {
+        "titulo": "string",
+        "resumen_mision": "string",
+        "pasos_ejecucion": "array",
+        "checklists": "array",
+        "preguntas_asistencia_sugeridas": "array"
+      }
+    },
+    {
+      "nombre": "Metacognición",
+      "categoria": "metacognicion",
+      "descripcion": "Guía al estudiante en una reflexión estructurada sobre su propio proceso de aprendizaje.",
+      "objetivo_pedagogico": "Desarrollar auto-regulación y conciencia epistémica.",
+      "rol_ia": "Facilitador reflexivo y socrático que guía la conversación sin evaluar respuestas.",
+      "icono": "🧠",
+      "color": "#f43f5e",
+      "configuracion_schema": {
+        "duracion_minutos": {
+          "type": "number",
+          "label": "Duración estimada (minutos)",
+          "default": 20,
+          "min": 10,
+          "max": 45
+        },
+        "pregunta_anclaje": {
+          "type": "textarea",
+          "label": "Pregunta de Anclaje",
+          "description": "La pregunta inicial que la IA usará para comenzar la reflexión situando al estudiante en un momento específico."
+        },
+        "contexto_ia": {
+          "type": "textarea",
+          "label": "Contexto para la IA",
+          "description": "Contexto breve para que la IA entienda el propósito de esta reflexión. (Ej: 'Acaba de terminar un desafío difícil; enfocar en normalizar frustración y extraer estrategias de afrontamiento')."
+        },
+        "dimensiones_explorar": {
+          "type": "multiselect",
+          "label": "Dimensiones a Explorar",
+          "options": [
+            "comprension_conceptual",
+            "estrategias_aprendizaje",
+            "estados_afectivos",
+            "auto_eficacia",
+            "transferencia"
+          ],
+          "default": ["comprension_conceptual", "estados_afectivos", "transferencia"],
+          "description": "Temas clave que la IA debe intentar cubrir durante la conversación."
+        }
+      },
+      "output_schema": {
+        "titulo": "string",
+        "mensaje_apertura_ia": "string",
+        "system_prompt_chat": "string"
+      }
+    },
+    {
       "nombre": "Cuaderno de Trabajo",
       "categoria": "cuaderno_trabajo",
       "descripcion": "Guiar al aprendiz a documentar, estructurar y reflexionar sobre su propio trabajo, proporcionando andamiaje que gradualmente se retira mientras se evalúa calidad y se ofrece feedback formativo continuo.",

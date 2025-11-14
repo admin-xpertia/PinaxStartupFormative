@@ -90,6 +90,14 @@ export class LessonAssistantRequestDto {
   @IsOptional()
   @IsString()
   conceptoFocal?: string;
+
+  @ApiPropertyOptional({
+    description:
+      "Prompt del sistema opcional para sobreescribir el comportamiento por defecto del asistente.",
+  })
+  @IsOptional()
+  @IsString()
+  systemPromptOverride?: string;
 }
 
 export class LessonAssistantResponseDto {

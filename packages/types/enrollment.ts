@@ -66,3 +66,6 @@ export type ExerciseType =
   | "herramienta_revision"
   | "simulador_entorno"
   | "sistema_progresion"
+  | "caso"
+  | "instrucciones"
+  | "metacognicion"

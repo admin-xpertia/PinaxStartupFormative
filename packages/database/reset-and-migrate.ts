@@ -18,7 +18,7 @@
  *   --confirm      Confirmar automáticamente (para scripts CI/CD)
  *
  * Seed de Exercise Templates:
- *   - Incluye los 10 tipos de ejercicios con output_schemas actualizados
+ *   - Incluye los 12 tipos de ejercicios con output_schemas actualizados
  *   - Los schemas coinciden con las interfaces de los players en student-app
  *   - La IA generará contenido que los players pueden visualizar correctamente
  */
@@ -343,7 +343,7 @@ async function verifySeed(db: Surreal) {
       });
     }
 
-    // Verificar que tengamos los 10 tipos esperados
+    // Verificar que tengamos los 12 tipos esperados
     const expectedCategories = [
       'leccion_interactiva',
       'cuaderno_trabajo',
@@ -355,6 +355,8 @@ async function verifySeed(db: Surreal) {
       'herramienta_revision',
       'simulador_entorno',
       'sistema_progresion',
+      'caso',
+      'instrucciones',
     ];
 
     if (templateCount >= expectedCategories.length) {
@@ -474,7 +476,7 @@ async function main() {
     log('\n📊 Resumen de la migración:', 'cyan');
     log('  ✓ 27 tablas creadas (base DDD + student execution + snapshots)', 'green');
     log('  ✓ 3 usuarios de prueba creados (admin, instructor, estudiante)', 'green');
-    log('  ✓ 10 tipos de ejercicios cargados', 'green');
+    log('  ✓ 12 tipos de ejercicios cargados', 'green');
     log('', 'reset');
 
     log('\n🔑 Credenciales por defecto:', 'cyan');
@@ -500,6 +502,8 @@ async function main() {
     log('  8. ✅ Herramienta de Revisión - Genera { titulo, criterios_revision, rubrica, recursos_mejora }', 'blue');
     log('  9. 🌐 Simulador de Entorno - Genera { titulo, tipo_entorno, estado_inicial, acciones_posibles }', 'blue');
     log('  10. 🎯 Sistema de Progresión - Genera { titulo, niveles, arbol_dependencias, criterios_evaluacion }', 'blue');
+    log('  11. ⚖️ Caso de Análisis - Genera { titulo, narrativa_markdown, secciones_analisis, metadata }', 'blue');
+    log('  12. 📋 Instrucciones de Actividad - Genera { titulo, resumen_mision, pasos_ejecucion, checklists, preguntas_asistencia_sugeridas }', 'blue');
     log('', 'reset');
     log('  ℹ️  Todos los schemas coinciden con interfaces de student-app players', 'cyan');
 

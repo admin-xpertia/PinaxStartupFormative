@@ -135,6 +135,9 @@ export type ExerciseCategory =
   | 'herramienta_revision'
   | 'simulador_entorno'
   | 'sistema_progresion'
+  | 'caso'
+  | 'instrucciones'
+  | 'metacognicion'
 
 export interface ExerciseTemplateResponse {
   id: string

@@ -12,7 +12,7 @@ import { ProgramWizard } from "@/components/wizard/program-wizard"
 import { useUIStore } from "@/stores/ui-store"
 import { cn } from "@/lib/utils"
 import { Breadcrumbs } from "@/components/shared/breadcrumbs"
-import { programsApi } from "@/services/api"
+import { programsApi, exerciseCategoriesMetadata } from "@/services/api"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -20,6 +20,7 @@ export default function DashboardPage() {
   const [showWizard, setShowWizard] = useState(false)
   const { sidebarCollapsed } = useUIStore()
   const router = useRouter()
+  const exerciseFamilyCount = Object.keys(exerciseCategoriesMetadata).length
 
   // Fetch programs
   const { data: programs, error, isLoading, mutate } = useSWR(
@@ -289,7 +290,7 @@ export default function DashboardPage() {
                     <div>
                       <h4 className="font-medium">Seleccionar Ejercicios</h4>
                       <p className="text-sm text-muted-foreground">
-                        Elige entre 10 tipos de ejercicios potenciados por IA para cada proof point
+                        Elige entre {exerciseFamilyCount} tipos de ejercicios potenciados por IA para cada proof point
                       </p>
                     </div>
                   </div>

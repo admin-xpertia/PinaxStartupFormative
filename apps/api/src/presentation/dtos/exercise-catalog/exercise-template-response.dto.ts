@@ -16,14 +16,21 @@ export class ExerciseTemplateResponseDto {
   @ApiProperty({
     description: "Categoría del ejercicio",
     enum: [
-      "code_generation",
-      "code_explanation",
-      "code_review",
-      "debugging",
-      "conceptual",
-      "project_design",
+      "leccion_interactiva",
+      "cuaderno_trabajo",
+      "simulacion_interaccion",
+      "mentor_asesor_ia",
+      "herramienta_analisis",
+      "herramienta_creacion",
+      "sistema_tracking",
+      "herramienta_revision",
+      "simulador_entorno",
+      "sistema_progresion",
+      "caso",
+      "instrucciones",
+      "metacognicion",
     ],
-    example: "code_generation",
+    example: "leccion_interactiva",
   })
   categoria: string;
 

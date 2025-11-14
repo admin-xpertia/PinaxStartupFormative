@@ -1,7 +1,7 @@
 -- ============================================================================
 -- SEED: EXERCISE TEMPLATES
 -- ============================================================================
--- Inserta los 10 tipos de ejercicios mediados por IA en la base de datos
+-- Inserta los 12 tipos de ejercicios mediados por IA en la base de datos
 -- Fecha: 2025-11-06
 -- ============================================================================
 
@@ -438,6 +438,182 @@ CREATE exercise_template:sistema_progresion CONTENT {
         umbral_progresion: {}
     },
     preview_config: {},
+    es_oficial: true,
+    activo: true
+};
+
+-- 11. CASO DE ANÁLISIS
+CREATE exercise_template:caso CONTENT {
+    nombre: "Caso de Análisis",
+    categoria: "caso",
+    descripcion: "Instrumento de aprendizaje basado en análisis situacional que presenta una narrativa rica de una situación real o realista para desarrollar juicio profesional contextualizado.",
+    objetivo_pedagogico: "Desarrollar la capacidad de aplicar frameworks conceptuales a situaciones ambiguas del mundo real, identificando factores causales, evaluando decisiones y proponiendo alternativas justificadas.",
+    rol_ia: "Consultor socrático que no da respuestas, sino que cuestiona el razonamiento del estudiante (\"¿Qué evidencia del caso sustenta tu afirmación?\", \"¿Consideraste estas restricciones?\") para desarrollar rigor analítico y pensamiento multidimensional.",
+    icono: "⚖️",
+    color: "#d946ef",
+    configuracion_schema: {
+        type: "object",
+        properties: {
+            narrativa_caso: {
+                type: "string",
+                description: "Narrativa completa del caso (historia, datos, protagonistas)"
+            },
+            preguntas_analisis: {
+                type: "array",
+                description: "Preguntas estructuradas que guían el análisis del estudiante.",
+                items: {
+                    type: "object",
+                    properties: {
+                        pregunta_guia: {
+                            type: "string",
+                            description: "Pregunta para el estudiante (Ej: \"Identifica el problema central\")"
+                        },
+                        criterios_ia: {
+                            type: "string",
+                            description: "Criterios que la IA usará para evaluar la respuesta del estudiante"
+                        }
+                    }
+                }
+            }
+        },
+        required: ["narrativa_caso"]
+    },
+    configuracion_default: {
+        preguntas_analisis: []
+    },
+    prompt_template: "Eres un diseñador instruccional experto creando un Caso de Análisis interactivo.\n\nCONTEXTO DEL PROGRAMA:\n{{programa.nombre}}, Fase: {{fase.nombre}}\nProof Point: {{proof_point.pregunta_central}}\n\nNARRATIVA BASE PROPORCIONADA:\n{{configuracion.narrativa_caso}}\n\nPREGUNTAS DE ANÁLISIS DEFINIDAS POR INSTRUCTOR:\n{{#each configuracion.preguntas_analisis}}\n- Pregunta: {{pregunta_guia}}\n- Criterios IA: {{criterios_ia}}\n{{/each}}\n\nREQUISITOS DE FORMATO:\n- El output debe ser un JSON que siga el output_schema.\n- El campo \"narrativa_markdown\" debe contener la historia del caso, formateada con H2/H3 y :::callouts para datos clave.\n- El campo \"secciones_analisis\" debe tomar las \"preguntas_analisis\" del instructor y convertirlas en secciones de un cuaderno de trabajo, detallando qué debe hacer el estudiante.\n\nOUTPUT ESPERADO (JSON):\n{{output_schema}}\n\nIMPORTANTE: Devuelve únicamente JSON válido.",
+    output_schema: {
+        titulo: "string",
+        narrativa_markdown: "string (La historia del caso formateada)",
+        metadata: {
+            conceptosClave: ["string"],
+            tiempoEstimadoMinutos: "number"
+        },
+        secciones_analisis: [{
+            id: "string",
+            titulo: "string (Basado en la pregunta_guia)",
+            instrucciones: "string (Instrucción clara para el estudiante)",
+            placeholder: "string (Ej: \"Escribe tu análisis aquí...\")",
+            criterios_evaluacion_ia: ["string (Basado en criterios_ia)"]
+        }]
+    },
+    preview_config: {
+        mostrar_progreso: true,
+        tiempo_estimado_minutos: 45
+    },
+    es_oficial: true,
+    activo: true
+};
+
+-- 12. INSTRUCCIONES DE ACTIVIDAD
+CREATE exercise_template:instrucciones CONTENT {
+    nombre: "Instrucciones de Actividad",
+    categoria: "instrucciones",
+    descripcion: "Guía procedimental paso a paso para ejecutar actividades de aprendizaje auténticas fuera de la plataforma (entrevistas, prototipos físicos, experimentos).",
+    objetivo_pedagogico: "Proporcionar andamiaje procedimental y soporte \"just-in-time\" para que el estudiante navegue exitosamente actividades en el mundo real.",
+    rol_ia: "Coaching asíncrono que ayuda al estudiante a preparar la actividad (\"¿Qué preguntas priorizo?\"), consultar durante (\"¿Cómo respondo a esta objeción?\"), y reflexionar después (\"¿Mi approach fue correcto?\") usando el contexto del objetivo de la actividad.",
+    icono: "📋",
+    color: "#f97316",
+    configuracion_schema: {
+        type: "object",
+        properties: {
+            objetivo_actividad: {
+                type: "string",
+                description: "Qué debe lograr el estudiante con esta actividad en el mundo real"
+            },
+            contexto_ia: {
+                type: "string",
+                description: "Contexto clave para el Asistente IA (Ej: \"El estudiante va a entrevistar a un cliente B2B difícil\")"
+            },
+            checklists_preparacion: {
+                type: "array",
+                description: "Listas de verificación (pre, durante, post)",
+                items: {
+                    type: "object",
+                    properties: {
+                        titulo: {
+                            type: "string",
+                            description: "Ej: \"Antes de la Entrevista\""
+                        },
+                        items: {
+                            type: "array",
+                            items: { type: "string" }
+                        }
+                    }
+                }
+            }
+        },
+        required: ["objetivo_actividad", "contexto_ia"]
+    },
+    configuracion_default: {
+        checklists_preparacion: []
+    },
+    prompt_template: "Eres un diseñador instruccional experto creando una guía de instrucciones para una actividad auténtica fuera de la plataforma.\n\nCONTEXTO DEL PROGRAMA:\n{{programa.nombre}}, Fase: {{fase.nombre}}\nProof Point: {{proof_point.pregunta_central}}\n\nDEFINICIÓN DE LA ACTIVIDAD (Instructor):\n- Objetivo: {{configuracion.objetivo_actividad}}\n- Contexto para IA: {{configuracion.contexto_ia}}\n- Checklists: {{configuracion.checklists_preparacion}}\n\nREQUISITOS DE FORMATO:\n- El output debe ser un JSON que siga el output_schema.\n- Genera un \"resumen_mision\" claro.\n- Detalla los \"pasos_ejecucion\" (inferidos del objetivo).\n- Formatea los \"checklists\" proporcionados.\n- Genera 3 \"preguntas_asistencia_sugeridas\" que el estudiante podría hacerle a la IA (Ej: \"Ayúdame a preparar mis preguntas de apertura\").\n\nOUTPUT ESPERADO (JSON):\n{{output_schema}}\n\nIMPORTANTE: Devuelve únicamente JSON válido.",
+    output_schema: {
+        titulo: "string",
+        resumen_mision: "string (Descripción clara del objetivo)",
+        pasos_ejecucion: [{
+            id: "string",
+            nombre: "string",
+            descripcion: "string"
+        }],
+        checklists: [{
+            titulo: "string",
+            items: [{ id: "string", texto: "string", completado: "boolean" }]
+        }],
+        preguntas_asistencia_sugeridas: ["string"]
+    },
+    preview_config: {
+        autoguardado: false,
+        mostrar_progreso_secciones: true
+    },
+    es_oficial: true,
+    activo: true
+};
+
+-- 13. METACOGNICION
+CREATE exercise_template:metacognicion CONTENT {
+    nombre: "Metacognicion",
+    categoria: "metacognicion",
+    descripcion: "Experiencia estructurada de reflexion guiada sobre el propio proceso de aprendizaje para desarrollar auto-regulacion y conciencia epistemica.",
+    objetivo_pedagogico: "Desarrollar la capacidad de monitorear la propia comprension, diagnosticar confusiones, seleccionar estrategias de aprendizaje y evaluar la efectividad de los enfoques.",
+    rol_ia: "Facilitador reflexivo no-evaluativo que emplea conversacion socratica estructurada para guiar al estudiante a traves de un proceso de reflexion profunda sobre su experiencia de aprendizaje.",
+    icono: "🧠",
+    color: "#f43f5e",
+    configuracion_schema: {
+        type: "object",
+        properties: {
+            pregunta_anclaje: {
+                type: "string",
+                description: "Pregunta inicial que ancla la reflexion a un momento especifico."
+            },
+            contexto_ia: {
+                type: "string",
+                description: "Contexto clave para que la IA comprenda el objetivo de la sesion."
+            },
+            dimensiones_explorar: {
+                type: "array",
+                description: "Dimensiones metacognitivas que la IA debe explorar durante la conversacion.",
+                items: { type: "string" },
+                default: ["comprension_conceptual", "estados_afectivos", "transferencia"]
+            }
+        },
+        required: ["pregunta_anclaje", "contexto_ia"]
+    },
+    configuracion_default: {
+        dimensiones_explorar: ["comprension_conceptual", "estados_afectivos", "transferencia"]
+    },
+    prompt_template: "Eres un diseñador instruccional experto en aprendizaje auto-regulado. Tu tarea es configurar una sesión de chat de metacognición.\n\nCONFIGURACIÓN DEL INSTRUCTOR:\n- Pregunta de Anclaje: {{configuracion.pregunta_anclaje}}\n- Contexto General: {{configuracion.contexto_ia}}\n- Dimensiones a Explorar: {{configuracion.dimensiones_explorar}}\n\nTU TAREA:\nGenera un JSON que siga el output_schema para inicializar el chat.\n1. Crea un título para la actividad.\n2. Adapta la pregunta_anclaje del instructor para que sea el mensaje_apertura_ia (el primer mensaje que verá el estudiante).\n3. Genera el system_prompt_chat. Este es el cerebro de la IA. Debe contener todas las instrucciones detalladas que definen su rol. Usa el siguiente texto como base fundamental para el system_prompt_chat:\n\n--- INICIO DEL SYSTEM PROMPT BASE ---\nEres un facilitador reflexivo no-evaluativo. Tu objetivo es guiar al estudiante en una reflexión profunda sobre su aprendizaje.\n\nCONTEXTO DE ESTA SESIÓN: {{configuracion.contexto_ia}}\n\nTU PROTOCOLO CONVERSACIONAL ESTRUCTURADO:\n1. Anclaje: Inicia con la pregunta de anclaje.\n2. Profundización (Follow-ups): Basado en su respuesta, usa preguntas de seguimiento adaptativas para explorar estas dimensiones: {{configuracion.dimensiones_explorar}}.\n   - Comprensión Conceptual: \"¿Qué conceptos te resultan claros ahora vs. cuáles siguen nebulosos?\"\n   - Estrategias de Aprendizaje: \"Cuando te sentiste bloqueado, ¿qué hiciste?\"\n   - Estados Afectivos: \"¿Hubo momentos de frustración? ¿Qué los provocó?\"\n   - Transferencia: \"¿Cómo podrías usar esto en otro contexto?\"\n3. Contexto Longitudinal: Conecta sus reflexiones actuales con las pasadas cuando sea posible.\n4. Transferencia Prospectiva: \"Basándote en esto, ¿qué anticipas que será similar o diferente en el próximo desafío?\"\n5. Tono: Mantente empático y no-evaluativo. Normaliza la confusión. No evalúes respuestas como \"correctas\" o \"incorrectas\".\n6. Síntesis: Al final, ayuda al estudiante a resumir los insights.\n--- FIN DEL SYSTEM PROMPT BASE ---\n\nOUTPUT ESPERADO (JSON):\n{{output_schema}}\n\nIMPORTANTE: Devuelve únicamente JSON válido.",
+    output_schema: {
+        titulo: "string",
+        mensaje_apertura_ia: "string",
+        system_prompt_chat: "string"
+    },
+    preview_config: {
+        interactivo: true,
+        mostrar_razonamiento: false,
+        tiempo_estimado_minutos: 20
+    },
     es_oficial: true,
     activo: true
 };

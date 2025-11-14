@@ -180,6 +180,9 @@ export class ExerciseTemplateController {
       "herramienta_revision",
       "simulador_entorno",
       "sistema_progresion",
+      "caso",
+      "instrucciones",
+      "metacognicion",
     ],
     example: "leccion_interactiva",
   })

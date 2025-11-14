@@ -6,7 +6,7 @@ El script `reset-and-migrate.ts` resetea completamente la base de datos SurrealD
 - Schema DDD completo
 - Schema de Student Execution
 - Usuarios de prueba (admin, instructor, estudiante)
-- **10 tipos de ejercicios con schemas actualizados**
+- **12 tipos de ejercicios con schemas actualizados**
 
 ## ⚠️ ADVERTENCIA
 
@@ -82,15 +82,17 @@ pnpm tsx reset-and-migrate.ts --confirm
    - ✅ Herramienta de Revisión
    - 🌐 Simulador de Entorno
    - 🎯 Sistema de Progresión
+   - ⚖️ Caso de Análisis
+   - 📋 Instrucciones de Actividad
 
 ### Paso 5-6: Verificación
 - Cuenta usuarios creados
-- Cuenta exercise templates (debe ser 10)
+- Cuenta exercise templates (debe ser 12)
 - Verifica que todas las 27 tablas existen
 
 ## ✅ Output Schemas Actualizados
 
-Los 10 tipos de ejercicios ahora tienen `output_schemas` que **coinciden exactamente** con las interfaces TypeScript de los players en `student-app`:
+Los 12 tipos de ejercicios ahora tienen `output_schemas` que **coinciden exactamente** con las interfaces TypeScript de los players en `student-app`:
 
 | Tipo | Schema Generado | Player |
 |------|----------------|--------|
@@ -104,6 +106,8 @@ Los 10 tipos de ejercicios ahora tienen `output_schemas` que **coinciden exactam
 | Revisión | `{ titulo, criterios_revision, rubrica, recursos_mejora }` | `HerramientaRevisionPlayer.tsx` |
 | Simulador | `{ titulo, tipo_entorno, estado_inicial, acciones_posibles }` | `SimuladorEntornoPlayer.tsx` |
 | Progresión | `{ titulo, niveles, arbol_dependencias, criterios_evaluacion }` | `SistemaProgresionPlayer.tsx` |
+| Caso de Análisis | `{ titulo, narrativa_markdown, metadata, secciones_analisis }` | `CasoPlayer.tsx` |
+| Instrucciones de Actividad | `{ titulo, resumen_mision, pasos_ejecucion, checklists, preguntas_asistencia_sugeridas }` | `InstruccionesPlayer.tsx` |
 
 ## 🎯 Resultado esperado
 
@@ -115,9 +119,9 @@ Los 10 tipos de ejercicios ahora tienen `output_schemas` que **coinciden exactam
 📊 Resumen de la migración:
   ✓ 27 tablas creadas (base DDD + student execution + snapshots)
   ✓ 3 usuarios de prueba creados (admin, instructor, estudiante)
-  ✓ 10 tipos de ejercicios cargados
+  ✓ 12 tipos de ejercicios cargados
 
-✓ Todos los 10 tipos de ejercicios fueron cargados
+✓ Todos los 12 tipos de ejercicios fueron cargados
 ```
 
 ## 🔧 Troubleshooting

@@ -128,16 +128,27 @@ export function ExerciseConfigForm({ template, proofPointId, onClose, onSuccess 
     })
   }
 
-  const handleAddSection = (key: string) => {
-    const currentSections = formData.configuracionPersonalizada[key] || []
-    handleConfigChange(key, [
-      ...currentSections,
-      { tituloSeccion: "", descripcionPrompt: "", criteriosPrompt: "" },
-    ])
+  const handleAddSection = (key: string, fieldSchema?: any) => {
+    const currentValue = formData.configuracionPersonalizada[key]
+    const currentSections = Array.isArray(currentValue) ? currentValue : []
+
+    const defaultSection =
+      fieldSchema?.items?.properties
+        ? Object.entries(fieldSchema.items.properties).reduce(
+            (acc, [fieldKey, fieldDef]: [string, any]) => {
+              acc[fieldKey] = fieldDef?.default ?? ""
+              return acc
+            },
+            {} as Record<string, any>
+          )
+        : { tituloSeccion: "", descripcionPrompt: "", criteriosPrompt: "" }
+
+    handleConfigChange(key, [...currentSections, defaultSection])
   }
 
   const handleRemoveSection = (key: string, index: number) => {
-    const currentSections = formData.configuracionPersonalizada[key] || []
+    const currentValue = formData.configuracionPersonalizada[key]
+    const currentSections = Array.isArray(currentValue) ? currentValue : []
     handleConfigChange(
       key,
       currentSections.filter((_: any, i: number) => i !== index)
@@ -150,7 +161,8 @@ export function ExerciseConfigForm({ template, proofPointId, onClose, onSuccess 
     fieldKey: string,
     value: any
   ) => {
-    const currentSections = [...(formData.configuracionPersonalizada[arrayKey] || [])]
+    const existing = formData.configuracionPersonalizada[arrayKey]
+    const currentSections = Array.isArray(existing) ? [...existing] : []
     currentSections[index] = {
       ...currentSections[index],
       [fieldKey]: value,
@@ -324,7 +336,7 @@ export function ExerciseConfigForm({ template, proofPointId, onClose, onSuccess 
             <Button
               type="button"
               variant="outline"
-              onClick={() => handleAddSection(key)}
+              onClick={() => handleAddSection(key, fieldSchema)}
               className="w-full"
             >
               + Añadir Sección

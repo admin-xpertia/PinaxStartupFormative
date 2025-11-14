@@ -21,6 +21,9 @@ import {
   HerramientaRevisionPlayer,
   SimuladorEntornoPlayer,
   SistemaProgresionPlayer,
+  CasoPlayer,
+  InstruccionesPlayer,
+  MetacognicionPlayer,
 } from "@/components/players"
 
 export default function ExercisePage() {
@@ -282,6 +285,15 @@ export default function ExercisePage() {
 
     case "sistema_progresion":
       return <SistemaProgresionPlayer {...baseProps} content={exercise.content as any} />
+
+    case "caso":
+      return <CasoPlayer {...baseProps} content={exercise.content as any} />
+
+    case "instrucciones":
+      return <InstruccionesPlayer {...baseProps} content={exercise.content as any} />
+
+    case "metacognicion":
+      return <MetacognicionPlayer {...baseProps} content={exercise.content as any} />
 
     default:
       return (

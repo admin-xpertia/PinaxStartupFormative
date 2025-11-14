@@ -31,6 +31,9 @@ export const getExerciseTypeLabel = (tipo: string) => {
     herramienta_revision: "Revisión",
     simulador_entorno: "Entorno",
     sistema_progresion: "Progresión",
+    caso: "Caso",
+    instrucciones: "Instrucciones",
+    metacognicion: "Metacognición",
   }
   return labels[tipo] || tipo
 }

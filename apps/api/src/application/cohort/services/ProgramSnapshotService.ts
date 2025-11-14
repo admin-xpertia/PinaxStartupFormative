@@ -205,6 +205,9 @@ export class ProgramSnapshotService {
       "herramienta_revision",
       "simulador_entorno",
       "sistema_progresion",
+      "caso",
+      "instrucciones",
+      "metacognicion",
     ];
 
     if (normalized && allowed.includes(normalized as ExerciseType)) {

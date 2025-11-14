@@ -2,7 +2,7 @@ import { ValueObject } from "../../shared/types/ValueObject";
 
 /**
  * ExerciseCategory Value Object
- * Represents the 10 types of AI-mediated exercises
+ * Represents the 12 types of AI-mediated exercises
  */
 export type ExerciseCategoryType =
   | "leccion_interactiva"
@@ -14,7 +14,10 @@ export type ExerciseCategoryType =
   | "sistema_tracking"
   | "herramienta_revision"
   | "simulador_entorno"
-  | "sistema_progresion";
+  | "sistema_progresion"
+  | "caso"
+  | "instrucciones"
+  | "metacognicion";
 
 export class ExerciseCategory extends ValueObject<{
   value: ExerciseCategoryType;
@@ -67,6 +70,18 @@ export class ExerciseCategory extends ValueObject<{
     return new ExerciseCategory("sistema_progresion");
   }
 
+  static casoAnalisis(): ExerciseCategory {
+    return new ExerciseCategory("caso");
+  }
+
+  static instruccionesActividad(): ExerciseCategory {
+    return new ExerciseCategory("instrucciones");
+  }
+
+  static metacognicion(): ExerciseCategory {
+    return new ExerciseCategory("metacognicion");
+  }
+
   getValue(): ExerciseCategoryType {
     return this.props.value;
   }
@@ -86,6 +101,9 @@ export class ExerciseCategory extends ValueObject<{
       herramienta_revision: "Herramienta de Revisión",
       simulador_entorno: "Simulador de Entorno",
       sistema_progresion: "Sistema de Progresión",
+      caso: "Caso de Análisis",
+      instrucciones: "Instrucciones de Actividad",
+      metacognicion: "Metacognición",
     };
 
     return names[this.props.value];
@@ -106,6 +124,9 @@ export class ExerciseCategory extends ValueObject<{
       herramienta_revision: "✅",
       simulador_entorno: "🌐",
       sistema_progresion: "🎯",
+      caso: "⚖️",
+      instrucciones: "📋",
+      metacognicion: "🧠",
     };
 
     return icons[this.props.value];
