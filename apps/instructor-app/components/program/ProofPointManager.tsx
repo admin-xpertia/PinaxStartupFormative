@@ -8,11 +8,13 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Plus, Edit, Trash2, GripVertical, Clock, HelpCircle, Package, BookOpen } from "lucide-react"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Plus, Edit, Trash2, GripVertical, Clock, HelpCircle, Package } from "lucide-react"
 import { proofPointsApi } from "@/services/api"
 import type { ProofPointResponse, AddProofPointRequest } from "@/types/api"
 import { toast } from "sonner"
-import Link from "next/link"
+import { ExerciseInstanceList } from "@/components/exercises/ExerciseInstanceList"
+import { ExerciseSelector } from "@/components/exercises/ExerciseSelector"
 
 interface ProofPointManagerProps {
   programId: string
@@ -51,6 +53,7 @@ export function ProofPointManager({
     prerequisitosText: "",
   })
   const [isSaving, setIsSaving] = useState(false)
+  const [exerciseRefreshKeys, setExerciseRefreshKeys] = useState<Record<string, number>>({})
 
   // Load proof points
   useEffect(() => {
@@ -198,6 +201,13 @@ export function ProofPointManager({
     }
   }
 
+  const refreshExercisesForProofPoint = (proofPointId: string) => {
+    setExerciseRefreshKeys(prev => ({
+      ...prev,
+      [proofPointId]: (prev[proofPointId] || 0) + 1,
+    }))
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -244,72 +254,88 @@ export function ProofPointManager({
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
-          {proofPoints.map((pp, index) => (
-            <Card key={pp.id} className="border-l-4 border-l-primary/50">
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3 flex-1">
-                    <div className="mt-1 cursor-grab">
-                      <GripVertical className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="secondary" className="text-xs">
-                          PP {index + 1}
-                        </Badge>
-                        <CardTitle className="text-sm">{pp.nombre}</CardTitle>
+        <Accordion type="single" collapsible className="w-full space-y-3">
+          {proofPoints.map((pp, index) => {
+            const refreshKey = exerciseRefreshKeys[pp.id] || 0
+
+            return (
+              <AccordionItem value={`pp-${pp.id}`} key={pp.id} className="border-none">
+                <Card className="border-l-4 border-l-primary/50">
+                  <CardHeader className="pb-2 w-full">
+                    <div className="flex items-start justify-between gap-3">
+                      <AccordionTrigger className="flex-1 px-0 py-0 hover:no-underline data-[state=open]:border-b data-[state=open]:border-border data-[state=open]:pb-2">
+                        <div className="flex items-start gap-3 w-full">
+                          <div className="mt-1 cursor-grab">
+                            <GripVertical className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                          <div className="flex-1 text-left">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge variant="secondary" className="text-xs">
+                                PP {index + 1}
+                              </Badge>
+                              <CardTitle className="text-sm">{pp.nombre}</CardTitle>
+                            </div>
+                            <CardDescription className="text-xs line-clamp-2">{pp.descripcion}</CardDescription>
+                          </div>
+                        </div>
+                      </AccordionTrigger>
+                      <div className="flex gap-1 pt-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleOpenDialog(pp)}
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleDelete(pp.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
                       </div>
-                      <CardDescription className="text-xs">{pp.descripcion}</CardDescription>
                     </div>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8"
-                      asChild
-                    >
-                      <Link href={`/programas/${encodeURIComponent(programId)}/proof-points/${encodeURIComponent(pp.id)}/ejercicios`}>
-                        <BookOpen className="h-3 w-3 mr-1" />
-                        Ejercicios
-                      </Link>
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenDialog(pp)}>
-                      <Edit className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleDelete(pp.id)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-2">
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    <span>{pp.duracionEstimadaHoras}h</span>
-                  </div>
-                  {pp.tipoEntregableFinal && (
-                    <div className="flex items-center gap-1">
-                      <Package className="h-3 w-3" />
-                      <span>{pp.tipoEntregableFinal}</span>
+                  </CardHeader>
+                  <CardContent className="pt-2">
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span>{pp.duracionEstimadaHoras}h</span>
+                      </div>
+                      {pp.tipoEntregableFinal && (
+                        <div className="flex items-center gap-1">
+                          <Package className="h-3 w-3" />
+                          <span>{pp.tipoEntregableFinal}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1 min-w-[200px]">
+                        <HelpCircle className="h-3 w-3" />
+                        <span className="truncate max-w-[300px]">{pp.preguntaCentral}</span>
+                      </div>
                     </div>
-                  )}
-                  <div className="flex items-center gap-1">
-                    <HelpCircle className="h-3 w-3" />
-                    <span className="truncate max-w-[300px]">{pp.preguntaCentral}</span>
+                  </CardContent>
+                </Card>
+                <AccordionContent>
+                  <div className="pl-10 pr-4 py-4 space-y-6 bg-muted/50 rounded-b-md">
+                    <ExerciseInstanceList
+                      key={`exercise-list-${pp.id}-${refreshKey}`}
+                      proofPointId={pp.id}
+                      onExerciseDeleted={() => refreshExercisesForProofPoint(pp.id)}
+                    />
+                    <ExerciseSelector
+                      proofPointId={pp.id}
+                      proofPointName={pp.nombre}
+                      onExerciseCreated={() => refreshExercisesForProofPoint(pp.id)}
+                    />
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </AccordionContent>
+              </AccordionItem>
+            )
+          })}
+        </Accordion>
       )}
 
       {/* Create/Edit Dialog */}

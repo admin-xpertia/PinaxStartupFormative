@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -32,35 +32,89 @@ export function ExerciseConfigForm({ template, proofPointId, onClose, onSuccess 
     esObligatorio: true,
   })
   const [isSaving, setIsSaving] = useState(false)
+  const [isSavingAndGenerating, setIsSavingAndGenerating] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
-  const handleSave = async () => {
-    // Validation
+  const requiredConfigFields = useMemo(() => {
+    return template.configuracionSchema?.required || []
+  }, [template])
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {}
+
     if (!formData.nombre.trim()) {
-      toast.error("El nombre del ejercicio es requerido")
-      return
+      newErrors.nombre = "El nombre del ejercicio es obligatorio"
     }
 
     if (!isCuadernoTemplate && !formData.consideracionesContexto.trim()) {
-      toast.error("Las consideraciones de contexto son requeridas")
-      return
+      newErrors.consideracionesContexto = "Las consideraciones de contexto son obligatorias"
     }
 
     if (formData.duracionEstimadaMinutos < 1) {
-      toast.error("La duración debe ser al menos 1 minuto")
+      newErrors.duracion = "La duración mínima es de 1 minuto"
+    }
+
+    requiredConfigFields.forEach(field => {
+      const value = formData.configuracionPersonalizada[field]
+      const isEmpty =
+        value === undefined ||
+        value === null ||
+        (typeof value === "string" && !value.trim()) ||
+        (Array.isArray(value) && value.length === 0)
+
+      if (isEmpty) {
+        newErrors[`config-${field}`] = "Este campo es obligatorio"
+      }
+    })
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      toast.error("Completa los campos obligatorios antes de crear el ejercicio")
+      return false
+    }
+
+    setErrors({})
+    return true
+  }
+
+  const handleSave = async (generateAfterSave = false) => {
+    if (!validateForm()) {
       return
     }
 
-    setIsSaving(true)
+    if (generateAfterSave) {
+      setIsSavingAndGenerating(true)
+    } else {
+      setIsSaving(true)
+    }
 
     try {
-      await exerciseInstancesApi.create(proofPointId, formData)
+      const payload: AddExerciseToProofPointRequest = {
+        templateId: formData.templateId,
+        nombre: formData.nombre.trim(),
+        descripcionBreve: formData.descripcionBreve?.trim() || undefined,
+        consideracionesContexto: formData.consideracionesContexto?.trim() || (isCuadernoTemplate ? "Configuración definida por secciones" : ""),
+        configuracionPersonalizada: formData.configuracionPersonalizada,
+        duracionEstimadaMinutos: formData.duracionEstimadaMinutos,
+        esObligatorio: formData.esObligatorio,
+      }
+
+      const createdExercise = await exerciseInstancesApi.create(proofPointId, payload)
       toast.success("Ejercicio creado exitosamente")
+
+      if (generateAfterSave && createdExercise?.id) {
+        toast.loading("Generando contenido con IA...", { id: createdExercise.id })
+        await exerciseInstancesApi.generateContent(createdExercise.id)
+        toast.success("Contenido generado exitosamente", { id: createdExercise.id })
+      }
+
       onSuccess()
     } catch (error: any) {
       console.error("Error creating exercise:", error)
       toast.error(error.message || "Error al crear el ejercicio")
     } finally {
       setIsSaving(false)
+      setIsSavingAndGenerating(false)
     }
   }
 
@@ -128,6 +182,9 @@ export function ExerciseConfigForm({ template, proofPointId, onClose, onSuccess 
               onChange={e => handleConfigChange(key, e.target.value)}
               placeholder={fieldSchema.default}
             />
+            {errors[`config-${key}`] && (
+              <p className="text-xs text-destructive">{errors[`config-${key}`]}</p>
+            )}
           </div>
         )
       }
@@ -152,6 +209,9 @@ export function ExerciseConfigForm({ template, proofPointId, onClose, onSuccess 
                 </option>
               ))}
             </select>
+            {errors[`config-${key}`] && (
+              <p className="text-xs text-destructive">{errors[`config-${key}`]}</p>
+            )}
           </div>
         )
       }
@@ -172,6 +232,9 @@ export function ExerciseConfigForm({ template, proofPointId, onClose, onSuccess 
               value={value}
               onChange={e => handleConfigChange(key, parseInt(e.target.value) || 0)}
             />
+            {errors[`config-${key}`] && (
+              <p className="text-xs text-destructive">{errors[`config-${key}`]}</p>
+            )}
           </div>
         )
       }
@@ -179,17 +242,22 @@ export function ExerciseConfigForm({ template, proofPointId, onClose, onSuccess 
       // Boolean checkbox
       if (fieldSchema.type === "boolean") {
         return (
-          <div key={key} className="flex items-center space-x-2">
-            <input
-              id={key}
-              type="checkbox"
-              checked={value}
-              onChange={e => handleConfigChange(key, e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300"
-            />
-            <Label htmlFor={key} className="font-normal">
-              {fieldSchema.description || key}
-            </Label>
+          <div key={key} className="space-y-1">
+            <div className="flex items-center space-x-2">
+              <input
+                id={key}
+                type="checkbox"
+                checked={value}
+                onChange={e => handleConfigChange(key, e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <Label htmlFor={key} className="font-normal">
+                {fieldSchema.description || key}
+              </Label>
+            </div>
+            {errors[`config-${key}`] && (
+              <p className="text-xs text-destructive">{errors[`config-${key}`]}</p>
+            )}
           </div>
         )
       }
@@ -207,6 +275,10 @@ export function ExerciseConfigForm({ template, proofPointId, onClose, onSuccess 
                 {schema.required?.includes(key) && <span className="text-destructive ml-1">*</span>}
               </Label>
             </div>
+
+            {errors[`config-${key}`] && (
+              <p className="text-xs text-destructive">{errors[`config-${key}`]}</p>
+            )}
 
             <div className="space-y-3">
               {sections.map((section: any, idx: number) => (
@@ -286,6 +358,7 @@ export function ExerciseConfigForm({ template, proofPointId, onClose, onSuccess 
               value={formData.nombre}
               onChange={e => setFormData({ ...formData, nombre: e.target.value })}
             />
+            {errors.nombre && <p className="text-xs text-destructive">{errors.nombre}</p>}
           </div>
 
           <div className="space-y-2">
@@ -311,6 +384,9 @@ export function ExerciseConfigForm({ template, proofPointId, onClose, onSuccess 
                 value={formData.consideracionesContexto}
                 onChange={e => setFormData({ ...formData, consideracionesContexto: e.target.value })}
               />
+              {errors.consideracionesContexto && (
+                <p className="text-xs text-destructive">{errors.consideracionesContexto}</p>
+              )}
               <p className="text-xs text-muted-foreground">
                 Esta información ayuda al sistema de IA a generar contenido más relevante
               </p>
@@ -345,6 +421,7 @@ export function ExerciseConfigForm({ template, proofPointId, onClose, onSuccess 
                   setFormData({ ...formData, duracionEstimadaMinutos: parseInt(e.target.value) || 1 })
                 }
               />
+              {errors.duracion && <p className="text-xs text-destructive">{errors.duracion}</p>}
             </div>
 
             <div className="space-y-2">
@@ -375,7 +452,14 @@ export function ExerciseConfigForm({ template, proofPointId, onClose, onSuccess 
                   : "Personaliza los parámetros de este tipo de ejercicio"}
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">{renderConfigFields()}</CardContent>
+            <CardContent className="space-y-4">
+              {renderConfigFields()}
+              {requiredConfigFields.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Los campos marcados con * son obligatorios para este template.
+                </p>
+              )}
+            </CardContent>
           </Card>
         </TabsContent>
 
@@ -415,12 +499,19 @@ export function ExerciseConfigForm({ template, proofPointId, onClose, onSuccess 
         </TabsContent>
       </Tabs>
 
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose}>
+      <DialogFooter className="flex flex-wrap gap-2">
+        <Button variant="outline" onClick={onClose} disabled={isSaving || isSavingAndGenerating}>
           Cancelar
         </Button>
-        <Button onClick={handleSave} disabled={isSaving}>
+        <Button onClick={() => handleSave()} disabled={isSaving || isSavingAndGenerating}>
           {isSaving ? "Creando..." : "Crear Ejercicio"}
+        </Button>
+        <Button
+          onClick={() => handleSave(true)}
+          disabled={isSaving || isSavingAndGenerating}
+          variant="secondary"
+        >
+          {isSavingAndGenerating ? "Creando y Generando..." : "Crear y Generar"}
         </Button>
       </DialogFooter>
     </div>

@@ -4,11 +4,13 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Edit, Trash2, GripVertical, Clock, Sparkles, CheckCircle, AlertCircle } from "lucide-react"
+import { Eye, Edit, Trash2, GripVertical, Clock, Sparkles, CheckCircle, AlertCircle } from "lucide-react"
 import { exerciseInstancesApi, exerciseCategoriesMetadata } from "@/services/api"
 import type { ExerciseInstanceResponse } from "@/types/api"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { ExerciseWizardDialog } from "@/components/exercise-wizard-dialog"
+import { ExercisePreviewDialog } from "@/components/exercise-preview-dialog"
 
 interface ExerciseInstanceListProps {
   proofPointId: string
@@ -18,6 +20,10 @@ interface ExerciseInstanceListProps {
 export function ExerciseInstanceList({ proofPointId, onExerciseDeleted }: ExerciseInstanceListProps) {
   const [exercises, setExercises] = useState<ExerciseInstanceResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false)
+  const [instanceToPreview, setInstanceToPreview] = useState<string | null>(null)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [instanceToEdit, setInstanceToEdit] = useState<ExerciseInstanceResponse | null>(null)
 
   useEffect(() => {
     loadExercises()
@@ -34,6 +40,35 @@ export function ExerciseInstanceList({ proofPointId, onExerciseDeleted }: Exerci
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleOpenPreview = (exerciseId: string) => {
+    setInstanceToPreview(exerciseId)
+    setPreviewDialogOpen(true)
+  }
+
+  const handleOpenEdit = (exercise: ExerciseInstanceResponse) => {
+    setInstanceToEdit(exercise)
+    setEditDialogOpen(true)
+  }
+
+  const handleDialogClose = (open: boolean) => {
+    setEditDialogOpen(open)
+    if (!open) {
+      setInstanceToEdit(null)
+    }
+  }
+
+  const handlePreviewClose = (open: boolean) => {
+    setPreviewDialogOpen(open)
+    if (!open) {
+      setInstanceToPreview(null)
+    }
+  }
+
+  const handleExerciseUpdated = () => {
+    loadExercises()
+    handleDialogClose(false)
   }
 
   const handleDelete = async (exerciseId: string) => {
@@ -192,6 +227,24 @@ export function ExerciseInstanceList({ proofPointId, onExerciseDeleted }: Exerci
                     </Button>
                   )}
                   <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={() => handleOpenPreview(exercise.id)}
+                  >
+                    <Eye className="h-3 w-3 mr-1" />
+                    Preview
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={() => handleOpenEdit(exercise)}
+                  >
+                    <Edit className="h-3 w-3 mr-1" />
+                    Editar
+                  </Button>
+                  <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8"
@@ -225,6 +278,19 @@ export function ExerciseInstanceList({ proofPointId, onExerciseDeleted }: Exerci
           </Card>
         )
       })}
+      <ExerciseWizardDialog
+        open={editDialogOpen}
+        onOpenChange={handleDialogClose}
+        template={null}
+        proofPointId={proofPointId}
+        existingInstance={instanceToEdit}
+        onSuccess={handleExerciseUpdated}
+      />
+      <ExercisePreviewDialog
+        open={previewDialogOpen}
+        onOpenChange={handlePreviewClose}
+        instanceId={instanceToPreview}
+      />
     </div>
   )
 }

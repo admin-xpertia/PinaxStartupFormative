@@ -53,6 +53,7 @@ export function ExerciseWizardDialog({
   const isEditing = !!existingInstance
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmittingAndGenerating, setIsSubmittingAndGenerating] = useState(false)
   const [activeTab, setActiveTab] = useState("basico")
 
   // Form state
@@ -87,7 +88,7 @@ export function ExerciseWizardDialog({
     }
   }, [template, existingInstance])
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (generateAfterSave: boolean = false) => {
     if (!template && !existingInstance) return
 
     // Validation
@@ -100,7 +101,13 @@ export function ExerciseWizardDialog({
       return
     }
 
-    setIsSubmitting(true)
+    if (generateAfterSave) {
+      setIsSubmittingAndGenerating(true)
+    } else {
+      setIsSubmitting(true)
+    }
+
+    let createdInstanceId: string | null = null
 
     try {
       if (isEditing && existingInstance) {
@@ -117,9 +124,10 @@ export function ExerciseWizardDialog({
           title: "Ejercicio actualizado",
           description: "Los cambios se guardaron exitosamente",
         })
+        createdInstanceId = existingInstance.id
       } else {
         // Create new exercise
-        await apiClient.post(`/proof-points/${encodeURIComponent(proofPointId)}/exercises`, {
+        const newInstance = await apiClient.post<ExerciseInstanceResponse>(`/proof-points/${encodeURIComponent(proofPointId)}/exercises`, {
           templateId: template?.id,
           nombre: nombre.trim(),
           descripcionBreve: descripcionBreve.trim() || undefined,
@@ -129,9 +137,27 @@ export function ExerciseWizardDialog({
           esObligatorio,
         })
 
+        createdInstanceId = newInstance.id
+
         toast({
           title: "Ejercicio agregado",
           description: "El ejercicio se agregó exitosamente al proof point",
+        })
+      }
+
+      if (generateAfterSave && createdInstanceId) {
+        toast({
+          title: "Generando contenido...",
+          description: "Iniciando la generación con IA.",
+        })
+
+        await apiClient.post(`/exercises/${encodeURIComponent(createdInstanceId)}/generate`, {
+          forceRegenerate: false,
+        })
+
+        toast({
+          title: "Ejercicio generado",
+          description: "El contenido se generó exitosamente con IA",
         })
       }
 
@@ -153,6 +179,7 @@ export function ExerciseWizardDialog({
       })
     } finally {
       setIsSubmitting(false)
+      setIsSubmittingAndGenerating(false)
     }
   }
 
@@ -354,13 +381,16 @@ export function ExerciseWizardDialog({
   const dialogDescription = isEditing
     ? "Modifica la configuración del ejercicio"
     : template?.objetivoPedagogico
+  const accentColor = template?.color ?? "#94a3b8"
+  const accentIcon = template?.icono ?? "📘"
+  const previewAccentBackground = `${accentColor}20`
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            {template?.icono && <span style={{ color: template.color }}>{template.icono}</span>}
+            <span style={{ color: accentColor }}>{accentIcon}</span>
             {dialogTitle}
           </DialogTitle>
           <DialogDescription>{dialogDescription}</DialogDescription>
@@ -474,12 +504,14 @@ export function ExerciseWizardDialog({
                     <div className="flex items-start gap-3">
                       <div
                         className="p-3 rounded-lg"
-                        style={{ backgroundColor: `${template.color}20` }}
+                        style={{ backgroundColor: previewAccentBackground }}
                       >
-                        <span style={{ fontSize: "2rem" }}>{template.icono}</span>
+                        <span style={{ fontSize: "2rem" }}>{accentIcon}</span>
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-semibold text-lg mb-1">{nombre || template.nombre}</h3>
+                        <h3 className="font-semibold text-lg mb-1">
+                          {nombre || template?.nombre || "Ejercicio sin título"}
+                        </h3>
                         {descripcionBreve && (
                           <p className="text-sm text-muted-foreground mb-2">
                             {descripcionBreve}
@@ -524,10 +556,14 @@ export function ExerciseWizardDialog({
         </Tabs>
 
         <DialogFooter className="flex-shrink-0">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isSubmitting || isSubmittingAndGenerating}
+          >
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
+          <Button onClick={() => handleSubmit()} disabled={isSubmitting || isSubmittingAndGenerating}>
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -549,6 +585,21 @@ export function ExerciseWizardDialog({
               </>
             )}
           </Button>
+          {!isEditing && (
+            <Button onClick={() => handleSubmit(true)} disabled={isSubmitting || isSubmittingAndGenerating}>
+              {isSubmittingAndGenerating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Guardando y Generando...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Guardar y Generar
+                </>
+              )}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

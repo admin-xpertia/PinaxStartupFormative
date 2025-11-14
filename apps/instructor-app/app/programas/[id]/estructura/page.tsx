@@ -9,9 +9,8 @@ import { PageHeader } from "@/components/shared/page-header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Layers, Target, Sparkles, Check, Loader2 } from "lucide-react"
+import { ArrowLeft, Layers, Target, Check, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { notFound, useRouter } from "next/navigation"
 import { programsApi, fasesApi } from "@/services/api"
@@ -22,7 +21,6 @@ import { ErrorState } from "@/components/shared/error-state"
 import { useUIStore } from "@/stores/ui-store"
 import { cn } from "@/lib/utils"
 import { FaseManager, ProofPointManager } from "@/components/program"
-import { ExerciseSelector } from "@/components/exercises"
 import { toast } from "sonner"
 
 export default function ProgramEstructuraPage({ params }: { params: Promise<{ id: string }> }) {
@@ -47,7 +45,6 @@ export default function ProgramEstructuraPage({ params }: { params: Promise<{ id
   const {
     data: fases,
     error: fasesError,
-    isLoading: fasesLoading,
     mutate: mutateFases,
   } = useSWR<FaseResponse[]>(
     id ? `fases-${id}-${fasesRefreshKey}` : null,
@@ -230,30 +227,6 @@ export default function ProgramEstructuraPage({ params }: { params: Promise<{ id
                         </CardContent>
                       </Card>
 
-                      {/* Exercises Section */}
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            <Sparkles className="h-5 w-5" />
-                            Ejercicios
-                          </CardTitle>
-                          <CardDescription>
-                            Selecciona ejercicios para cada proof point de esta fase
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          {/* Show exercises organized by proof point */}
-                          {fasesLoading ? (
-                            <LoadingState text="Cargando proof points..." />
-                          ) : (
-                            <div className="space-y-8">
-                              <p className="text-sm text-muted-foreground">
-                                Selecciona un proof point de la lista arriba para agregar ejercicios
-                              </p>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
                     </TabsContent>
                   ))}
                 </Tabs>

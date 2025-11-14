@@ -1,28 +1,26 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Plus, Sparkles } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Sparkles } from "lucide-react"
 import { exerciseTemplatesApi, exerciseCategoriesMetadata } from "@/services/api"
 import type { ExerciseTemplateResponse, ExerciseCategory } from "@/types/api"
 import { toast } from "sonner"
 import { ExerciseTypeCard } from "./ExerciseTypeCard"
 import { ExerciseConfigForm } from "./ExerciseConfigForm"
-import { ExerciseInstanceList } from "./ExerciseInstanceList"
 
 interface ExerciseSelectorProps {
   proofPointId: string
   proofPointName: string
+  onExerciseCreated?: () => void
 }
 
-export function ExerciseSelector({ proofPointId, proofPointName }: ExerciseSelectorProps) {
+export function ExerciseSelector({ proofPointId, proofPointName, onExerciseCreated }: ExerciseSelectorProps) {
   const [templates, setTemplates] = useState<ExerciseTemplateResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<ExerciseTemplateResponse | null>(null)
-  const [refreshKey, setRefreshKey] = useState(0)
 
   // Load exercise templates
   useEffect(() => {
@@ -64,8 +62,7 @@ export function ExerciseSelector({ proofPointId, proofPointName }: ExerciseSelec
   }
 
   const handleExerciseCreated = () => {
-    // Refresh the exercise list
-    setRefreshKey(prev => prev + 1)
+    onExerciseCreated?.()
     handleCloseDialog()
   }
 
@@ -105,13 +102,6 @@ export function ExerciseSelector({ proofPointId, proofPointName }: ExerciseSelec
           optimizado para diferentes objetivos pedagógicos.
         </p>
       </div>
-
-      {/* Current Exercises */}
-      <ExerciseInstanceList
-        key={refreshKey}
-        proofPointId={proofPointId}
-        onExerciseDeleted={() => setRefreshKey(prev => prev + 1)}
-      />
 
       {/* Exercise Type Grid */}
       <div>
