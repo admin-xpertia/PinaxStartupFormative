@@ -1,6 +1,6 @@
 "use client"
 
-import { use, useState } from "react"
+import { use, useState, useEffect } from "react"
 import useSWR from "swr"
 import { AppHeader } from "@/components/app-header"
 import { Sidebar } from "@/components/sidebar"
@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/shared/page-header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Edit, Users, Layers, Target, Clock, Rocket, Loader2 } from "lucide-react"
+import { Edit, Users, Layers, Target, Clock, Rocket, Loader2, Sparkles } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { fetcher } from "@/lib/fetcher"
@@ -18,6 +18,7 @@ import { ErrorState } from "@/components/shared/error-state"
 import type { Program } from "@/types/program"
 import { programsApi } from "@/services/api"
 import { toast } from "sonner"
+import { PedagogicalAssistantModal } from "@/components/assistant/PedagogicalAssistantModal"
 
 export default function ProgramDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: rawId } = use(params)
@@ -30,6 +31,7 @@ export default function ProgramDetailPage({ params }: { params: Promise<{ id: st
     mutate,
   } = useSWR<Program>(id ? `program-${id}` : null, () => (id ? programsApi.getById(id) : null))
   const [publishing, setPublishing] = useState(false)
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false)
 
   if (isLoading) {
     return (
@@ -67,10 +69,21 @@ export default function ProgramDetailPage({ params }: { params: Promise<{ id: st
   const stats = program.estadisticas ?? {
     fases: 0,
     proof_points: 0,
+    ejercicios: 0,
     duracion: "-",
     estudiantes: 0,
   }
   const isPublished = program.estado === "publicado"
+
+  // Auto-launch assistant if no exercises and has proof points
+  useEffect(() => {
+    if (program && !isLoading && !error) {
+      // Launch assistant if: no exercises, has proof points, and not published yet
+      if (stats.ejercicios === 0 && stats.proof_points > 0 && !isPublished) {
+        setIsAssistantOpen(true)
+      }
+    }
+  }, [program, isLoading, error])
 
   const handlePublish = async () => {
     try {
@@ -106,6 +119,12 @@ export default function ProgramDetailPage({ params }: { params: Promise<{ id: st
                   <Badge variant={isPublished ? "default" : "secondary"}>
                     {isPublished ? "Publicado" : "Borrador"}
                   </Badge>
+                  {stats.proof_points > 0 && (
+                    <Button variant="outline" size="sm" onClick={() => setIsAssistantOpen(true)}>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Asistente de Ejercicios IA
+                    </Button>
+                  )}
                   <Button variant="outline" size="sm" asChild>
                     <Link href={`/programas/${programId}/estructura`}>
                       <Edit className="mr-2 h-4 w-4" />
@@ -179,6 +198,21 @@ export default function ProgramDetailPage({ params }: { params: Promise<{ id: st
 
           </div>
         </main>
+
+        {/* AI Assistant Modal */}
+        <PedagogicalAssistantModal
+          programId={programId}
+          programName={program.nombre}
+          open={isAssistantOpen}
+          onOpenChange={setIsAssistantOpen}
+          onComplete={() => {
+            mutate() // Refresh program data
+            setIsAssistantOpen(false)
+            toast.success("¡Plan de ejercicios creado!", {
+              description: "Ve a 'Editar Estructura' para revisarlos.",
+            })
+          }}
+        />
       </div>
     </div>
   )

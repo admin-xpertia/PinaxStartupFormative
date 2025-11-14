@@ -110,10 +110,11 @@ export class ProgramResponseDto {
 
   @ApiPropertyOptional({
     description:
-      "Estadísticas del programa (número de fases, proof points, etc.)",
+      "Estadísticas del programa (número de fases, proof points, ejercicios, etc.)",
     example: {
       fases: 3,
       proof_points: 8,
+      ejercicios: 12,
       duracion: "12 semanas",
       estudiantes: 0,
     },
@@ -121,6 +122,7 @@ export class ProgramResponseDto {
   estadisticas?: {
     fases: number;
     proof_points: number;
+    ejercicios: number;
     duracion: string;
     estudiantes: number;
   };
