@@ -40,6 +40,7 @@ interface ExerciseWizardDialogProps {
   proofPointId: string
   existingInstance?: ExerciseInstanceResponse | null
   onSuccess: () => void
+  isTemplateLoading?: boolean
 }
 
 export function ExerciseWizardDialog({
@@ -49,6 +50,7 @@ export function ExerciseWizardDialog({
   proofPointId,
   existingInstance,
   onSuccess,
+  isTemplateLoading = false,
 }: ExerciseWizardDialogProps) {
   const isEditing = !!existingInstance
   const { toast } = useToast()
@@ -221,6 +223,23 @@ export function ExerciseWizardDialog({
   }
 
   const renderConfigFields = () => {
+    if (isEditing && !template) {
+      if (isTemplateLoading) {
+        return (
+          <p className="text-sm text-muted-foreground flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Cargando configuración del ejercicio...
+          </p>
+        )
+      }
+
+      return (
+        <p className="text-sm text-muted-foreground">
+          No se pudo cargar la configuración personalizada de este ejercicio.
+        </p>
+      )
+    }
+
     const schema = template?.configuracionSchema
 
     if (!schema || !schema.properties) {

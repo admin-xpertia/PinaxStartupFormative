@@ -5,8 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Eye, Edit, Trash2, GripVertical, Clock, Sparkles, CheckCircle, AlertCircle } from "lucide-react"
-import { exerciseInstancesApi, exerciseCategoriesMetadata } from "@/services/api"
-import type { ExerciseInstanceResponse } from "@/types/api"
+import { exerciseInstancesApi, exerciseCategoriesMetadata, exerciseTemplatesApi } from "@/services/api"
+import type { ExerciseInstanceResponse, ExerciseTemplateResponse } from "@/types/api"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { ExerciseWizardDialog } from "@/components/exercise-wizard-dialog"
@@ -24,6 +24,8 @@ export function ExerciseInstanceList({ proofPointId, onExerciseDeleted }: Exerci
   const [instanceToPreview, setInstanceToPreview] = useState<string | null>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [instanceToEdit, setInstanceToEdit] = useState<ExerciseInstanceResponse | null>(null)
+  const [templateForEdit, setTemplateForEdit] = useState<ExerciseTemplateResponse | null>(null)
+  const [isTemplateLoading, setIsTemplateLoading] = useState(false)
 
   useEffect(() => {
     loadExercises()
@@ -47,15 +49,31 @@ export function ExerciseInstanceList({ proofPointId, onExerciseDeleted }: Exerci
     setPreviewDialogOpen(true)
   }
 
-  const handleOpenEdit = (exercise: ExerciseInstanceResponse) => {
+  const handleOpenEdit = async (exercise: ExerciseInstanceResponse) => {
     setInstanceToEdit(exercise)
     setEditDialogOpen(true)
+    setTemplateForEdit(null)
+
+    if (!exercise.template) return
+
+    setIsTemplateLoading(true)
+    try {
+      const templateData = await exerciseTemplatesApi.getById(exercise.template)
+      setTemplateForEdit(templateData)
+    } catch (error: any) {
+      console.error("Error loading exercise template:", error)
+      toast.error(error.message || "Error al cargar la configuración del ejercicio")
+    } finally {
+      setIsTemplateLoading(false)
+    }
   }
 
   const handleDialogClose = (open: boolean) => {
     setEditDialogOpen(open)
     if (!open) {
       setInstanceToEdit(null)
+      setTemplateForEdit(null)
+      setIsTemplateLoading(false)
     }
   }
 
@@ -281,9 +299,10 @@ export function ExerciseInstanceList({ proofPointId, onExerciseDeleted }: Exerci
       <ExerciseWizardDialog
         open={editDialogOpen}
         onOpenChange={handleDialogClose}
-        template={null}
+        template={templateForEdit}
         proofPointId={proofPointId}
         existingInstance={instanceToEdit}
+        isTemplateLoading={isTemplateLoading}
         onSuccess={handleExerciseUpdated}
       />
       <ExercisePreviewDialog

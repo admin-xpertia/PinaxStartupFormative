@@ -10,7 +10,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Loader2, Sparkles, Wand2, Check } from "lucide-react"
 import { apiClient } from "@/services/api/client"
-import { exerciseCategoriesMetadata } from "@/services/api/exercises"
 import type { ProofPointResponse, AddExerciseToProofPointRequest } from "@/types/api"
 import { toast } from "sonner"
 
@@ -50,6 +49,12 @@ export function PedagogicalAssistantModal({
   const [contexts, setContexts] = useState<Record<string, ContextData>>({}) // key: ppId
   const [recommendations, setRecommendations] = useState<ExerciseRecommendation[]>([])
   const [selectedRecommendations, setSelectedRecommendations] = useState<Record<number, boolean>>({}) // key: index
+
+  const resetFlowState = () => {
+    setStep("intro")
+    setRecommendations([])
+    setSelectedRecommendations({})
+  }
 
   // Cargar todos los Proof Points del programa cuando el modal se prepara para el paso 'context'
   const loadProofPoints = async () => {
@@ -133,6 +138,7 @@ export function PedagogicalAssistantModal({
         { recommendationsToApply }
       )
 
+      resetFlowState()
       onComplete() // Cierra el modal y refresca la página
 
     } catch (err: any) {

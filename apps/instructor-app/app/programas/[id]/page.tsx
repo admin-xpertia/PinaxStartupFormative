@@ -33,6 +33,29 @@ export default function ProgramDetailPage({ params }: { params: Promise<{ id: st
   const [publishing, setPublishing] = useState(false)
   const [isAssistantOpen, setIsAssistantOpen] = useState(false)
 
+  const ejerciciosCount = program?.estadisticas?.ejercicios ?? 0
+  const proofPointsCount = program?.estadisticas?.proof_points ?? 0
+  const stats = {
+    fases: program?.estadisticas?.fases ?? 0,
+    proof_points: proofPointsCount,
+    ejercicios: ejerciciosCount,
+    duracion: program?.estadisticas?.duracion ?? "-",
+    estudiantes: program?.estadisticas?.estudiantes ?? 0,
+  }
+  const isPublished = program?.estado === "publicado"
+  const programId = program?.id ?? id
+
+  // Auto-launch assistant if no exercises and has proof points
+  useEffect(() => {
+    if (!program || isLoading || error) {
+      return
+    }
+
+    if (ejerciciosCount === 0 && proofPointsCount > 0 && !isPublished) {
+      setIsAssistantOpen(true)
+    }
+  }, [program, isLoading, error, ejerciciosCount, proofPointsCount, isPublished])
+
   if (isLoading) {
     return (
       <div className="flex h-screen overflow-hidden bg-background">
@@ -64,26 +87,6 @@ export default function ProgramDetailPage({ params }: { params: Promise<{ id: st
   if (!program) {
     notFound()
   }
-
-  const programId = program.id ?? id
-  const stats = program.estadisticas ?? {
-    fases: 0,
-    proof_points: 0,
-    ejercicios: 0,
-    duracion: "-",
-    estudiantes: 0,
-  }
-  const isPublished = program.estado === "publicado"
-
-  // Auto-launch assistant if no exercises and has proof points
-  useEffect(() => {
-    if (program && !isLoading && !error) {
-      // Launch assistant if: no exercises, has proof points, and not published yet
-      if (stats.ejercicios === 0 && stats.proof_points > 0 && !isPublished) {
-        setIsAssistantOpen(true)
-      }
-    }
-  }, [program, isLoading, error])
 
   const handlePublish = async () => {
     try {

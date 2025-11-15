@@ -7,7 +7,11 @@ import {
   IFaseRepository,
   IProofPointRepository,
 } from "../../../../domain/program-design/repositories/IProgramRepository";
+import { Programa } from "../../../../domain/program-design/entities/Programa";
+import { Fase } from "../../../../domain/program-design/entities/Fase";
+import { ProofPoint } from "../../../../domain/program-design/entities/ProofPoint";
 import { IExerciseTemplateRepository } from "../../../../domain/exercise-catalog/repositories/IExerciseTemplateRepository";
+import { ExerciseTemplate } from "../../../../domain/exercise-catalog/entities/ExerciseTemplate";
 import { OpenAIService } from "../../../../infrastructure/ai/OpenAIService";
 import {
   RecommendExercisePlanCommand,
@@ -63,13 +67,15 @@ export class RecommendExercisePlanUseCase
 
       // 2. Get all fases and proof points
       const fases = await this.faseRepository.findByPrograma(programId);
+      const faseMap = new Map<string, Fase>();
+      fases.forEach((fase) => faseMap.set(fase.getId().toString(), fase));
 
       if (fases.length === 0) {
         return Result.fail(new Error("Program has no phases"));
       }
 
       // Get all proof points from all fases
-      const allProofPoints: any[] = [];
+      const allProofPoints: ProofPoint[] = [];
       for (const fase of fases) {
         const proofPoints = await this.proofPointRepository.findByFase(
           fase.getId(),
@@ -119,11 +125,15 @@ export class RecommendExercisePlanUseCase
         );
 
         // Call AI to generate recommendations for this proof point
-        const recommendations = await this.generateRecommendationsForProofPoint(
-          proofPoint,
-          context,
-          templates,
-        );
+        const fase = faseMap.get(proofPoint.getFase().toString());
+        const recommendations =
+          await this.generateRecommendationsForProofPoint(
+            programa,
+            fase,
+            proofPoint,
+            context,
+            templates,
+          );
 
         allRecommendations.push(...recommendations);
       }
@@ -145,15 +155,17 @@ export class RecommendExercisePlanUseCase
    * Generate exercise recommendations for a single proof point using AI
    */
   private async generateRecommendationsForProofPoint(
-    proofPoint: any,
+    programa: Programa,
+    fase: Fase | undefined,
+    proofPoint: ProofPoint,
     context: ProofPointContext,
-    templates: any[],
+    templates: ExerciseTemplate[],
   ): Promise<ExerciseRecommendation[]> {
     // Build the system prompt
     const systemPrompt = this.buildSystemPrompt(templates);
 
     // Build the user prompt with proof point context
-    const userPrompt = this.buildUserPrompt(proofPoint, context);
+    const userPrompt = this.buildUserPrompt(programa, fase, proofPoint, context);
 
     this.logger.debug("System Prompt:");
     this.logger.debug(systemPrompt);
@@ -164,7 +176,7 @@ export class RecommendExercisePlanUseCase
     const response = await this.openAIService.generateChatResponse({
       systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
-      maxTokens: 4000,
+      maxTokens: 16000,
       responseFormat: { type: "json_object" },
     });
 
@@ -187,6 +199,7 @@ export class RecommendExercisePlanUseCase
           const recommendation = this.mapAIResponseToRecommendation(
             exercise,
             proofPoint.getId().toString(),
+            templates,
           );
           recommendations.push(recommendation);
         } catch (mappingError) {
@@ -205,14 +218,19 @@ export class RecommendExercisePlanUseCase
   /**
    * Build the system prompt for the AI
    */
-  private buildSystemPrompt(templates: any[]): string {
+  private buildSystemPrompt(templates: ExerciseTemplate[]): string {
     const templateList = templates
       .filter((t) => t.isActivo())
       .map((t) => ({
         id: t.getId().toString(),
         nombre: t.getNombre(),
-        categoria: t.getCategoria(),
+        categoria: t.getCategoria().getValue(),
+        categoria_legible: t.getCategoria().getDisplayName(),
         objetivo: t.getObjetivoPedagogico(),
+        descripcion: t.getDescripcion(),
+        rolIA: t.getRolIA(),
+        configuracionDefault: t.getConfiguracionDefault(),
+        configuracionSchema: t.getConfiguracionSchema().getFields(),
       }));
 
     return `Eres un experto en diseño instruccional que usa el framework de 'Conceptos Umbral' (Threshold Concepts).
@@ -225,7 +243,7 @@ Este framework tiene 6 fases pedagógicas:
 5. **Transferir**: Aplicar en nuevos contextos y situaciones
 6. **Producir/Reflejar**: Crear entregables y reflexionar metacognitivamente
 
-**Templates de Ejercicio Disponibles:**
+**Templates de Ejercicio Disponibles (con sus campos de configuración):**
 ${JSON.stringify(templateList, null, 2)}
 
 **Tu Tarea:**
@@ -233,6 +251,8 @@ ${JSON.stringify(templateList, null, 2)}
 2. La secuencia debe cubrir las fases del framework en orden lógico
 3. Configura cada ejercicio para abordar DIRECTAMENTE las concepciones erróneas y barreras conceptuales
 4. Selecciona templates apropiados para cada fase del aprendizaje
+5. Para el campo \`templateId\`, usa EXACTAMENTE uno de los \`id\` listados arriba. (Ejemplo: "exercise_template:cuaderno-activacion")
+6. Respeta los campos definidos en \`configuracionSchema\`. Usa \`configuracionDefault\` como punto de partida y RELLENA TODOS los campos requeridos con contenido específico (ej. lista de actividades, secciones de cuaderno, prompts concretos, checklists, etc.). No dejes estructuras vacías ni texto genérico.
 
 **Formato de Salida (JSON):**
 Devuelve un objeto JSON con esta estructura:
@@ -256,26 +276,60 @@ Devuelve un objeto JSON con esta estructura:
 IMPORTANTE:
 - Devuelve SOLO JSON válido, sin texto adicional
 - Cada ejercicio debe tener todos los campos requeridos
-- configuracionPersonalizada puede estar vacío {} si no hay configuración específica`;
+- \`configuracionPersonalizada\` debe incluir la estructura COMPLETA que el template necesita (listas, objetos, campos booleanos, etc.). Si el template define secciones, pasos o checklists, crea contenido detallado.`;
   }
 
   /**
    * Build the user prompt with proof point context
    */
   private buildUserPrompt(
-    proofPoint: any,
+    programa: Programa,
+    fase: Fase | undefined,
+    proofPoint: ProofPoint,
     context: ProofPointContext,
   ): string {
-    return `**Proof Point (Concepto Umbral):**
-- **Nombre:** ${proofPoint.getNombre()}
-- **Descripción:** ${proofPoint.getDescripcion() || "No especificada"}
-- **Pregunta Central:** ${proofPoint.getPreguntaCentral() || "No especificada"}
+    const programaObjetivosList = programa.getObjetivosAprendizaje() ?? [];
+    const programaObjetivos =
+      programaObjetivosList.length > 0
+        ? programaObjetivosList.join("; ")
+        : "No definidos";
 
-**Contexto Pedagógico:**
-- **Concepciones Erróneas Comunes:** ${context.concepcionesErroneas || "No especificadas"}
-- **Barreras Conceptuales:** ${context.barrerasConceptuales || "No especificadas"}
+    const faseDescripcion = fase?.getDescripcion() || "No especificada";
+    const faseObjetivosList = fase?.getObjetivosAprendizaje() ?? [];
+    const faseObjetivos =
+      faseObjetivosList.length > 0 ? faseObjetivosList.join("; ") : "No definidos";
 
-Genera una secuencia de ejercicios (3-5) que ayude a los estudiantes a superar estas concepciones erróneas y barreras conceptuales, siguiendo las fases del framework de Conceptos Umbral.`;
+    return `Contexto del Programa:
+- Nombre: ${programa.getNombre()}
+- Descripción: ${programa.getDescripcion() || "No especificada"}
+- Objetivos de aprendizaje generales: ${programaObjetivos}
+- Nivel/Dificultad: ${programa.getNivelDificultad() || "No declarado"}
+- Audiencia Objetivo: ${programa.getAudienciaObjetivo() || "No declarada"}
+
+Fase actual:
+- Nombre: ${
+      fase
+        ? `Fase ${fase.getNumeroFase()} - ${fase.getNombre()}`
+        : "Proof point sin fase asignada"
+    }
+- Descripción de la fase: ${faseDescripcion}
+- Objetivos/competencias de la fase: ${faseObjetivos}
+- Duración estimada: ${
+      fase ? `${fase.getDuracion().toWeeks()} semanas` : "No declarada"
+    }
+
+Proof Point que requiere ejercicios:
+- Nombre: ${proofPoint.getNombre()}
+- Pregunta central: ${proofPoint.getPreguntaCentral() || "No especificada"}
+- Descripción detallada: ${proofPoint.getDescripcion() || "No especificada"}
+- Documentación previa del instructor: ${proofPoint.getDocumentacionContexto() || "Sin documentación adicional"}
+- Entregable/tipo de evidencia: ${proofPoint.getTipoEntregableFinal() || "No definido"}
+
+Contexto pedagógico entregado por el instructor:
+- Concepciones erróneas comunes: ${context.concepcionesErroneas || "No especificadas"}
+- Barreras conceptuales: ${context.barrerasConceptuales || "No especificadas"}
+
+Diseña una secuencia de 3 a 5 ejercicios que logre que el estudiante domine este proof point dentro del programa descrito. Cada ejercicio debe enlazar explícitamente con el propósito del proof point, cubrir diferentes fases del framework de Conceptos Umbral y detallar la configuración específica del template seleccionado (incluyendo secciones, prompts, checklists, rúbricas u otros campos requeridos).`;
   }
 
   /**
@@ -284,9 +338,11 @@ Genera una secuencia de ejercicios (3-5) que ayude a los estudiantes a superar e
   private mapAIResponseToRecommendation(
     aiExercise: any,
     proofPointId: string,
+    templates: ExerciseTemplate[],
   ): ExerciseRecommendation {
-    // Validate required fields
-    if (!aiExercise.templateId) {
+    const templateId = this.resolveTemplateId(aiExercise, templates);
+
+    if (!templateId) {
       throw new Error("Missing templateId in AI response");
     }
 
@@ -296,7 +352,7 @@ Genera una secuencia de ejercicios (3-5) que ayude a los estudiantes a superar e
 
     return {
       proofPointId,
-      templateId: aiExercise.templateId,
+      templateId,
       nombre: aiExercise.nombre,
       descripcionBreve: aiExercise.descripcionBreve || undefined,
       consideracionesContexto:
@@ -309,5 +365,44 @@ Genera una secuencia de ejercicios (3-5) que ayude a los estudiantes a superar e
       _fasePatron: aiExercise._fasePatron || "Fase desconocida",
       _proposito: aiExercise._proposito || "Sin propósito especificado",
     };
+  }
+
+  /**
+   * Attempts to resolve the template ID returned by the AI, even if it used alternative keys.
+   */
+  private resolveTemplateId(
+    aiExercise: any,
+    templates: ExerciseTemplate[],
+  ): string | null {
+    const directId =
+      aiExercise.templateId ||
+      aiExercise.template_id ||
+      aiExercise.templateID ||
+      aiExercise.template ||
+      aiExercise.templateSlug ||
+      aiExercise.template_slug;
+
+    if (typeof directId === "string" && directId.trim().length > 0) {
+      return directId.trim();
+    }
+
+    const templateNameCandidate =
+      aiExercise._templateNombre ||
+      aiExercise.templateNombre ||
+      aiExercise.templateName;
+
+    if (typeof templateNameCandidate === "string") {
+      const normalized = templateNameCandidate.trim().toLowerCase();
+      if (normalized.length > 0) {
+        const matchedTemplate = templates.find(
+          (template) => template.getNombre().trim().toLowerCase() === normalized,
+        );
+        if (matchedTemplate) {
+          return matchedTemplate.getId().toString();
+        }
+      }
+    }
+
+    return null;
   }
 }

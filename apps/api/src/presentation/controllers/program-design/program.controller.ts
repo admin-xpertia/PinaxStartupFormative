@@ -32,6 +32,7 @@ import {
   IFaseRepository,
   IProofPointRepository,
 } from "../../../domain/program-design/repositories/IProgramRepository";
+import { IExerciseInstanceRepository } from "../../../domain/exercise-instance/repositories/IExerciseInstanceRepository";
 import { RecordId } from "../../../domain/shared/value-objects/RecordId";
 import { ProgramStatus } from "../../../domain/program-design/value-objects/ProgramStatus";
 import {
@@ -63,7 +64,7 @@ export class ProgramController {
     @Inject("IProofPointRepository")
     private readonly proofPointRepository: IProofPointRepository,
     @Inject("IExerciseInstanceRepository")
-    private readonly exerciseInstanceRepository: any,
+    private readonly exerciseInstanceRepository: IExerciseInstanceRepository,
   ) {}
 
   /**
@@ -418,11 +419,9 @@ export class ProgramController {
           proofPointId: recommendation.proofPointId,
           templateId: recommendation.templateId,
           nombre: recommendation.nombre,
-          descripcionBreve: recommendation.descripcionBreve,
           consideraciones: recommendation.consideracionesContexto,
           configuracion: recommendation.configuracionPersonalizada,
           duracionMinutos: recommendation.duracionEstimadaMinutos,
-          esObligatorio: recommendation.esObligatorio,
         });
 
         result.match({

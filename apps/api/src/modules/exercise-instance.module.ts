@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { SurrealDbModule } from "../core/database/surrealdb.module";
 
 // Import other modules for cross-module dependencies
@@ -36,7 +36,7 @@ import { ExerciseInstanceController } from "../presentation/controllers/exercise
   imports: [
     SurrealDbModule,
     ExerciseCatalogModule, // For IExerciseTemplateRepository
-    ProgramDesignModule, // For IProofPointRepository
+    forwardRef(() => ProgramDesignModule), // For IProofPointRepository
   ],
   providers: [
     // Mappers (shared with ExerciseCatalogModule)

@@ -97,10 +97,13 @@ export class AddExerciseToProofPointUseCase
 
       // 5. Create ExerciseInstance domain entity
       const templateId = RecordId.fromString(request.templateId);
+      const safeNombre = sanitizeExerciseName(
+        request.nombre || template.nombre,
+      );
       const instance = ExerciseInstance.create(
         templateId,
         proofPointId,
-        request.nombre || template.nombre,
+        safeNombre,
         orden,
         request.duracionMinutos || 20,
         finalConfig,
@@ -128,3 +131,13 @@ export class AddExerciseToProofPointUseCase
     }
   }
 }
+
+const sanitizeExerciseName = (value?: string): string => {
+  if (!value) {
+    return "Ejercicio sin nombre";
+  }
+
+  const normalized = value.toString();
+  // Replace colon with dash to avoid SurrealDB interpreting it as type::thing identifier
+  return normalized.replace(/:/g, " - ").replace(/\s+/g, " ").trim();
+};

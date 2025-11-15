@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { SurrealDbModule } from "../core/database/surrealdb.module";
 
 // Mappers
@@ -38,7 +38,11 @@ import { ExerciseInstanceModule } from "./exercise-instance.module";
  * - REST API controllers
  */
 @Module({
-  imports: [SurrealDbModule, ExerciseCatalogModule, ExerciseInstanceModule],
+  imports: [
+    SurrealDbModule,
+    ExerciseCatalogModule,
+    forwardRef(() => ExerciseInstanceModule),
+  ],
   providers: [
     // Mappers
     ProgramMapper,
