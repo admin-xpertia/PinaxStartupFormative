@@ -158,12 +158,6 @@ export const exerciseCategoriesMetadata: Record<
     color: '#f59e0b',
     descripcionCorta: 'Generar artefactos guiados por IA',
   },
-  sistema_tracking: {
-    nombre: 'Sistema de Tracking',
-    icono: '📊',
-    color: '#3b82f6',
-    descripcionCorta: 'Monitorear progreso y hábitos de aprendizaje',
-  },
   herramienta_revision: {
     nombre: 'Herramienta de Revisión',
     icono: '✅',
@@ -175,12 +169,6 @@ export const exerciseCategoriesMetadata: Record<
     icono: '🌐',
     color: '#6366f1',
     descripcionCorta: 'Entorno virtual para practicar sin riesgos',
-  },
-  sistema_progresion: {
-    nombre: 'Sistema de Progresión',
-    icono: '🎯',
-    color: '#a855f7',
-    descripcionCorta: 'Desbloqueables y reconocimiento de logros',
   },
   caso: {
     nombre: 'Caso de Análisis',
