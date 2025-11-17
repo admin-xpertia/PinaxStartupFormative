@@ -15,11 +15,7 @@ import {
   type EvaluateShortAnswerResult,
 } from "../../lessons/InteractiveLessonRenderer"
 import { exercisesApi } from "@/services/api"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Loader2, MessageCircle, Sparkles } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 interface LeccionInteractivaPlayerProps {
   exerciseId: string
@@ -31,17 +27,6 @@ interface LeccionInteractivaPlayerProps {
   onComplete: (data: any) => Promise<void>
   onExit: () => void
 }
-
-type AssistantMessage = {
-  role: "user" | "assistant"
-  content: string
-}
-
-const defaultSuggestions = [
-  "¿Puedes resumir esta sección?",
-  "Dame un ejemplo aplicado",
-  "¿Cuál sería el siguiente paso?",
-]
 
 export function LeccionInteractivaPlayer({
   exerciseId,
@@ -55,16 +40,13 @@ export function LeccionInteractivaPlayer({
   const normalizedContent = useMemo(() => ensureLessonContentHasMarkdown(content), [content])
   const [sections, setSections] = useState<LessonSectionInfo[]>([])
   const [currentSection, setCurrentSection] = useState<LessonSectionInfo | null>(null)
-  const [aiMessages, setAiMessages] = useState<AssistantMessage[]>([])
-  const [aiInput, setAiInput] = useState("")
-  const [aiLoading, setAiLoading] = useState(false)
-  const [assistantOpen, setAssistantOpen] = useState(true)
   const [profile, setProfile] = useState({
     correctas: 0,
     incorrectas: 0,
     parciales: 0,
     preguntasDificiles: [] as string[],
   })
+  const { toast } = useToast()
 
   const exerciseDescription = useMemo(() => {
     if (normalizedContent.metadata?.objetivoPrincipal) return normalizedContent.metadata.objetivoPrincipal
@@ -85,8 +67,23 @@ export function LeccionInteractivaPlayer({
             ? Array.from(new Set([...prev.preguntasDificiles, payload.questionId]))
             : prev.preguntasDificiles,
       }))
+
+      // Mostrar toast según el resultado
+      if (payload.status === "correcto") {
+        toast({
+          title: "¡Excelente!",
+          description: "Respuesta correcta. Sigue así.",
+          variant: "default",
+        })
+      } else if (payload.status === "parcialmente_correcto") {
+        toast({
+          title: "Parcialmente correcto",
+          description: "Vas por buen camino, pero revisa algunos detalles.",
+          variant: "default",
+        })
+      }
     },
-    []
+    [toast]
   )
 
   const handleEvaluateShortAnswer = useCallback(
@@ -126,52 +123,24 @@ export function LeccionInteractivaPlayer({
   )
 
   const handleAssistantMessage = useCallback(
-    async (message: string) => {
-      if (!message.trim()) return
-      const trimmed = message.trim()
-      const historyWithUser = [
-        ...aiMessages.slice(-9),
-        {
-          role: "user" as const,
-          content: trimmed,
-        },
-      ]
-
-      setAiMessages(historyWithUser)
-      setAiInput("")
-      setAiLoading(true)
-
+    async (message: string, history: Array<{ role: "user" | "assistant"; content: string }>): Promise<string> => {
       try {
         const response = await exercisesApi.sendLessonAssistantMessage(exerciseId, {
-          pregunta: trimmed,
+          pregunta: message,
           seccionId: currentSection?.id || "leccion",
           seccionTitulo: currentSection?.title || normalizedContent.metadata?.titulo || proofPointName,
           seccionContenido: currentSection?.content || sections[0]?.content || normalizedContent.markdown,
-          historial: historyWithUser,
+          historial: history,
           perfilComprension: comprehensionProfile,
         })
 
-        setAiMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            content: response.respuesta,
-          },
-        ])
+        return response.respuesta
       } catch (error) {
-        setAiMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            content: "No pude consultar a la IA en este momento. Intenta nuevamente en unos segundos.",
-          },
-        ])
-      } finally {
-        setAiLoading(false)
+        console.error("Error al consultar IA:", error)
+        return "No pude consultar a la IA en este momento. Intenta nuevamente en unos segundos."
       }
     },
     [
-      aiMessages,
       comprehensionProfile,
       normalizedContent.markdown,
       normalizedContent.metadata?.titulo,
@@ -182,143 +151,16 @@ export function LeccionInteractivaPlayer({
     ]
   )
 
-  const handleDeepDive = useCallback((prompt: string) => {
-    setAssistantOpen(true)
-    setAiInput(prompt)
-  }, [])
+  // Criterio para permitir completar: que haya respondido al menos el 70% de las preguntas correctamente o parcialmente
+  const canFinish = useMemo(() => {
+    const totalPreguntas = normalizedContent.preguntasVerificacion?.length || 0
+    if (totalPreguntas === 0) return true // Si no hay preguntas, puede completar
 
-  const layout = (
-    <div className="-mx-6 -my-8 flex h-[calc(100vh-4rem-4px-4rem)] flex-col gap-8 px-6 py-8 xl:flex-row">
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="pr-4">
-          <InteractiveLessonRenderer
-            content={normalizedContent}
-            onSectionsMetadata={setSections}
-            onSectionChange={setCurrentSection}
-            onQuestionResult={handleQuestionResult}
-            onRequestDeepDive={(_, prompt) => prompt && handleDeepDive(prompt)}
-            evaluateShortAnswer={handleEvaluateShortAnswer}
-          />
-        </div>
-      </div>
+    const respuestasValidas = profile.correctas + profile.parciales
+    const porcentajeCompletado = (respuestasValidas / totalPreguntas) * 100
 
-      <Card className="w-full lg:w-[360px] h-full flex flex-col flex-shrink-0">
-        <CardHeader className="flex flex-row items-start justify-between space-y-0 flex-shrink-0">
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Tutor IA</p>
-            <CardTitle className="mt-1 flex items-center gap-2 text-lg">
-              <Sparkles className="h-4 w-4 text-primary" />
-              Pregunta al mentor
-            </CardTitle>
-            <p className="text-xs text-muted-foreground">
-            Contexto: {currentSection?.title || normalizedContent.metadata?.titulo}
-            </p>
-          </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-8"
-            onClick={() => setAssistantOpen((prev) => !prev)}
-          >
-            {assistantOpen ? "Ocultar" : "Mostrar"}
-          </Button>
-        </CardHeader>
-        {assistantOpen && (
-          <>
-            <CardContent className="space-y-4 flex-1 flex flex-col min-h-0">
-              <div className="rounded-2xl bg-muted/40 p-3 text-xs text-muted-foreground flex-shrink-0">
-                <p className="font-semibold text-foreground">Perfil de Comprensión</p>
-                <p>
-                  ✓ {profile.correctas} respondidas correctamente • ∆ {profile.parciales} parciales • !{" "}
-                  {profile.incorrectas} por reforzar
-                </p>
-              </div>
-
-              <ScrollArea className="flex-1 rounded-2xl border border-muted min-h-0">
-                <div className="space-y-3 p-3">
-                  {aiMessages.length === 0 && (
-                    <div className="rounded-xl border border-dashed border-muted-foreground/30 p-4 text-center text-xs text-muted-foreground">
-                      Explica qué parte no quedó clara o pregúntame por un ejemplo.
-                    </div>
-                  )}
-                  {aiMessages.map((message, idx) => (
-                    <div
-                      key={`assistant-msg-${idx}`}
-                      className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-                    >
-                      <div
-                        className={`rounded-2xl px-4 py-2 text-sm shadow ${
-                          message.role === "user"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-white text-slate-800"
-                        }`}
-                      >
-                        {message.content}
-                      </div>
-                    </div>
-                  ))}
-                  {aiLoading && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Elaborando respuesta...
-                    </div>
-                  )}
-                </div>
-              </ScrollArea>
-
-              <div className="flex flex-wrap gap-2 flex-shrink-0">
-                {defaultSuggestions.map((suggestion) => (
-                  <Button
-                    key={suggestion}
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 text-wrap"
-                    onClick={() => setAiInput(suggestion)}
-                  >
-                    {suggestion}
-                  </Button>
-                ))}
-              </div>
-
-              <div className="space-y-2 rounded-2xl border border-muted bg-white/80 p-3 shadow-inner flex-shrink-0">
-                <Textarea
-                  value={aiInput}
-                  placeholder="Formula tu pregunta..."
-                  onChange={(event) => setAiInput(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" && !event.shiftKey) {
-                      event.preventDefault()
-                      handleAssistantMessage(aiInput)
-                    }
-                  }}
-                  className="min-h-[90px] resize-none border-0 bg-transparent p-0 text-sm focus-visible:ring-0"
-                />
-                <div className="flex justify-end">
-                  <Button
-                    size="sm"
-                    onClick={() => handleAssistantMessage(aiInput)}
-                    disabled={!aiInput.trim() || aiLoading}
-                  >
-                    {aiLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Pensando...
-                      </>
-                    ) : (
-                      <>
-                        <MessageCircle className="mr-2 h-4 w-4" />
-                        Enviar
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </>
-        )}
-      </Card>
-    </div>
-  )
+    return porcentajeCompletado >= 70
+  }, [profile, normalizedContent.preguntasVerificacion])
 
   return (
     <ExercisePlayer
@@ -327,14 +169,27 @@ export function LeccionInteractivaPlayer({
       exerciseDescription={exerciseDescription}
       proofPointName={proofPointName}
       totalSteps={1}
-      contentMaxWidthClassName="max-w-6xl"
+      contentMaxWidthClassName="max-w-4xl"
       currentStep={1}
       onSave={onSave}
       onComplete={onComplete}
       onExit={onExit}
-      showAIAssistant={false}
+      showAIAssistant={true}
+      aiContext={currentSection?.title || normalizedContent.metadata?.titulo || "Lección General"}
+      onAskAssistant={handleAssistantMessage}
+      canComplete={canFinish}
     >
-      {layout}
+      <InteractiveLessonRenderer
+        content={normalizedContent}
+        onSectionsMetadata={setSections}
+        onSectionChange={setCurrentSection}
+        onQuestionResult={handleQuestionResult}
+        onRequestDeepDive={(_, prompt) => {
+          // Deep dive functionality can be integrated with AI assistant if needed
+          console.log("Deep dive requested:", prompt)
+        }}
+        evaluateShortAnswer={handleEvaluateShortAnswer}
+      />
     </ExercisePlayer>
   )
 }
