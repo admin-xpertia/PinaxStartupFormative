@@ -10,6 +10,7 @@ import {
   NextExerciseCard,
   PhaseProofPoints,
   PhaseRoadmap,
+  ProgramCard,
   ProgramHero,
   StatsOverview,
 } from "@/components/student/dashboard"
@@ -29,6 +30,7 @@ function DashboardContent() {
     undefined
   const [selectedPhaseIdx, setSelectedPhaseIdx] = useState(0)
   const [viewMode, setViewMode] = useState<'focus' | 'roadmap'>('focus')
+  const [selectedEnrollmentId, setSelectedEnrollmentId] = useState<string | null>(null)
 
   const {
     data: enrollments,
@@ -38,7 +40,15 @@ function DashboardContent() {
     () => enrollmentsApi.getMy(studentId)
   )
 
-  const activeEnrollment = enrollments?.[0]
+  // Auto-select if only one enrollment, or use manually selected one
+  const activeEnrollment = useMemo(() => {
+    if (!enrollments || enrollments.length === 0) return null
+    if (enrollments.length === 1) return enrollments[0]
+    if (selectedEnrollmentId) {
+      return enrollments.find(e => e.id === selectedEnrollmentId) || null
+    }
+    return null
+  }, [enrollments, selectedEnrollmentId])
 
   const { data: structure } = useSWR(
     activeEnrollment ? ["enrollment-structure", activeEnrollment.id] : null,
@@ -177,6 +187,32 @@ function DashboardContent() {
     )
   }
 
+  // Show program gallery if multiple enrollments and none selected
+  if (enrollments && enrollments.length > 1 && !selectedEnrollmentId) {
+    return (
+      <div className="flex min-h-screen flex-col bg-slate-50">
+        <DashboardHeader />
+        <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 px-6 py-8">
+          <div className="text-center space-y-2">
+            <h1 className="text-4xl font-bold">Mis Programas</h1>
+            <p className="text-xl text-muted-foreground">
+              Selecciona un programa para continuar tu aprendizaje
+            </p>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {enrollments.map((enrollment) => (
+              <ProgramCard
+                key={enrollment.id}
+                enrollment={enrollment}
+                onSelect={() => setSelectedEnrollmentId(enrollment.id)}
+              />
+            ))}
+          </div>
+        </main>
+      </div>
+    )
+  }
+
   if (!activeEnrollment) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">
@@ -193,7 +229,11 @@ function DashboardContent() {
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
-      <DashboardHeader />
+      <DashboardHeader
+        showProgramSelector={enrollments && enrollments.length > 1}
+        onNavigateToProgramGallery={() => setSelectedEnrollmentId(null)}
+        currentProgramName={activeEnrollment.programName}
+      />
 
       <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 px-6 py-8">
         {/* Toggle View Mode */}

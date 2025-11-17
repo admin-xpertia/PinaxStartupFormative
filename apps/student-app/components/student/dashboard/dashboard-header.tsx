@@ -1,13 +1,21 @@
 import Link from "next/link"
-import { Bell } from "lucide-react"
+import { Bell, Grid3x3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
 interface DashboardHeaderProps {
   studentInitials?: string
+  showProgramSelector?: boolean
+  onNavigateToProgramGallery?: () => void
+  currentProgramName?: string
 }
 
-export function DashboardHeader({ studentInitials = "ES" }: DashboardHeaderProps) {
+export function DashboardHeader({
+  studentInitials = "ES",
+  showProgramSelector = false,
+  onNavigateToProgramGallery,
+  currentProgramName,
+}: DashboardHeaderProps) {
   return (
     <header className="border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-6">
@@ -19,14 +27,27 @@ export function DashboardHeader({ studentInitials = "ES" }: DashboardHeaderProps
             <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
               Xpertia
             </p>
-            <p className="text-sm font-semibold text-foreground">Espacio del estudiante</p>
+            <p className="text-sm font-semibold text-foreground">
+              {currentProgramName || "Espacio del estudiante"}
+            </p>
           </div>
         </div>
 
         <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
-          <button className="font-semibold text-foreground transition" type="button">
-            Programas
-          </button>
+          {showProgramSelector && onNavigateToProgramGallery ? (
+            <button
+              className="font-semibold text-primary transition hover:text-primary/80 flex items-center gap-2"
+              type="button"
+              onClick={onNavigateToProgramGallery}
+            >
+              <Grid3x3 className="h-4 w-4" />
+              Mis Programas
+            </button>
+          ) : (
+            <button className="font-semibold text-foreground transition" type="button">
+              Programas
+            </button>
+          )}
           <button className="transition hover:text-foreground" type="button">
             Roadmap
           </button>
