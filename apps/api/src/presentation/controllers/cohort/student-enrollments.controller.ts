@@ -5,6 +5,7 @@ import {
   Query,
   BadRequestException,
   NotFoundException,
+  Logger,
 } from "@nestjs/common";
 import {
   ApiBearerAuth,
@@ -23,6 +24,9 @@ import type {
 import type { ProgramStructure } from "@xpertia/types/enrollment";
 import { Public } from "../../../core/decorators";
 import { CohortStructureService } from "../../../application/cohort/services/CohortStructureService";
+import { SurrealDbService } from "../../../core/database/surrealdb.service";
+import { ProgramSnapshotService } from "../../../application/cohort/services/ProgramSnapshotService";
+import { RecordId } from "../../../domain/shared/value-objects/RecordId";
 
 interface ContinuePointDto {
   exerciseId: string;
@@ -39,9 +43,13 @@ interface ContinuePointDto {
 @ApiBearerAuth("JWT-auth")
 @Public()
 export class StudentEnrollmentsController {
+  private readonly logger = new Logger(StudentEnrollmentsController.name);
+
   constructor(
     private readonly getStudentEnrollmentsQuery: GetStudentEnrollmentsQuery,
     private readonly cohortStructureService: CohortStructureService,
+    private readonly db: SurrealDbService,
+    private readonly programSnapshotService: ProgramSnapshotService,
   ) {}
 
   @Public()
@@ -108,7 +116,7 @@ export class StudentEnrollmentsController {
         "La cohorte no tiene snapshot de programa configurado",
       );
     }
-    return enrollment.snapshotStructure;
+    return this.refreshProofPointExercises(enrollment.snapshotStructure);
   }
 
   @Public()
@@ -120,7 +128,9 @@ export class StudentEnrollmentsController {
     @Param("id") id: string,
   ): Promise<ContinuePointDto | null> {
     const enrollment = await this.fetchEnrollmentById({ enrollmentId: id });
-    const structure = enrollment.snapshotStructure;
+    const structure = enrollment.snapshotStructure
+      ? await this.refreshProofPointExercises(enrollment.snapshotStructure)
+      : null;
 
     if (!structure || structure.phases.length === 0) {
       return null;
@@ -137,6 +147,11 @@ export class StudentEnrollmentsController {
         )[0];
 
         if (!exercise) {
+          continue;
+        }
+
+        const isPublished = await this.isExercisePublished(exercise.id);
+        if (!isPublished) {
           continue;
         }
 
@@ -185,6 +200,62 @@ export class StudentEnrollmentsController {
     return {
       ...enrollment,
       snapshotStructure: structure,
+    };
+  }
+
+  private async isExercisePublished(exerciseId: string): Promise<boolean> {
+    try {
+      const result = await this.db.query<any>(
+        "SELECT estado_contenido FROM type::thing($id)",
+        { id: exerciseId },
+      );
+
+      const record = Array.isArray(result)
+        ? Array.isArray(result[0])
+          ? result[0][0]
+          : result[0]
+        : null;
+
+      return record?.estado_contenido === "publicado";
+    } catch (error) {
+      this.logger.warn(
+        `No se pudo verificar el estado de publicación del ejercicio ${exerciseId}: ${
+          error instanceof Error ? error.message : error
+        }`,
+      );
+      return false;
+    }
+  }
+
+  private async refreshProofPointExercises(
+    structure: ProgramStructure,
+  ): Promise<ProgramStructure> {
+    const phases = [];
+
+    for (const phase of structure.phases) {
+      const updatedProofPoints = [];
+
+      for (const proofPoint of phase.proofPoints) {
+        const publishedExercises =
+          await this.programSnapshotService.getPublishedExercisesStructure(
+            RecordId.fromString(proofPoint.id),
+          );
+
+        updatedProofPoints.push({
+          ...proofPoint,
+          exercises: publishedExercises,
+        });
+      }
+
+      phases.push({
+        ...phase,
+        proofPoints: updatedProofPoints,
+      });
+    }
+
+    return {
+      ...structure,
+      phases,
     };
   }
 

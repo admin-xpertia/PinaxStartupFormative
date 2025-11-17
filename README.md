@@ -1,300 +1,119 @@
-# Xpertia Plataforma
+# Xpertia Classroom
 
-Plataforma educativa innovadora basada en Domain-Driven Design (DDD) con SurrealDB como base de datos.
+Plataforma educativa con generación asistida por IA. Incluye backend NestJS sobre SurrealDB con arquitectura DDD, panel de instructores en Next.js y experiencia de estudiante también en Next.js.
 
-## Arquitectura
+## Arquitectura del repositorio
 
-Este es un monorepo que contiene todas las aplicaciones y paquetes compartidos de la plataforma Xpertia.
+- `apps/api`: API REST NestJS (`/api/v1`, Swagger en `/docs`). Bounded contexts: auth, program design, exercise catalog, exercise instances, exercise progress y cohortes.
+- `apps/instructor-app`: Dashboard de instructores (Next.js 16, App Router).
+- `apps/student-app`: Experiencia del estudiante (Next.js 16) con roadmap, ejercicios y feedback.
+- `packages/database`: Esquema SurrealDB + seeds + scripts de migración.
+- `packages/types`: Tipos TypeScript compartidos (programas, cohortes, ejercicios, etc.).
 
-### Estructura del Proyecto
+## Prerrequisitos
 
-```
-xpertia-plataforma/
-├── apps/
-│   ├── api/              # API Backend (NestJS)
-│   └── instructor-app/   # Aplicación para Instructores (Next.js)
-├── packages/
-│   ├── database/         # Esquema SurrealDB y configuración
-│   ├── types/           # Tipos TypeScript compartidos
-│   └── ui-core/         # Componentes UI compartidos
-└── README.md
-```
+- Node.js 20+
+- pnpm 9+
+- SurrealDB 1.5+ (CLI y servicio en local)
+- Clave de OpenAI (`OPENAI_API_KEY`) para generación de contenido y feedback (opcional pero recomendada).
 
-## Stack Tecnológico
+## Puesta en marcha rápida
 
-- **Base de Datos**: SurrealDB (modo SCHEMAFULL con Record Links)
-- **Backend**: NestJS (TypeScript)
-- **Frontend**: Next.js 14 (App Router, TypeScript)
-- **Arquitectura**: Domain-Driven Design (DDD)
-- **Monorepo**: Turborepo / pnpm workspaces
+### 1) Base de datos (SurrealDB + seeds)
 
-## Inicio Rápido
-
-### Prerequisitos
-
-1. **Node.js** 20+
-2. **pnpm** 8+
-3. **SurrealDB** 1.5+
-
-### Instalación
-
-1. **Clonar el repositorio**:
+1. Arranca SurrealDB local:
    ```bash
-   git clone <repo-url>
-   cd xpertia-plataforma
+   surreal start --log info --user root --pass root --bind 127.0.0.1:8000 file:./data/xpertia.db
    ```
-
-2. **Instalar dependencias**:
-   ```bash
-   pnpm install
-   ```
-
-3. **Instalar e iniciar SurrealDB**:
-   ```bash
-   # macOS/Linux
-   curl -sSf https://install.surrealdb.com | sh
-
-   # O con Homebrew
-   brew install surrealdb/tap/surreal
-
-   # Iniciar servidor
-   surreal start --log trace --user root --pass root file:data.db
-   ```
-
-4. **Inicializar esquema de base de datos**:
+2. Aplica schema nuevo + seeds (usuarios demo + 12 plantillas de ejercicios IA). **Destructivo** porque limpia la base:
    ```bash
    cd packages/database
-   ./init-schema.sh
+   pnpm install   # solo la primera vez
+   SURREAL_URL=ws://127.0.0.1:8000/rpc \
+   SURREAL_NAMESPACE=xpertia \
+   SURREAL_DATABASE=plataforma \
+   SURREAL_USER=root \
+   SURREAL_PASS=root \
+   pnpm migrate:confirm
    ```
+   - Usa `--skip-seed` si no quieres datos de ejemplo.
 
-5. **Configurar variables de entorno**:
-   ```bash
-   # En apps/api
-   cp apps/api/.env.example apps/api/.env
+Credenciales demo creadas por el seed:
+- Admin: `admin@xpertia.com` / `Admin123!`
+- Instructor: `instructor@xpertia.com` / `Instructor123!`
+- Estudiante: `estudiante@xpertia.com` / `Estudiante123!`
 
-   # En apps/instructor-app
-   cp apps/instructor-app/.env.example apps/instructor-app/.env
+### 2) API (NestJS)
+
+1. Configura `apps/api/.env` (valores sugeridos):
+   ```env
+   SURREAL_URL=ws://127.0.0.1:8000/rpc
+   SURREAL_NAMESPACE=xpertia
+   SURREAL_DATABASE=plataforma
+   SURREAL_USER=root
+   SURREAL_PASS=root
+
+   PORT=3000
+   API_PREFIX=api/v1
+   CORS_ORIGIN=http://localhost:3001,http://localhost:3002
+
+   OPENAI_API_KEY=tu_api_key   # opcional
+   OPENAI_MODEL=gpt-4.1-mini   # o el que tengas disponible
+   OPENAI_MAX_TOKENS=32000
    ```
-
-6. **Iniciar aplicaciones**:
+2. Instala dependencias y arranca:
    ```bash
-   # Iniciar todo en modo desarrollo
+   cd apps/api
+   pnpm install
    pnpm dev
+   ```
+   Swagger: `http://localhost:3000/docs`
 
-   # O individualmente
-   pnpm --filter @xpertia/api dev
-   pnpm --filter instructor-app dev
+### 3) Instructor App (Next.js)
+
+1. Crear `.env.local` (puedes copiar de `.env.example`):
+   ```env
+   NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
+   ```
+2. Instalar y correr:
+   ```bash
+   cd apps/instructor-app
+   pnpm install
+   pnpm dev --port 3001
    ```
 
-## Paquetes
+### 4) Student App (Next.js)
 
-### `@xpertia/database`
+1. Crear `apps/student-app/.env.local`:
+   ```env
+   NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
+   NEXT_PUBLIC_DEFAULT_STUDENT_ID=estudiante:demo   # opcional para probar rápido
+   ```
+2. Instalar y correr:
+   ```bash
+   cd apps/student-app
+   pnpm install
+   pnpm dev --port 3002
+   ```
 
-Contiene el esquema completo de SurrealDB en modo SCHEMAFULL, organizados por dominios:
+## Flujos actuales
 
-- **auth.surql**: Autenticación y usuarios
-- **contenido.surql**: Programas, fases, proof points, niveles, componentes
-- **generacion.surql**: Generación de contenido con IA
-- **ejecucion.surql**: Estudiantes y progreso
-- **portafolio.surql**: Portafolios y reportes
-- **analytics.surql**: Métricas y telemetría
-- **versiones.surql**: Versionamiento de contenido
+- **Diseño de programas**: crear/editar programas, fases y proof points; publicar/archivar, ordenación y metadata completa.
+- **Catálogo de ejercicios IA**: 12 plantillas seed agrupadas por categorías (`leccion_interactiva`, `cuaderno_trabajo`, `simulacion_interaccion`, `mentor_asesor_ia`, etc.) disponibles en `/exercise-templates`.
+- **Instancias de ejercicios**: asignación a proof points, reorder, publish/unpublish, regeneración de contenido con OpenAI, análisis de borradores y modos de interacción (mentor socrático, roleplay, simulación).
+- **Cohortes y matriculación**: creación de cohortes a partir del snapshot del programa, inscripción de estudiantes, estructura congelada por cohorte.
+- **Progreso de estudiantes**: endpoints `student/exercises/*` para iniciar, guardar, entregar y evaluar (auto-feedback IA incluido). Dashboard de estudiante muestra roadmap, siguiente ejercicio, progreso por fase y punto de control.
+- **Analytics de instructores**: vista de cohorte/programa con progreso por fase, ejercicios publicados, estudiantes en riesgo y bandeja de entregas (`/programas/[id]/analytics` en el dashboard).
+- **Autenticación**: JWT generado por SurrealDB (scope `usuario_scope`); endpoints públicos: `/auth/signup`, `/auth/signin`; resto protegido por `AuthGuard`.
 
-[Ver documentación completa](./packages/database/README.md)
+## Scripts útiles
 
-### `@xpertia/types`
+- Base de datos: `pnpm --dir packages/database migrate:confirm` (reset + schema + seed), `pnpm --dir packages/database migrate -- --skip-seed` (sin seed).
+- API: `pnpm dev`, `pnpm test`, `pnpm build`, `pnpm db:deploy` (aplica schema con `apply-schema.ts` usando `.env`).
+- Instructor app / Student app: `pnpm dev`, `pnpm build`.
 
-Tipos TypeScript compartidos entre todas las aplicaciones, generados del esquema de base de datos.
+## Notas
 
-### `@xpertia/ui-core`
-
-Componentes UI compartidos basados en shadcn/ui y Tailwind CSS.
-
-## Aplicaciones
-
-### API Backend (`apps/api`)
-
-API REST/GraphQL construida con NestJS siguiendo principios DDD:
-
-- **Módulos por dominio**: Auth, Programas, Estudiantes, Analytics, etc.
-- **Repositorios**: Abstracción de acceso a datos
-- **Casos de uso**: Lógica de negocio encapsulada
-- **DTOs**: Validación con class-validator
-
-### Instructor App (`apps/instructor-app`)
-
-Aplicación web para instructores construida con Next.js 14:
-
-- **App Router**: Enrutamiento basado en archivos
-- **Server Components**: Optimización de rendimiento
-- **Autenticación**: JWT con SurrealDB SCOPE
-- **UI**: shadcn/ui + Tailwind CSS
-
-## Características Clave
-
-### 1. Base de Datos SurrealDB
-
-- **Modo SCHEMAFULL**: Validación de datos a nivel de BD
-- **Record Links**: Relaciones tipo-safe entre tablas
-- **Validaciones**: ASSERT para integridad de datos
-- **Timestamps automáticos**: created_at / updated_at
-- **Índices optimizados**: Para queries comunes
-
-### 2. Domain-Driven Design
-
-- **Bounded Contexts**: Separación clara de dominios
-- **Aggregates**: Entidades y objetos de valor
-- **Repositorios**: Abstracción de persistencia
-- **Casos de Uso**: Lógica de negocio aislada
-
-### 3. Arquitectura de Aprendizaje
-
-```
-Programa
-  └─ Fase
-      └─ ProofPoint
-          └─ Nivel
-              └─ Componente (Lección, Cuaderno, Simulación, Herramienta)
-```
-
-### 4. Generación con IA
-
-- Generación de contenido educativo
-- Validación automática de calidad
-- Feedback personalizado para estudiantes
-- Métricas de efectividad
-
-### 5. Analytics y Detección de Fricción
-
-- Telemetría en tiempo real
-- Métricas por componente/cohorte
-- Detección automática de puntos de fricción
-- Alertas para instructores
-
-## Scripts Disponibles
-
-```bash
-# Desarrollo
-pnpm dev                    # Iniciar todas las apps en desarrollo
-pnpm dev --filter api       # Iniciar solo API
-pnpm dev --filter instructor-app  # Iniciar solo instructor-app
-
-# Build
-pnpm build                  # Build todas las apps
-pnpm build --filter api     # Build solo API
-
-# Testing
-pnpm test                   # Ejecutar tests
-pnpm test:e2e              # Ejecutar tests e2e
-
-# Linting
-pnpm lint                   # Lint todas las apps
-pnpm lint:fix              # Lint y autofix
-
-# Database
-pnpm db:init               # Inicializar esquema
-pnpm db:reset              # Resetear base de datos
-pnpm db:query              # Abrir CLI de SurrealDB
-```
-
-## Base de Datos - Usuarios por Defecto
-
-Después de inicializar el esquema, están disponibles:
-
-- **Admin**: `admin@xpertia.com` / `changeme123!`
-- **Instructor**: `instructor@xpertia.com` / `instructor123!`
-
-⚠️ **IMPORTANTE**: Cambiar contraseñas en producción.
-
-## Desarrollo
-
-### Agregar una nueva tabla
-
-1. Editar el archivo `.surql` correspondiente en `packages/database/schema/`
-2. Agregar tipo en `packages/database/types.ts`
-3. Ejecutar `cd packages/database && ./init-schema.sh`
-
-### Agregar un nuevo dominio
-
-1. Crear módulo en `apps/api/src/modules/<dominio>`
-2. Implementar repositorio, casos de uso y controladores
-3. Agregar rutas en el módulo principal
-
-### Agregar nueva página en instructor-app
-
-1. Crear ruta en `apps/instructor-app/app/<ruta>/page.tsx`
-2. Implementar componentes en `apps/instructor-app/components/`
-3. Agregar navegación si es necesario
-
-## Contribuir
-
-1. Fork el repositorio
-2. Crear una rama: `git checkout -b feature/nueva-funcionalidad`
-3. Commit cambios: `git commit -am 'Agregar nueva funcionalidad'`
-4. Push a la rama: `git push origin feature/nueva-funcionalidad`
-5. Crear Pull Request
-
-## Licencia
-
-MIT
-
-## Soporte
-
-Para reportar problemas o solicitar características, crear un issue en el repositorio.
-
-## Roadmap
-
-- [x] **Definir esquema completo de SurrealDB** ✅
-- [x] **Implementar API Backend con NestJS** ✅
-- [x] **Implementar autenticación JWT nativa de SurrealDB** ✅
-- [x] **Conectar instructor-app con API** ✅
-- [x] **Protección de rutas en frontend** ✅
-- [x] **Gestión de sesión completa** ✅
-- [ ] Implementar CRUD de programas
-- [ ] Implementar gestión de cohortes
-- [ ] Implementar generación de contenido con IA
-- [ ] Implementar sistema de analytics
-- [ ] Desarrollar app para estudiantes
-- [ ] Implementar sistema de portafolios
-- [ ] Agregar tests e2e
-- [ ] Preparar para producción
-
-## Estado Actual: ✅ FASE 1 COMPLETADA
-
-### ✨ Lo que está funcionando AHORA:
-
-1. **Base de Datos**:
-   - ✅ Esquema completo de 49 tablas en SurrealDB
-   - ✅ Modo SCHEMAFULL con Record Links
-   - ✅ 2 SCOPES: instructor_scope, estudiante_scope
-   - ✅ Autenticación Argon2
-
-2. **Backend API**:
-   - ✅ NestJS con arquitectura DDD
-   - ✅ SurrealDB integrado
-   - ✅ 4 endpoints de autenticación funcionando
-   - ✅ AuthGuard global
-   - ✅ Swagger documentation en `/docs`
-
-3. **Frontend**:
-   - ✅ Next.js 14 con App Router
-   - ✅ Páginas de login y signup
-   - ✅ AuthProvider y useAuth hook
-   - ✅ Protección automática de rutas
-   - ✅ Header con datos reales del usuario
-   - ✅ Logout funcional
-
-4. **Sistema Completo**:
-   - ✅ Login funciona end-to-end
-   - ✅ Registro de nuevos instructores
-   - ✅ Persistencia de sesión
-   - ✅ Auto-logout en token inválido
-   - ✅ Tokens JWT nativos de SurrealDB
-
-### 📚 Documentación Disponible:
-
-- **[GETTING_STARTED.md](./GETTING_STARTED.md)**: Guía para iniciar el proyecto
-- **[SCHEMA_SUMMARY.md](./SCHEMA_SUMMARY.md)**: Resumen completo del esquema
-- **[AUTHENTICATION_SUMMARY.md](./AUTHENTICATION_SUMMARY.md)**: Detalles de autenticación backend
-- **[FRONTEND_AUTH_SUMMARY.md](./FRONTEND_AUTH_SUMMARY.md)**: Integración frontend
-- **[apps/api/TESTING.md](./apps/api/TESTING.md)**: Guía de pruebas de API
+- El prefijo de API es `api/v1`; asegúrate de que los `.env` del frontend apunten al URL completo (incluyendo el prefijo).
+- Las features de generación y feedback requieren `OPENAI_API_KEY`; sin clave, los endpoints de IA responderán con error controlado.
+- El script de migración es destructivo; úsalo solo en entornos de desarrollo o con snapshots controlados.

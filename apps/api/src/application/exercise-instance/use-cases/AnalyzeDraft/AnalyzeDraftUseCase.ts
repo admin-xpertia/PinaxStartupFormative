@@ -114,14 +114,36 @@ Proporciona feedback formativo en formato JSON con esta estructura:
         await this.openAIService.generateChatResponse({
           systemPrompt,
           messages: [{ role: "user", content: userPrompt }],
-          maxTokens: 800,
+          // Empieza con un presupuesto más alto para evitar reintentos por truncamiento
+          maxTokens: 5000,
           responseFormat: { type: "json_object" },
         });
 
       // 5. Parse AI response
+      const trimmedResponse = aiResponse?.trim() ?? "";
+      const fallback: AnalyzeDraftResponse = {
+        questionId: request.questionId,
+        suggestion:
+          trimmedResponse ||
+          "Continúa desarrollando tu respuesta con más detalle.",
+        strengths: [],
+        improvements: [],
+        rubricAlignment: 50,
+      };
+
+      if (!trimmedResponse) {
+        this.logger.warn(
+          "AI returned empty draft analysis response; using fallback content.",
+        );
+        this.logger.log(
+          `✅ Draft analysis completed for question ${request.questionId}`,
+        );
+        return Result.ok(fallback);
+      }
+
       let analysis: AnalyzeDraftResponse;
       try {
-        const parsed = JSON.parse(aiResponse);
+        const parsed = JSON.parse(trimmedResponse);
         analysis = {
           questionId: request.questionId,
           suggestion:

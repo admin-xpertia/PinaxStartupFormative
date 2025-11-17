@@ -139,12 +139,28 @@ export class ProgramSnapshotService {
   ): Promise<
     ProgramStructure["phases"][number]["proofPoints"][number]["exercises"]
   > {
-    const exercises = await this.exerciseInstanceRepository.findByProofPoint(
+    const exercises = await this.getPublishedExercisesStructure(
       proofPoint.getId(),
+    );
+
+    return exercises;
+  }
+
+  async getPublishedExercisesStructure(
+    proofPointId: RecordId,
+  ): Promise<
+    ProgramStructure["phases"][number]["proofPoints"][number]["exercises"]
+  > {
+    const exercises = await this.exerciseInstanceRepository.findByProofPoint(
+      proofPointId,
     );
 
     const summaries = [];
     for (const exercise of exercises) {
+      if (!exercise.getEstadoContenido().isPublicado()) {
+        continue;
+      }
+
       const templateMeta = await this.getTemplateMetadata(
         exercise.getTemplate(),
       );

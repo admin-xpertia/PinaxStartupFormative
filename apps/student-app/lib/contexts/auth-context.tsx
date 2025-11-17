@@ -1,6 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react"
+import { enrollmentsApi } from "@/services/api"
 
 /**
  * User information from JWT token or API
@@ -112,7 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Fetch student enrollment if user is a student
       if (data.user.rol === "estudiante") {
-        await fetchStudentEnrollment(data.token, data.user.id)
+        await fetchStudentEnrollment(data.user.id)
       }
     } catch (error) {
       console.error("Login error:", error)
@@ -121,24 +122,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   // Fetch student enrollment information
-  const fetchStudentEnrollment = async (authToken: string, userId: string) => {
+  const fetchStudentEnrollment = async (userId: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-      const baseUrl = apiUrl.endsWith("/api/v1") ? apiUrl : `${apiUrl}/api/v1`
+      const enrollments = await enrollmentsApi.getMy(userId)
+      const activeEnrollment = enrollments.find((enrollment) => enrollment.status === "active") ?? enrollments[0]
 
-      // TODO: Create proper endpoint to get student enrollment
-      // For now, use hardcoded values from environment
+      if (!activeEnrollment) {
+        setEnrollment(null)
+        localStorage.removeItem("student_enrollment")
+        return
+      }
+
       const enrollmentData: StudentEnrollment = {
-        estudianteId: process.env.NEXT_PUBLIC_DEV_ESTUDIANTE_ID || "usuario:estudiante1",
-        cohorteId: process.env.NEXT_PUBLIC_DEV_COHORTE_ID || "cohorte:cohorte1",
-        programId: "programa:default",
-        programName: "Programa Default",
+        estudianteId: activeEnrollment.studentId,
+        cohorteId: activeEnrollment.cohortId,
+        programId: activeEnrollment.programId,
+        programName: activeEnrollment.programName,
       }
 
       setEnrollment(enrollmentData)
       localStorage.setItem("student_enrollment", JSON.stringify(enrollmentData))
     } catch (error) {
       console.error("Failed to fetch enrollment:", error)
+      setEnrollment(null)
     }
   }
 

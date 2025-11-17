@@ -120,8 +120,8 @@ export default function ExercisePage() {
     }
 
     return {
-      estudianteId,
-      cohorteId,
+      estudianteId: estudianteId!,
+      cohorteId: cohorteId!,
       datos: ensureRecord(rawData),
     }
   }
@@ -147,8 +147,8 @@ export default function ExercisePage() {
     }
 
     return {
-      estudianteId,
-      cohorteId,
+      estudianteId: estudianteId!,
+      cohorteId: cohorteId!,
       datos: ensureRecord(rawData),
     }
   }

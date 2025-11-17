@@ -1,52 +1,15 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState } from "react"
 import { ExercisePlayer } from "../base/ExercisePlayer"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import {
-  MessageSquare,
-  Send,
-  RotateCcw,
-  User,
-  Bot,
-  CheckCircle2,
-  AlertTriangle,
-  Lightbulb
-} from "lucide-react"
-import { cn } from "@/lib/utils"
-
-// Types for Simulación de Interacción
-interface SimulationScenario {
-  titulo: string
-  descripcion: string
-  personaje_ia: {
-    nombre: string
-    rol: string
-    personalidad: string
-    tono: string
-    contexto: string
-  }
-  objetivo_estudiante: string
-  situacion_inicial: string
-  criterios_exito: string[]
-  nivel_dificultad: "principiante" | "intermedio" | "avanzado"
-  tiempo_sugerido?: number
-}
-
-interface Message {
-  id: string
-  role: "user" | "assistant" | "system"
-  content: string
-  timestamp: Date
-  feedback?: {
-    tipo: "positivo" | "neutral" | "mejora"
-    mensaje: string
-  }
-}
+import { CheckCircle2 } from "lucide-react"
+import { ScenarioSummary } from "./components/ScenarioSummary"
+import { SuccessCriteriaCard } from "./components/SuccessCriteriaCard"
+import { ConversationPanel } from "./components/ConversationPanel"
+import { useSimulationChat } from "./useSimulationChat"
+import type { SimulationScenario } from "./types"
 
 interface SimulacionInteraccionPlayerProps {
   exerciseId: string
@@ -67,84 +30,17 @@ export function SimulacionInteraccionPlayer({
   onComplete,
   onExit,
 }: SimulacionInteraccionPlayerProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "initial",
-      role: "system",
-      content: content.situacion_inicial,
-      timestamp: new Date(),
-    },
-  ])
-  const [input, setInput] = useState("")
-  const [isThinking, setIsThinking] = useState(false)
   const [showObjectives, setShowObjectives] = useState(true)
-  const [conversationComplete, setConversationComplete] = useState(false)
-  const [successCriteriaMet, setSuccessCriteriaMet] = useState<Set<number>>(new Set())
-
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLTextAreaElement>(null)
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
-
-  const handleSendMessage = () => {
-    if (!input.trim() || isThinking) return
-
-    const userMessage: Message = {
-      id: `user-${Date.now()}`,
-      role: "user",
-      content: input.trim(),
-      timestamp: new Date(),
-    }
-
-    const updatedMessages = [...messages, userMessage]
-    setMessages(updatedMessages)
-    setInput("")
-    setIsThinking(true)
-
-    const aiResponse: Message = {
-      id: `ai-${Date.now()}`,
-      role: "assistant",
-      content: buildSimulationResponse(content, userMessage.content),
-      timestamp: new Date(),
-    }
-
-    const feedback = buildFeedback(updatedMessages.length, content)
-    if (feedback) {
-      aiResponse.feedback = feedback
-    }
-
-    setMessages((prev) => [...prev, aiResponse])
-    setIsThinking(false)
-    checkSuccessCriteria(updatedMessages.length + 1)
-  }
-
-  const checkSuccessCriteria = (messageCount: number) => {
-    const newMet = new Set(successCriteriaMet)
-    content.criterios_exito.forEach((_criterio, index) => {
-      if (messageCount >= (index + 1) * 4) {
-        newMet.add(index)
-      }
-    })
-    setSuccessCriteriaMet(newMet)
-    if (newMet.size >= content.criterios_exito.length) {
-      setConversationComplete(true)
-    }
-  }
-
-  const handleReset = () => {
-    setMessages([
-      {
-        id: "initial",
-        role: "system",
-        content: content.situacion_inicial,
-        timestamp: new Date(),
-      },
-    ])
-    setConversationComplete(false)
-    setSuccessCriteriaMet(new Set())
-  }
+  const {
+    messages,
+    successCriteriaMet,
+    isThinking,
+    error,
+    conversationComplete,
+    toggleSuccessCriteria,
+    resetConversation,
+    sendMessage,
+  } = useSimulationChat({ content, exerciseId })
 
   const handleSaveWithData = async () => {
     await onSave({
@@ -162,19 +58,6 @@ export function SimulacionInteraccionPlayer({
     })
   }
 
-  const getDifficultyColor = () => {
-    switch (content.nivel_dificultad) {
-      case "principiante":
-        return "bg-green-500"
-      case "intermedio":
-        return "bg-yellow-500"
-      case "avanzado":
-        return "bg-red-500"
-      default:
-        return "bg-gray-500"
-    }
-  }
-
   return (
     <ExercisePlayer
       exerciseId={exerciseId}
@@ -190,228 +73,38 @@ export function SimulacionInteraccionPlayer({
       showAIAssistant={false} // Simulation IS the AI interaction
     >
       <div className="space-y-6">
-        {/* Scenario Info */}
-        <Card className="border-primary/30 bg-primary/5">
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <CardTitle className="flex items-center gap-2 mb-2">
-                  <MessageSquare className="h-5 w-5" />
-                  {content.titulo}
-                </CardTitle>
-                <p className="text-sm text-foreground/80">{content.descripcion}</p>
-              </div>
-              <Badge className={getDifficultyColor()}>
-                {content.nivel_dificultad}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div>
-                <h4 className="text-sm font-semibold mb-1">Tu Objetivo:</h4>
-                <p className="text-sm text-foreground/90">{content.objetivo_estudiante}</p>
-              </div>
-              <div className="flex items-center gap-3 p-3 bg-background rounded-lg border">
-                <Avatar>
-                  <AvatarFallback>
-                    <Bot className="h-5 w-5" />
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <p className="font-medium text-sm">{content.personaje_ia.nombre}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {content.personaje_ia.rol} • {content.personaje_ia.tono}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <ScenarioSummary content={content} />
 
-        {/* Success Criteria */}
-        {showObjectives && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Criterios de Éxito</CardTitle>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowObjectives(false)}
-                >
-                  Ocultar
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2">
-                {content.criterios_exito.map((criterio, idx) => (
-                  <li key={idx} className="flex items-start gap-2">
-                    {successCriteriaMet.has(idx) ? (
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                    ) : (
-                      <div className="h-5 w-5 rounded-full border-2 mt-0.5 flex-shrink-0" />
-                    )}
-                    <span
-                      className={cn(
-                        "text-sm",
-                        successCriteriaMet.has(idx) && "text-muted-foreground line-through"
-                      )}
-                    >
-                      {criterio}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
+        {showObjectives ? (
+          <SuccessCriteriaCard
+            criterios={content.criterios_exito}
+            met={successCriteriaMet}
+            onToggle={toggleSuccessCriteria}
+            onHide={() => setShowObjectives(false)}
+          />
+        ) : (
+          <Button variant="ghost" size="sm" onClick={() => setShowObjectives(true)}>
+            Mostrar criterios de éxito
+          </Button>
         )}
 
-        {/* Chat Interface */}
-        <Card className="border-2">
-          <CardHeader className="border-b bg-muted/50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5 text-primary" />
-                <span className="font-semibold">Conversación</span>
-                <Badge variant="outline">{messages.filter(m => m.role !== "system").length} mensajes</Badge>
-              </div>
-              <Button variant="outline" size="sm" onClick={handleReset}>
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Reiniciar
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            {/* Messages */}
-            <div className="h-[500px] overflow-y-auto p-4 space-y-4">
-              {messages.map((message) => (
-                <div key={message.id}>
-                  {message.role === "system" ? (
-                    <div className="bg-muted/50 rounded-lg p-4 border-l-4 border-primary">
-                      <p className="text-sm italic">{message.content}</p>
-                    </div>
-                  ) : (
-                    <div
-                      className={cn(
-                        "flex gap-3",
-                        message.role === "user" ? "justify-end" : "justify-start"
-                      )}
-                    >
-                      {message.role === "assistant" && (
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="bg-primary/10">
-                            <Bot className="h-4 w-4 text-primary" />
-                          </AvatarFallback>
-                        </Avatar>
-                      )}
-                      <div
-                        className={cn(
-                          "max-w-[70%] space-y-2",
-                          message.role === "user" && "items-end"
-                        )}
-                      >
-                        <div
-                          className={cn(
-                            "rounded-lg p-3",
-                            message.role === "user"
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted"
-                          )}
-                        >
-                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                        </div>
-                        {message.feedback && (
-                          <div
-                            className={cn(
-                              "text-xs p-2 rounded border-l-2",
-                              message.feedback.tipo === "positivo" &&
-                                "bg-green-50 border-green-500 text-green-900",
-                              message.feedback.tipo === "mejora" &&
-                                "bg-orange-50 border-orange-500 text-orange-900",
-                              message.feedback.tipo === "neutral" &&
-                                "bg-blue-50 border-blue-500 text-blue-900"
-                            )}
-                          >
-                            <div className="flex items-start gap-1">
-                              <Lightbulb className="h-3 w-3 mt-0.5" />
-                              <span>{message.feedback.mensaje}</span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      {message.role === "user" && (
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="bg-muted">
-                            <User className="h-4 w-4" />
-                          </AvatarFallback>
-                        </Avatar>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
+        <ConversationPanel
+          messages={messages}
+          personaName={content.personaje_ia.nombre}
+          isThinking={isThinking}
+          disabled={conversationComplete}
+          error={error}
+          onSend={sendMessage}
+          onReset={resetConversation}
+        />
 
-              {isThinking && (
-                <div className="flex gap-3 justify-start">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary/10">
-                      <Bot className="h-4 w-4 text-primary" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="bg-muted rounded-lg p-3">
-                    <div className="flex gap-1">
-                      <div className="h-2 w-2 bg-muted-foreground rounded-full animate-bounce" />
-                      <div className="h-2 w-2 bg-muted-foreground rounded-full animate-bounce delay-100" />
-                      <div className="h-2 w-2 bg-muted-foreground rounded-full animate-bounce delay-200" />
-                    </div>
-                  </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input */}
-            <div className="border-t p-4">
-              <div className="flex gap-2">
-                <Textarea
-                  ref={inputRef}
-                  placeholder={`Escribe tu mensaje para ${content.personaje_ia.nombre}...`}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault()
-                      handleSendMessage()
-                    }
-                  }}
-                  disabled={isThinking || conversationComplete}
-                  className="resize-none min-h-[80px]"
-                />
-                <Button
-                  onClick={handleSendMessage}
-                  disabled={!input.trim() || isThinking || conversationComplete}
-                  size="lg"
-                >
-                  <Send className="h-5 w-5" />
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Presiona Enter para enviar, Shift+Enter para nueva línea
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Completion Message */}
         {conversationComplete && (
           <Card className="border-green-500 bg-green-50">
             <CardContent className="p-6">
               <div className="flex items-start gap-3">
-                <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0" />
+                <CheckCircle2 className="h-6 w-6 flex-shrink-0 text-green-600" />
                 <div>
-                  <h4 className="font-semibold text-green-900 mb-1">
+                  <h4 className="mb-1 font-semibold text-green-900">
                     ¡Simulación Completada!
                   </h4>
                   <p className="text-sm text-green-800">
@@ -426,31 +119,4 @@ export function SimulacionInteraccionPlayer({
       </div>
     </ExercisePlayer>
   )
-}
-
-function buildSimulationResponse(content: SimulationScenario, userMessage: string) {
-  const persona = content.personaje_ia
-  const foco = content.objetivo_estudiante
-  const section = content.criterios_exito[0] ?? "el objetivo del proof point"
-
-  return `[${persona.nombre} · ${persona.rol}] ${persona.personalidad || "Con un tono profesional"}, respondo a tu planteamiento "${userMessage}" considerando ${section}. ¿Cómo conectarías esto con ${foco}?`
-}
-
-function buildFeedback(messageCount: number, content: SimulationScenario) {
-  if (messageCount % 2 === 0) {
-    return {
-      tipo: "positivo" as const,
-      mensaje: "Buen paso. Estás avanzando hacia el objetivo del escenario.",
-    }
-  }
-
-  if (content.criterios_exito.length === 0) {
-    return undefined
-  }
-
-  const criterio = content.criterios_exito[(messageCount / 2) % content.criterios_exito.length] || ""
-  return {
-    tipo: "mejora" as const,
-    mensaje: `Profundiza en "${criterio}" para cerrar la brecha detectada.`,
-  }
 }

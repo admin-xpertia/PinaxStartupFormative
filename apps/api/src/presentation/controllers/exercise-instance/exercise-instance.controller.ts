@@ -23,6 +23,9 @@ import {
 import { AddExerciseToProofPointUseCase } from "../../../application/exercise-instance/use-cases/AddExerciseToProofPoint/AddExerciseToProofPointUseCase";
 import { GenerateExerciseContentUseCase } from "../../../application/exercise-instance/use-cases/GenerateExerciseContent/GenerateExerciseContentUseCase";
 import { AnalyzeDraftUseCase } from "../../../application/exercise-instance/use-cases/AnalyzeDraft/AnalyzeDraftUseCase";
+import { SimulateRoleplayUseCase } from "../../../application/exercise-instance/use-cases/interactions/SimulateRoleplayUseCase";
+import { GetSocraticGuidanceUseCase } from "../../../application/exercise-instance/use-cases/interactions/GetSocraticGuidanceUseCase";
+import { ProcessSimulationTurnUseCase } from "../../../application/exercise-instance/use-cases/interactions/ProcessSimulationTurnUseCase";
 import { IExerciseInstanceRepository } from "../../../domain/exercise-instance/repositories/IExerciseInstanceRepository";
 import {
   ContentStatus,
@@ -36,6 +39,10 @@ import {
   GenerateContentResponseDto,
   AnalyzeDraftRequestDto,
   AnalyzeDraftResponseDto,
+  InteractionRequestDto,
+  RoleplayResponseDto,
+  MentorResponseDto,
+  SimulationResponseDto,
 } from "../../dtos/exercise-instance";
 import { SurrealDbService } from "../../../core/database/surrealdb.service";
 import { Public } from "../../../core/decorators";
@@ -54,6 +61,9 @@ export class ExerciseInstanceController {
     private readonly addExerciseUseCase: AddExerciseToProofPointUseCase,
     private readonly generateContentUseCase: GenerateExerciseContentUseCase,
     private readonly analyzeDraftUseCase: AnalyzeDraftUseCase,
+    private readonly simulateRoleplayUseCase: SimulateRoleplayUseCase,
+    private readonly getSocraticGuidanceUseCase: GetSocraticGuidanceUseCase,
+    private readonly processSimulationTurnUseCase: ProcessSimulationTurnUseCase,
     @Inject("IExerciseInstanceRepository")
     private readonly exerciseInstanceRepository: IExerciseInstanceRepository,
     private readonly db: SurrealDbService,
@@ -1081,6 +1091,159 @@ export class ExerciseInstanceController {
       created_at: content.created_at,
       updated_at: content.updated_at,
     };
+  }
+
+  /**
+   * AI Interaction: Roleplay Simulation
+   * Used by SimulacionInteraccionPlayer component
+   */
+  @Public()
+  @Post("exercises/:id/interact/roleplay")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Roleplay interaction",
+    description:
+      "Process a roleplay/simulation interaction where the student practices communication with an AI character",
+  })
+  @ApiParam({
+    name: "id",
+    description: "ExerciseInstance ID",
+    example: "exercise_instance:abc123",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Character response with evaluation",
+    type: RoleplayResponseDto,
+  })
+  async interactRoleplay(
+    @Param("id") id: string,
+    @Body() interactionDto: InteractionRequestDto,
+  ): Promise<RoleplayResponseDto> {
+    const result = await this.simulateRoleplayUseCase.execute({
+      exerciseInstanceId: id,
+      userMessage: interactionDto.accionUsuario,
+      conversationHistory: interactionDto.historial,
+      currentState: interactionDto.estadoActual,
+    });
+
+    return result.match({
+      ok: (response) => ({
+        reply: response.reply,
+        objectivesMet: response.objectivesMet,
+        emotionalState: response.emotionalState,
+        evaluation: response.evaluation,
+        shouldEnd: response.shouldEnd,
+      }),
+      fail: (error) => {
+        if (error.message.includes("not found")) {
+          throw new NotFoundException(error.message);
+        }
+        throw new BadRequestException(error.message);
+      },
+    });
+  }
+
+  /**
+   * AI Interaction: Socratic Mentor
+   * Used by MentorIAPlayer component
+   */
+  @Public()
+  @Post("exercises/:id/interact/mentor")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Get Socratic guidance",
+    description:
+      "Request AI mentor guidance without giving direct answers, using Socratic questioning",
+  })
+  @ApiParam({
+    name: "id",
+    description: "ExerciseInstance ID",
+    example: "exercise_instance:abc123",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Mentor guidance with follow-up questions",
+    type: MentorResponseDto,
+  })
+  async interactMentor(
+    @Param("id") id: string,
+    @Body() interactionDto: InteractionRequestDto,
+  ): Promise<MentorResponseDto> {
+    const result = await this.getSocraticGuidanceUseCase.execute({
+      exerciseInstanceId: id,
+      studentInput: interactionDto.accionUsuario,
+      currentStep: interactionDto.contexto?.currentStep,
+      context: {
+        stepTitle: interactionDto.contexto?.stepTitle,
+        stepDescription: interactionDto.contexto?.stepDescription,
+        previousAttempts: interactionDto.estadoActual?.previousAttempts,
+      },
+    });
+
+    return result.match({
+      ok: (response) => ({
+        guidance: response.guidance,
+        followUpQuestions: response.followUpQuestions,
+        references: response.references,
+        encouragementLevel: response.encouragementLevel,
+      }),
+      fail: (error) => {
+        if (error.message.includes("not found")) {
+          throw new NotFoundException(error.message);
+        }
+        throw new BadRequestException(error.message);
+      },
+    });
+  }
+
+  /**
+   * AI Interaction: Environment Simulation
+   * Used by SimuladorEntornoPlayer component
+   */
+  @Public()
+  @Post("exercises/:id/interact/simulation")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Process simulation turn",
+    description:
+      "Process a turn in an environment simulation, calculating variable changes and narrative",
+  })
+  @ApiParam({
+    name: "id",
+    description: "ExerciseInstance ID",
+    example: "exercise_instance:abc123",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Simulation result with updated state",
+    type: SimulationResponseDto,
+  })
+  async interactSimulation(
+    @Param("id") id: string,
+    @Body() interactionDto: InteractionRequestDto,
+  ): Promise<SimulationResponseDto> {
+    const result = await this.processSimulationTurnUseCase.execute({
+      exerciseInstanceId: id,
+      studentId: interactionDto.contexto?.studentId,
+      action: interactionDto.accionUsuario,
+      currentState: interactionDto.estadoActual || {},
+    });
+
+    return result.match({
+      ok: (response) => ({
+        narrativa: response.narrativa,
+        estadoActualizado: response.estadoActualizado,
+        eventos: response.eventos,
+        finalizado: response.finalizado,
+        resultado: response.resultado,
+      }),
+      fail: (error) => {
+        if (error.message.includes("not found")) {
+          throw new NotFoundException(error.message);
+        }
+        throw new BadRequestException(error.message);
+      },
+    });
   }
 
   private async handleAnalyzeDraft(

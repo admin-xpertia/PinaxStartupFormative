@@ -14,6 +14,7 @@ import { fetcher } from "@/lib/fetcher"
 import { CohortProgressChart } from "./components/CohortProgressChart"
 import { StudentRiskList } from "./components/StudentRiskList"
 import { SubmissionQueue } from "./components/SubmissionQueue"
+import { ProofPointList } from "./components/ProofPointList"
 
 interface CohortAnalyticsResponse {
   phases: {
@@ -21,6 +22,17 @@ interface CohortAnalyticsResponse {
     nombre: string
     progreso: number
     promedioScore?: number
+  }[]
+  proofPoints: {
+    id: string
+    nombre: string
+    faseNombre?: string
+    ejercicios: {
+      id: string
+      nombre: string
+      estadoContenido?: string
+      esObligatorio?: boolean
+    }[]
   }[]
   atRiskStudents: {
     id: string
@@ -61,6 +73,7 @@ export default function ProgramAnalyticsPage({
   )
 
   const phases = data?.phases ?? []
+  const proofPoints = data?.proofPoints ?? []
   const risks = data?.atRiskStudents ?? []
   const submissions = data?.submissions ?? []
   const publishedExercisesCount = data?.publishedExercisesCount ?? 0
@@ -150,6 +163,7 @@ export default function ProgramAnalyticsPage({
                     </Card>
                   </div>
                   <CohortProgressChart phases={phases} />
+                  <ProofPointList proofPoints={proofPoints} />
                   <StudentRiskList students={risks} />
                 </div>
                 <SubmissionQueue submissions={submissions} programId={programId} />

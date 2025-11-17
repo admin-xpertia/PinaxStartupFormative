@@ -1,23 +1,30 @@
 "use client"
 
-import { Suspense, useEffect, useMemo, useState } from "react"
+import { Suspense, useMemo, useState } from "react"
 import useSWR from "swr"
-import { BookOpen, Target, Map as MapIcon } from "lucide-react"
+import { BookOpen } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { enrollmentsApi, progressApi } from "@/services/api"
 import {
   DashboardHeader,
   NextExerciseCard,
-  PhaseProofPoints,
-  PhaseRoadmap,
+  PhaseRoadmapAccordion,
   ProgramCard,
-  ProgramHero,
   StatsOverview,
 } from "@/components/student/dashboard"
 import { getPhaseProgress, getPhaseStatus, type PhaseStatus } from "@/lib/dashboard"
+import { cn } from "@/lib/utils"
 import type { Phase } from "@shared-types/enrollment"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
 
 function DashboardContent() {
   const router = useRouter()
@@ -28,8 +35,7 @@ function DashboardContent() {
     process.env.NEXT_PUBLIC_STUDENT_ID ??
     process.env.NEXT_PUBLIC_DEFAULT_STUDENT_ID ??
     undefined
-  const [selectedPhaseIdx, setSelectedPhaseIdx] = useState(0)
-  const [viewMode, setViewMode] = useState<'focus' | 'roadmap'>('focus')
+  const [activePhaseId, setActivePhaseId] = useState<string | null>(null)
   const [selectedEnrollmentId, setSelectedEnrollmentId] = useState<string | null>(null)
 
   const {
@@ -112,14 +118,14 @@ function DashboardContent() {
     }))
   }, [structure, progressSummary])
 
-  const phaseCount = phases.length
-  const selectedPhase: Phase | undefined = phases[selectedPhaseIdx]
-
-  useEffect(() => {
-    if (phaseCount > 0 && selectedPhaseIdx >= phaseCount) {
-      setSelectedPhaseIdx(0)
+  const selectedPhase: Phase | undefined = useMemo(() => {
+    if (!phases.length) return undefined
+    if (activePhaseId) {
+      const found = phases.find((phase) => phase.id === activePhaseId)
+      if (found) return found
     }
-  }, [phaseCount, selectedPhaseIdx])
+    return phases[0]
+  }, [activePhaseId, phases])
 
   const formatDate = (value?: string | Date | null) => {
     if (!value) return null
@@ -175,7 +181,6 @@ function DashboardContent() {
     router.push("/dashboard/progress")
   }
 
-  const handleSelectPhase = (idx: number) => setSelectedPhaseIdx(idx)
   const handleOpenProofPoint = (proofPointId: string) =>
     router.push(`/proof-points/${proofPointId}`)
 
@@ -236,128 +241,155 @@ function DashboardContent() {
       />
 
       <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 px-6 py-8">
-        {/* Toggle View Mode */}
-        <div className="flex justify-center gap-2">
-          <Button
-            variant={viewMode === 'focus' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('focus')}
-            className="gap-2"
-          >
-            <Target className="h-4 w-4" />
-            Modo Enfoque
-          </Button>
-          <Button
-            variant={viewMode === 'roadmap' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('roadmap')}
-            className="gap-2"
-          >
-            <MapIcon className="h-4 w-4" />
-            Ver Roadmap Completo
-          </Button>
-        </div>
+        <section className="grid gap-6 xl:grid-cols-[1.75fr,1fr]">
+          <div className="space-y-4">
+            <div className="rounded-3xl border border-primary/10 bg-gradient-to-br from-primary/15 via-primary/10 to-white p-6 shadow-lg">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-primary">
+                    Hola, {activeEnrollment.studentId ?? "Estudiante"}
+                  </p>
+                  <h1 className="text-3xl font-bold leading-tight text-slate-900">
+                    Tu siguiente paso está listo
+                  </h1>
+                  <p className="text-base text-slate-700">
+                    {continuePoint
+                      ? `Continuemos con ${continuePoint.exerciseName}.`
+                      : "Revisa tu roadmap para elegir el próximo reto."}
+                  </p>
+                </div>
+                <div className="min-w-[230px] rounded-2xl bg-white/80 p-4 shadow-sm">
+                  <p className="text-xs text-muted-foreground">Progreso general</p>
+                  <div className="mt-1 flex items-end gap-2">
+                    <span className="text-3xl font-semibold text-primary">
+                      {Math.round(stats.progress)}%
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {stats.proofPointsLabel} proof points
+                    </span>
+                  </div>
+                  <Progress value={stats.progress} className="mt-2 h-2" />
+                  <p className="mt-1 text-[12px] text-muted-foreground">
+                    Fin estimado: {estimatedCompletionLabel}
+                  </p>
+                </div>
+              </div>
 
-        {/* Focus Mode */}
-        {viewMode === 'focus' && (
-          <div className="flex flex-col items-center justify-center gap-8 py-8">
-            <div className="text-center">
-              <h1 className="text-4xl font-bold mb-2">
-                Hola, {activeEnrollment.studentId ?? 'Estudiante'}
-              </h1>
-              <p className="text-xl text-muted-foreground">
-                Tu misión de hoy
-              </p>
+              <div className="mt-6">
+                <NextExerciseCard
+                  continuePoint={continuePoint}
+                  onContinue={() =>
+                    continuePoint && router.push(`/exercises/${continuePoint.exerciseId}`)
+                  }
+                />
+              </div>
             </div>
+          </div>
 
-            <Card className="w-full max-w-2xl border-2 border-primary/20 shadow-lg">
-              <CardContent className="p-8">
-                {continuePoint ? (
-                  <div className="space-y-6">
-                    <div className="text-center space-y-2">
-                      <h2 className="text-2xl font-semibold">
-                        {continuePoint.proofPointName}
-                      </h2>
-                      <p className="text-lg text-muted-foreground">
-                        {continuePoint.exerciseName}
-                      </p>
-                    </div>
-                    <Button
-                      size="lg"
-                      onClick={() => router.push(`/exercises/${continuePoint.exerciseId}`)}
-                      className="w-full text-lg h-14"
-                    >
-                      Comenzar Ejercicio
-                    </Button>
-                    <div className="text-center text-sm text-muted-foreground">
-                      Progreso general: {stats.progress.toFixed(0)}% • {stats.proofPointsLabel} Proof Points completados
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center space-y-4">
-                    <h2 className="text-2xl font-semibold">
-                      ¡Felicidades! 🎉
-                    </h2>
-                    <p className="text-lg text-muted-foreground">
-                      Has completado todos los ejercicios disponibles
+          <div className="space-y-4">
+            <Card className="border-none bg-white shadow-lg">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Tu programa</CardTitle>
+                <CardDescription>
+                  Mantén el contexto de la fase actual sin perder de vista el objetivo.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold leading-tight">
+                      {activeEnrollment.programName}
                     </p>
-                    <Button
-                      size="lg"
-                      onClick={() => router.push('/dashboard/progress')}
-                      className="w-full text-lg h-14"
-                    >
-                      Ver Mi Progreso
-                    </Button>
+                    <p className="text-xs text-muted-foreground line-clamp-3">
+                      {activeEnrollment.programDescription ||
+                        "Explora los retos de tu programa para avanzar."}
+                    </p>
                   </div>
-                )}
+                  {selectedPhase && (
+                    <Badge variant="outline" className="rounded-full">
+                      Fase {selectedPhase.orden}
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="space-y-2 rounded-xl bg-slate-50 p-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Tiempo estimado</span>
+                    <span className="font-medium">
+                      {selectedPhase?.duracionSemanas
+                        ? `${selectedPhase.duracionSemanas} semanas`
+                        : "Por definir"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Fecha objetivo</span>
+                    <span className="font-medium">{estimatedCompletionLabel}</span>
+                  </div>
+                </div>
+
+                <Button className="w-full" onClick={handlePrimaryAction}>
+                  {continuePoint ? "Continuar donde te quedaste" : "Ver mi progreso"}
+                </Button>
               </CardContent>
             </Card>
+
+            {enrollments && enrollments.length > 1 && (
+              <Card className="border-none bg-white shadow-lg">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Mis programas</CardTitle>
+                  <CardDescription>
+                    Elige rápidamente el programa que quieres continuar.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {enrollments.map((enrollment) => {
+                    const isActive = enrollment.id === activeEnrollment.id
+                    const percentage = Math.round(enrollment.overallProgress || 0)
+                    return (
+                      <button
+                        key={enrollment.id}
+                        onClick={() => setSelectedEnrollmentId(enrollment.id)}
+                        className={cn(
+                          "w-full rounded-xl border px-4 py-3 text-left transition-all hover:border-primary/50 hover:shadow-sm",
+                          isActive ? "border-primary/50 bg-primary/5" : "border-slate-200 bg-white"
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <p className="text-sm font-semibold text-foreground">
+                              {enrollment.programName}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Instructor: {enrollment.instructorName}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-muted-foreground">Progreso</p>
+                            <p className="text-sm font-semibold">{percentage}%</p>
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </CardContent>
+              </Card>
+            )}
           </div>
-        )}
+        </section>
 
-        {/* Roadmap Mode */}
-        {viewMode === 'roadmap' && (
-          <>
-            <section className="grid gap-6 lg:grid-cols-[1.5fr,1fr]">
-              <ProgramHero
-                programName={activeEnrollment.programName}
-                programDescription={activeEnrollment.programDescription}
-                selectedPhaseDurationWeeks={selectedPhase?.duracionSemanas}
-                selectedPhaseOrder={selectedPhase?.orden}
-                estimatedCompletionLabel={estimatedCompletionLabel}
-                stats={stats}
-                onPrimaryAction={handlePrimaryAction}
-                primaryActionLabel={
-                  continuePoint ? "Continuar donde te quedaste" : "Ver mi progreso"
-                }
-              />
+        <StatsOverview
+          stats={stats}
+          selectedPhase={selectedPhase}
+          selectedPhaseProgress={selectedPhaseProgress}
+          selectedPhaseStatus={selectedPhaseStatus}
+        />
 
-              <NextExerciseCard
-                continuePoint={continuePoint}
-                onContinue={() =>
-                  continuePoint && router.push(`/exercises/${continuePoint.exerciseId}`)
-                }
-              />
-            </section>
-
-            <StatsOverview
-              stats={stats}
-              selectedPhase={selectedPhase}
-              selectedPhaseProgress={selectedPhaseProgress}
-              selectedPhaseStatus={selectedPhaseStatus}
-            />
-
-            <section className="grid gap-6 lg:grid-cols-[360px,1fr]">
-              <PhaseRoadmap
-                phases={phases}
-                selectedPhaseIdx={selectedPhaseIdx}
-                onSelect={handleSelectPhase}
-              />
-
-              <PhaseProofPoints phase={selectedPhase} onOpenProofPoint={handleOpenProofPoint} />
-            </section>
-          </>
-        )}
+        <PhaseRoadmapAccordion
+          phases={phases}
+          onOpenProofPoint={handleOpenProofPoint}
+          activePhaseId={selectedPhase?.id}
+          onPhaseChange={setActivePhaseId}
+        />
       </main>
     </div>
   )

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useState } from "react"
 import { ExercisePlayer } from "../base/ExercisePlayer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -17,10 +17,10 @@ import {
   TrendingUp,
   MessageSquare,
   BookOpen,
-  FileText,
   AlertCircle
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { exercisesApi } from "@/services/api"
 
 // Types for Mentor/Asesor IA
 interface MentorStep {
@@ -79,6 +79,7 @@ export function MentorIAPlayer({
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set())
   const [showMentorAdvice, setShowMentorAdvice] = useState(false)
   const [mentorMessage, setMentorMessage] = useState("")
+  const [isRequestingAdvice, setIsRequestingAdvice] = useState(false)
 
   const currentStepData = content.pasos[currentStep]
   const totalSteps = content.pasos.length
@@ -96,6 +97,53 @@ export function MentorIAPlayer({
   const getResponse = (field: keyof StepResponse) => {
     return responses[currentStep]?.[field] || ""
   }
+
+  const buildMentorContext = useCallback(() => {
+    const reflections = content.pasos
+      .map((step, idx) => {
+        const reflexion = responses[idx]?.reflexion
+        if (!reflexion) return null
+        return `Paso ${idx + 1} - ${step.titulo}: ${reflexion}`
+      })
+      .filter(Boolean)
+      .slice(-5)
+      .join("\n")
+
+    return `Guía socrática enfocada en ${content.objetivo_general}.
+Paso actual: ${currentStepData.titulo}
+Estilo del mentor: ${content.contexto_mentor.estilo} (${content.contexto_mentor.especialidad})
+Criterio de avance: ${currentStepData.criterio_avance}
+Reflexiones recientes:
+${reflections || "No hay reflexiones previas todavía."}`
+  }, [
+    content.contexto_mentor.especialidad,
+    content.contexto_mentor.estilo,
+    content.objetivo_general,
+    content.pasos,
+    currentStepData.criterio_avance,
+    currentStepData.titulo,
+    responses,
+  ])
+
+  const buildMentorHistory = useCallback(
+    (prompt: string) => {
+      const historyMessages =
+        content.pasos
+          .map((step, idx) => {
+            const reflexion = responses[idx]?.reflexion
+            if (!reflexion) return null
+            return {
+              role: "user" as const,
+              content: `Paso ${idx + 1} (${step.titulo}): ${reflexion}`,
+            }
+          })
+          .filter((msg): msg is { role: "user"; content: string } => msg !== null)
+          .slice(-6) || []
+
+      return [...historyMessages, { role: "user" as const, content: prompt }]
+    },
+    [content.pasos, responses]
+  )
 
   const isStepComplete = (stepIdx: number) => {
     const response = responses[stepIdx]
@@ -124,12 +172,38 @@ export function MentorIAPlayer({
   }
 
   const requestMentorAdvice = async () => {
+    const prompt =
+      (getResponse("reflexion") as string) || currentStepData.pregunta_reflexion
+    if (!prompt) return
+
     setShowMentorAdvice(true)
-    // TODO: Call AI API for personalized advice
-    // For now, use static response
-    setMentorMessage(
-      `Como ${content.contexto_mentor.nombre}, te sugiero que reflexiones sobre ${currentStepData.titulo.toLowerCase()}. ${currentStepData.criterio_avance}`
-    )
+    setIsRequestingAdvice(true)
+
+    try {
+      const response = await exercisesApi.sendLessonAssistantMessage(exerciseId, {
+        pregunta: prompt,
+        seccionId: `mentor_step_${currentStep + 1}`,
+        seccionTitulo: currentStepData.titulo,
+        seccionContenido: buildMentorContext(),
+        historial: buildMentorHistory(prompt),
+        conceptoFocal: content.objetivo_general,
+        perfilComprension: {
+          tipo: "mentor",
+          pasosCompletados: completedSteps.size,
+          pasoActual: currentStep + 1,
+        },
+      })
+
+      setMentorMessage(
+        response.respuesta?.trim() ||
+          "No pude generar una recomendación del mentor en este momento."
+      )
+    } catch (error) {
+      console.error("Mentor advice error:", error)
+      setMentorMessage("No pude consultar al mentor ahora. Intenta nuevamente.")
+    } finally {
+      setIsRequestingAdvice(false)
+    }
   }
 
   const handleSaveWithData = async () => {
@@ -284,9 +358,10 @@ export function MentorIAPlayer({
                   variant="outline"
                   size="sm"
                   onClick={requestMentorAdvice}
+                  disabled={isRequestingAdvice}
                 >
                   <Lightbulb className="h-4 w-4 mr-2" />
-                  Pedir consejo al mentor
+                  {isRequestingAdvice ? "Consultando..." : "Pedir consejo al mentor"}
                 </Button>
               </div>
             </CardContent>

@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import useSWR from "swr"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -26,10 +25,10 @@ import { useStudentSession } from "@/lib/hooks/use-student-session"
 export default function ProgressDashboardPage() {
   const { estudianteId, cohorteId } = useStudentSession()
 
-  // Fetch progress summary
+  // Fetch progress summary - only when we have valid IDs
   const { data: summary, isLoading } = useSWR(
-    "progress-summary",
-    () => progressApi.getProgressSummary(estudianteId, cohorteId)
+    estudianteId && cohorteId ? ["progress-summary", estudianteId, cohorteId] : null,
+    () => progressApi.getProgressSummary(estudianteId!, cohorteId!)
   )
 
   // Format time
