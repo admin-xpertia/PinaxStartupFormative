@@ -1,4 +1,4 @@
-import { BookOpen, Clock } from "lucide-react"
+import { BookOpen, Clock, CheckCircle2, PlayCircle, Lock, Circle } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -98,30 +98,56 @@ export function ProofPointSidebar({
               {!exercisesLoading &&
                 exercises.map((exercise, idx) => {
                   const tokens = exerciseStatusTokens[exercise.status]
+
+                  // Status icon mapping
+                  const StatusIcon =
+                    exercise.status === "completed" ? CheckCircle2 :
+                    exercise.status === "in_progress" ? PlayCircle :
+                    exercise.status === "locked" ? Lock :
+                    Circle
+
+                  const statusIconColor =
+                    exercise.status === "completed" ? "text-green-600" :
+                    exercise.status === "in_progress" ? "text-primary" :
+                    exercise.status === "locked" ? "text-muted-foreground" :
+                    "text-muted-foreground/40"
+
+                  const isActive = selectedExerciseIdx === idx
+                  const isRecommended = !isActive && exercise.status === "in_progress" &&
+                    exercises.filter(e => e.status === "in_progress").indexOf(exercise) === 0
+
                   return (
                     <button
                       key={exercise.id}
                       onClick={() => onSelectExercise(exercise, idx)}
                       disabled={exercise.status === "locked"}
                       className={cn(
-                        "w-full rounded-xl border p-3 text-left transition-all",
+                        "w-full rounded-xl border p-3 text-left transition-all hover:shadow-md",
                         tokens.card,
                         exercise.status === "locked" && "cursor-not-allowed opacity-60",
-                        selectedExerciseIdx === idx && "ring-2 ring-primary"
+                        isActive && "ring-2 ring-primary bg-primary/5",
+                        isRecommended && "bg-slate-100 border-primary/30"
                       )}
                     >
                       <div className="flex items-start gap-3">
-                        <Badge variant="outline" className={cn("text-xs", tokens.badge)}>
-                          {getExerciseTypeLabel(exercise.tipo)}
-                        </Badge>
+                        <StatusIcon className={cn("h-5 w-5 flex-shrink-0 mt-0.5", statusIconColor)} />
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-semibold text-foreground">{exercise.nombre}</p>
-                          <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                          <Badge variant="outline" className={cn("text-xs mt-1", tokens.badge)}>
+                            {getExerciseTypeLabel(exercise.tipo)}
+                          </Badge>
+                          <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                             <Clock className="h-3 w-3" />
                             <span>{exercise.estimatedMinutes} min</span>
+                            {exercise.status === "in_progress" && exercise.progress > 0 && (
+                              <>
+                                <span>•</span>
+                                <span>{Math.round(exercise.progress)}%</span>
+                              </>
+                            )}
                           </div>
-                          {exercise.status !== "completed" && exercise.status !== "locked" && (
-                            <Progress value={exercise.progress} className="mt-2 h-1" />
+                          {exercise.status !== "completed" && exercise.status !== "locked" && exercise.progress > 0 && (
+                            <Progress value={exercise.progress} className="mt-2 h-1.5" />
                           )}
                         </div>
                       </div>

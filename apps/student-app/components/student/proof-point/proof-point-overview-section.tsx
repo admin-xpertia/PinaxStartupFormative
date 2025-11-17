@@ -48,23 +48,45 @@ export function ProofPointOverviewSection({
       </Card>
 
       {highlightExercise && (
-        <Card className="border-primary/20 bg-white shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base">Tu siguiente paso recomendado</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            <div className="space-y-2">
+        <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/5 via-white to-white shadow-xl">
+          <CardHeader className="pb-3">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <CardTitle className="text-lg font-bold text-primary">
+                  {highlightExercise.status === "in_progress"
+                    ? "🎯 Tu Misión Semanal"
+                    : "✨ Comencemos tu Aprendizaje"}
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {highlightExercise.status === "in_progress"
+                    ? "Retoma donde lo dejaste y continúa avanzando..."
+                    : "Estás listo para comenzar. Tu primer paso es..."}
+                </p>
+              </div>
               <Badge variant="outline" className="text-xs">
                 {getExerciseTypeLabel(highlightExercise.tipo)}
               </Badge>
-              <p className="text-lg font-semibold text-foreground">{highlightExercise.nombre}</p>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Clock className="h-4 w-4" />
-                <span>~{highlightExercise.estimatedMinutes} minutos</span>
-                {highlightExercise.status === "in_progress" && (
+            </div>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-6">
+            <div className="space-y-3">
+              <h3 className="text-2xl font-bold text-foreground leading-tight">
+                {highlightExercise.nombre}
+              </h3>
+              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1.5">
+                  <Clock className="h-4 w-4" />
+                  <span className="font-medium">~{highlightExercise.estimatedMinutes} minutos</span>
+                </div>
+                {highlightExercise.status === "in_progress" && highlightExercise.progress > 0 && (
                   <>
                     <span>•</span>
-                    <span>{Math.round(highlightExercise.progress)}% completado</span>
+                    <div className="flex items-center gap-2">
+                      <Progress value={highlightExercise.progress} className="h-2 w-24" />
+                      <span className="font-semibold text-primary">
+                        {Math.round(highlightExercise.progress)}%
+                      </span>
+                    </div>
                   </>
                 )}
               </div>
@@ -72,10 +94,10 @@ export function ProofPointOverviewSection({
             <Button
               size="lg"
               onClick={() => onStartExercise(highlightExercise)}
-              className="gap-2"
+              className="gap-2 h-14 text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
             >
-              {highlightExercise.status === "in_progress" ? "Continuar" : "Comenzar"}
-              <Play className="h-4 w-4" />
+              {highlightExercise.status === "in_progress" ? "Continuar Ejercicio" : "Comenzar Ahora"}
+              <Play className="h-5 w-5" />
             </Button>
           </CardContent>
         </Card>

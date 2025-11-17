@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, ReactNode } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -11,6 +12,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { ContextBreadcrumbs } from "@/components/ui/breadcrumbs-nav"
+import { useToast } from "@/hooks/use-toast"
 import {
   ChevronLeft,
   ChevronRight,
@@ -28,6 +31,8 @@ export interface ExercisePlayerProps {
   exerciseName: string
   exerciseDescription?: string
   proofPointName: string
+  proofPointId?: string
+  programName?: string
   totalSteps?: number
   currentStep?: number
   estimatedMinutes?: number
@@ -59,6 +64,8 @@ export function ExercisePlayer({
   exerciseName,
   exerciseDescription,
   proofPointName,
+  proofPointId,
+  programName,
   totalSteps = 1,
   currentStep = 1,
   estimatedMinutes,
@@ -75,6 +82,8 @@ export function ExercisePlayer({
   onAskAssistantStream,
   canComplete = true,
 }: ExercisePlayerProps) {
+  const router = useRouter()
+  const { toast } = useToast()
   const [isSaving, setIsSaving] = useState(false)
   const [isCompleting, setIsCompleting] = useState(false)
   const [showAI, setShowAI] = useState(false)
@@ -93,6 +102,20 @@ export function ExercisePlayer({
     try {
       // The parent component should pass the exercise data
       await onSave({})
+
+      // Show success toast
+      toast({
+        title: "¡Progreso guardado!",
+        description: `Has completado el ${Math.round(progress)}% de este ejercicio.`,
+        className: "bg-green-50 border-green-200",
+      })
+    } catch (error) {
+      // Show error toast
+      toast({
+        title: "Error al guardar",
+        description: "No se pudo guardar tu progreso. Intenta nuevamente.",
+        variant: "destructive",
+      })
     } finally {
       setIsSaving(false)
     }
@@ -103,6 +126,20 @@ export function ExercisePlayer({
     setIsCompleting(true)
     try {
       await onComplete({})
+
+      // Show celebration toast
+      toast({
+        title: "🎉 ¡Ejercicio completado!",
+        description: "Has terminado este ejercicio exitosamente. ¡Excelente trabajo!",
+        className: "bg-green-50 border-green-200",
+      })
+    } catch (error) {
+      // Show error toast
+      toast({
+        title: "Error al completar",
+        description: "No se pudo completar el ejercicio. Intenta nuevamente.",
+        variant: "destructive",
+      })
     } finally {
       setIsCompleting(false)
     }
@@ -206,20 +243,49 @@ export function ExercisePlayer({
       {/* Header */}
       <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className={`${shellClass} flex h-16 items-center justify-between`}>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-1 min-w-0">
             <Button variant="ghost" size="icon" onClick={onExit}>
               <X className="h-5 w-5" />
             </Button>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-semibold">{exerciseName}</h1>
+            <div className="flex-1 min-w-0">
+              {/* Breadcrumbs Navigation */}
+              <div className="hidden md:block mb-1">
+                <ContextBreadcrumbs
+                  items={[
+                    {
+                      label: programName || "Mis Programas",
+                      onClick: () => router.push("/dashboard"),
+                    },
+                    {
+                      label: proofPointName,
+                      onClick: proofPointId ? () => router.push(`/proof-points/${proofPointId}`) : undefined,
+                    },
+                    {
+                      label: exerciseName,
+                    },
+                  ]}
+                />
+              </div>
+              {/* Mobile View - Simple Title */}
+              <div className="md:hidden">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-base font-semibold truncate">{exerciseName}</h1>
+                  {totalSteps > 1 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {currentStep}/{totalSteps}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              {/* Desktop View - Title with Steps */}
+              <div className="hidden md:flex items-center gap-2">
+                <h1 className="text-lg font-semibold truncate">{exerciseName}</h1>
                 {totalSteps > 1 && (
                   <Badge variant="secondary">
                     Paso {currentStep} de {totalSteps}
                   </Badge>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">{proofPointName}</p>
             </div>
           </div>
 

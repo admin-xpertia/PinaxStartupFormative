@@ -1,5 +1,6 @@
 export * from "./dashboard-header"
 export * from "./program-hero"
+export * from "./program-card"
 export * from "./next-exercise-card"
 export * from "./stats-overview"
 export * from "./phase-roadmap"
