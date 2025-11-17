@@ -673,6 +673,61 @@ FORMATO PARA EJEMPLOS PRÁCTICOS:
   }
 
   /**
+   * Generates a streaming chat completion
+   * Returns an async generator that yields chunks of text as they arrive
+   */
+  async *generateChatResponseStream({
+    systemPrompt,
+    messages,
+    maxTokens,
+  }: {
+    systemPrompt: string;
+    messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[];
+    maxTokens?: number;
+  }): AsyncGenerator<string, void, unknown> {
+    try {
+      const chatMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] =
+        [{ role: "system", content: systemPrompt }, ...messages];
+
+      const tokenBudget = Math.min(
+        maxTokens && maxTokens > 0 ? maxTokens : this.initialCompletionTokens,
+        this.maxCompletionTokens,
+      );
+
+      this.logger.debug(`🤖 Starting streaming chat completion`);
+      this.logger.debug(`   Model: ${this.model}`);
+      this.logger.debug(`   Messages count: ${chatMessages.length}`);
+      this.logger.debug(`   Max tokens: ${tokenBudget}`);
+
+      const stream = await this.client.chat.completions.create({
+        model: this.model,
+        messages: chatMessages,
+        max_completion_tokens: tokenBudget,
+        stream: true,
+      });
+
+      for await (const chunk of stream) {
+        const delta = chunk.choices[0]?.delta;
+        const content = delta?.content;
+
+        if (content) {
+          yield content;
+        }
+      }
+
+      this.logger.debug(`✅ Streaming chat completion finished`);
+    } catch (error) {
+      this.logger.error(
+        "❌ Error generating streaming chat response with OpenAI",
+        error,
+      );
+      throw new Error(
+        `Failed to generate streaming chat response: ${error.message}`,
+      );
+    }
+  }
+
+  /**
    * Generates a chat-style completion with full control over messages
    */
   async generateChatResponse({

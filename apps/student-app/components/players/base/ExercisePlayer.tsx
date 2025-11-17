@@ -41,6 +41,16 @@ export interface ExercisePlayerProps {
   aiContext?: string
   contentMaxWidthClassName?: string
   onAskAssistant?: (message: string, history: Array<{ role: "user" | "assistant"; content: string }>) => Promise<string>
+  onAskAssistantStream?: (
+    message: string,
+    history: Array<{ role: "user" | "assistant"; content: string }>,
+    callbacks: {
+      onStart?: () => void
+      onChunk: (chunk: string) => void
+      onDone: (referencias: string[]) => void
+      onError?: (error: string) => void
+    }
+  ) => Promise<void>
   canComplete?: boolean
 }
 
@@ -62,6 +72,7 @@ export function ExercisePlayer({
   aiContext,
   contentMaxWidthClassName,
   onAskAssistant,
+  onAskAssistantStream,
   canComplete = true,
 }: ExercisePlayerProps) {
   const [isSaving, setIsSaving] = useState(false)
@@ -69,6 +80,8 @@ export function ExercisePlayer({
   const [showAI, setShowAI] = useState(false)
   const [aiMessages, setAiMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([])
   const [aiInput, setAiInput] = useState("")
+  const [isAssistantTyping, setIsAssistantTyping] = useState(false)
+  const [streamingContent, setStreamingContent] = useState("")
   const shellClass = "mx-auto w-full max-w-[1600px] px-6"
 
   const progress = (currentStep / totalSteps) * 100
@@ -103,6 +116,62 @@ export function ExercisePlayer({
     const nextHistory = [...aiMessages, { role: "user" as const, content: userMessage }]
     setAiMessages(nextHistory)
 
+    // Prefer streaming if available
+    if (onAskAssistantStream) {
+      setIsAssistantTyping(true)
+      setStreamingContent("")
+
+      // Use a local variable to accumulate content since state updates are async
+      let accumulatedContent = ""
+
+      try {
+        await onAskAssistantStream(userMessage, nextHistory, {
+          onStart: () => {
+            setIsAssistantTyping(true)
+            setStreamingContent("")
+            accumulatedContent = ""
+          },
+          onChunk: (chunk: string) => {
+            accumulatedContent += chunk
+            setStreamingContent(accumulatedContent)
+          },
+          onDone: (referencias: string[]) => {
+            setAiMessages((prev) => [
+              ...prev,
+              { role: "assistant", content: accumulatedContent },
+            ])
+            setStreamingContent("")
+            setIsAssistantTyping(false)
+          },
+          onError: (error: string) => {
+            console.error("AI streaming error:", error)
+            setAiMessages((prev) => [
+              ...prev,
+              {
+                role: "assistant",
+                content: "No pude procesar tu pregunta. Intenta nuevamente más tarde.",
+              },
+            ])
+            setStreamingContent("")
+            setIsAssistantTyping(false)
+          },
+        })
+      } catch (error) {
+        console.error("AI streaming error:", error)
+        setAiMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: "No pude procesar tu pregunta. Intenta nuevamente más tarde.",
+          },
+        ])
+        setStreamingContent("")
+        setIsAssistantTyping(false)
+      }
+      return
+    }
+
+    // Fallback to non-streaming
     if (!onAskAssistant) {
       setAiMessages((prev) => [
         ...prev,
@@ -114,6 +183,7 @@ export function ExercisePlayer({
       return
     }
 
+    setIsAssistantTyping(true)
     try {
       const response = await onAskAssistant(userMessage, nextHistory)
       setAiMessages((prev) => [...prev, { role: "assistant", content: response }])
@@ -126,6 +196,8 @@ export function ExercisePlayer({
           content: "No pude procesar tu pregunta. Intenta nuevamente más tarde.",
         },
       ])
+    } finally {
+      setIsAssistantTyping(false)
     }
   }
 
@@ -237,7 +309,7 @@ export function ExercisePlayer({
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {aiMessages.length === 0 && (
+              {aiMessages.length === 0 && !isAssistantTyping && (
                 <div className="text-center text-sm text-muted-foreground py-8">
                   Haz una pregunta para comenzar
                 </div>
@@ -258,10 +330,27 @@ export function ExercisePlayer({
                         : "bg-muted"
                     )}
                   >
-                    <p className="text-sm">{msg.content}</p>
+                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                   </div>
                 </div>
               ))}
+
+              {/* Streaming content or typing indicator */}
+              {isAssistantTyping && (
+                <div className="flex gap-2 justify-start">
+                  <div className="rounded-lg px-4 py-2 max-w-[80%] bg-muted">
+                    {streamingContent ? (
+                      <p className="text-sm whitespace-pre-wrap">{streamingContent}</p>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Input */}
@@ -269,13 +358,14 @@ export function ExercisePlayer({
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Escribe tu pregunta..."
+                  placeholder={isAssistantTyping ? "Generando respuesta..." : "Escribe tu pregunta..."}
                   value={aiInput}
                   onChange={(e) => setAiInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleAIMessage()}
-                  className="flex-1 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  onKeyDown={(e) => e.key === 'Enter' && !isAssistantTyping && handleAIMessage()}
+                  disabled={isAssistantTyping}
+                  className="flex-1 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
                 />
-                <Button size="sm" onClick={handleAIMessage}>
+                <Button size="sm" onClick={handleAIMessage} disabled={isAssistantTyping || !aiInput.trim()}>
                   <MessageSquare className="h-4 w-4" />
                 </Button>
               </div>

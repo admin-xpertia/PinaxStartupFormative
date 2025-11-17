@@ -122,6 +122,46 @@ export function LeccionInteractivaPlayer({
     [profile]
   )
 
+  const handleAssistantMessageStream = useCallback(
+    async (
+      message: string,
+      history: Array<{ role: "user" | "assistant"; content: string }>,
+      callbacks: {
+        onStart?: () => void
+        onChunk: (chunk: string) => void
+        onDone: (referencias: string[]) => void
+        onError?: (error: string) => void
+      }
+    ): Promise<void> => {
+      try {
+        await exercisesApi.sendLessonAssistantMessageStream(
+          exerciseId,
+          {
+            pregunta: message,
+            seccionId: currentSection?.id || "leccion",
+            seccionTitulo: currentSection?.title || normalizedContent.metadata?.titulo || proofPointName,
+            seccionContenido: currentSection?.content || sections[0]?.content || normalizedContent.markdown,
+            historial: history,
+            perfilComprension: comprehensionProfile,
+          },
+          callbacks
+        )
+      } catch (error) {
+        console.error("Error al consultar IA con streaming:", error)
+        callbacks.onError?.("No pude consultar a la IA en este momento. Intenta nuevamente en unos segundos.")
+      }
+    },
+    [
+      comprehensionProfile,
+      normalizedContent.markdown,
+      normalizedContent.metadata?.titulo,
+      currentSection,
+      exerciseId,
+      proofPointName,
+      sections
+    ]
+  )
+
   const handleAssistantMessage = useCallback(
     async (message: string, history: Array<{ role: "user" | "assistant"; content: string }>): Promise<string> => {
       try {
@@ -177,6 +217,7 @@ export function LeccionInteractivaPlayer({
       showAIAssistant={true}
       aiContext={currentSection?.title || normalizedContent.metadata?.titulo || "Lección General"}
       onAskAssistant={handleAssistantMessage}
+      onAskAssistantStream={handleAssistantMessageStream}
       canComplete={canFinish}
     >
       <InteractiveLessonRenderer

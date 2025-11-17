@@ -11,6 +11,7 @@ import {
   BadRequestException,
   Logger,
   Query,
+  Res,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -1038,6 +1039,113 @@ Recuerda citar explícitamente las secciones que utilices y mantener el tono soc
           : [assistantDto.seccionTitulo].filter(Boolean),
       tokensUsados: raw.usage?.total_tokens,
     };
+  }
+
+  /**
+   * Send lesson assistant message with streaming response (SSE)
+   */
+  @Public()
+  @Post("student/exercises/:exerciseId/assistant/chat/stream")
+  @ApiOperation({
+    summary: "Enviar pregunta al asistente con streaming (SSE)",
+    description:
+      "El asistente responde en tiempo real usando Server-Sent Events, reduciendo la sensación de latencia.",
+  })
+  async sendLessonAssistantMessageStream(
+    @Param("exerciseId") exerciseId: string,
+    @Body() assistantDto: LessonAssistantRequestDto,
+    @Res() response: any,
+  ): Promise<void> {
+    try {
+      // Set up SSE headers
+      response.setHeader("Content-Type", "text/event-stream");
+      response.setHeader("Cache-Control", "no-cache");
+      response.setHeader("Connection", "keep-alive");
+      response.setHeader("X-Accel-Buffering", "no"); // Disable nginx buffering
+
+      const limitedHistory =
+        assistantDto.historial?.slice(-10).map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+        })) ?? [];
+
+      const profileSummary = assistantDto.perfilComprension
+        ? JSON.stringify(assistantDto.perfilComprension, null, 2)
+        : "No hay datos de progreso previos.";
+
+      const defaultSystemPrompt = `Eres el asistente pedagógico de Xpertia que acompaña a estudiantes dentro de una lección interactiva.
+Actúa como tutor socrático amable:
+- Siempre valida si la duda ya se resolvió en la sección actual antes de introducir información nueva.
+- Si el estudiante pregunta algo explicado en una sección previa que no ha leído, sugiérele regresar antes de responder en profundidad.
+- Responde en español, usando formato markdown y citando conceptos relevantes entre comillas cuando apliquen.
+- Formula preguntas guía que impulsen reflexión y conexión con el contenido.
+- Ajusta el nivel de profundidad según el historial y el perfil de comprensión compartido.
+- Termina cada respuesta con una línea "Referencias: <lista separada por ';'>" mencionando los encabezados concretos usados (al menos la sección actual).`;
+
+      const systemPrompt =
+        assistantDto.systemPromptOverride?.trim().length
+          ? assistantDto.systemPromptOverride
+          : defaultSystemPrompt;
+
+      const userContent = `SECCIÓN ACTUAL (${assistantDto.seccionTitulo} · ${assistantDto.seccionId})
+${assistantDto.seccionContenido}
+
+PERFIL DE COMPRENSIÓN
+${profileSummary}
+
+PREGUNTA DEL ESTUDIANTE
+${assistantDto.pregunta}
+
+CONCEPTO FOCAL
+${assistantDto.conceptoFocal ?? "No especificado"}
+
+Recuerda citar explícitamente las secciones que utilices y mantener el tono socrático.`;
+
+      // Send a "start" event
+      response.write(`data: ${JSON.stringify({ type: "start" })}\n\n`);
+
+      // Stream the response
+      let fullContent = "";
+      const stream = this.openAIService.generateChatResponseStream({
+        systemPrompt,
+        messages: [
+          ...limitedHistory,
+          { role: "user", content: userContent },
+        ],
+        maxTokens: 7500,
+      });
+
+      for await (const chunk of stream) {
+        fullContent += chunk;
+        response.write(
+          `data: ${JSON.stringify({ type: "chunk", content: chunk })}\n\n`,
+        );
+      }
+
+      // Extract references and send complete event
+      const { references } = this.extractAssistantAnswer(fullContent);
+
+      response.write(
+        `data: ${JSON.stringify({
+          type: "done",
+          referencias:
+            references.length > 0
+              ? references
+              : [assistantDto.seccionTitulo].filter(Boolean),
+        })}\n\n`,
+      );
+
+      response.end();
+    } catch (error) {
+      this.logger.error("Error in streaming assistant response", error.stack);
+      response.write(
+        `data: ${JSON.stringify({
+          type: "error",
+          error: "Error generando respuesta",
+        })}\n\n`,
+      );
+      response.end();
+    }
   }
 
   /**

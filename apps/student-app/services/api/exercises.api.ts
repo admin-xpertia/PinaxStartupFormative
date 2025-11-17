@@ -169,6 +169,102 @@ export const exercisesApi = {
   },
 
   /**
+   * Enviar pregunta al asistente con streaming (SSE)
+   * @param exerciseId ID del ejercicio
+   * @param payload Datos de la pregunta
+   * @param onChunk Callback que se llama con cada fragmento de texto
+   * @param onDone Callback que se llama cuando termina el streaming con las referencias
+   * @param onError Callback que se llama si hay un error
+   */
+  async sendLessonAssistantMessageStream(
+    exerciseId: string,
+    payload: LessonAssistantRequest,
+    callbacks: {
+      onStart?: () => void
+      onChunk: (chunk: string) => void
+      onDone: (referencias: string[]) => void
+      onError?: (error: string) => void
+    }
+  ): Promise<void> {
+    const configuredUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+    const apiBaseUrl = configuredUrl.endsWith("/api/v1")
+      ? configuredUrl
+      : `${configuredUrl}/api/v1`
+    const url = `${apiBaseUrl}/student/exercises/${encodeURIComponent(exerciseId)}/assistant/chat/stream`
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const reader = response.body?.getReader()
+      if (!reader) {
+        throw new Error("No se pudo obtener el stream del servidor")
+      }
+
+      const decoder = new TextDecoder()
+      let buffer = ""
+
+      while (true) {
+        const { done, value } = await reader.read()
+
+        if (done) {
+          break
+        }
+
+        // Decodificar el chunk y agregarlo al buffer
+        buffer += decoder.decode(value, { stream: true })
+
+        // Procesar mensajes SSE del buffer
+        const lines = buffer.split("\n")
+        buffer = lines.pop() || "" // Guardar la última línea incompleta
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6) // Remover "data: "
+            try {
+              const event = JSON.parse(data)
+
+              switch (event.type) {
+                case "start":
+                  callbacks.onStart?.()
+                  break
+
+                case "chunk":
+                  callbacks.onChunk(event.content)
+                  break
+
+                case "done":
+                  callbacks.onDone(event.referencias || [])
+                  break
+
+                case "error":
+                  callbacks.onError?.(event.error || "Error desconocido")
+                  break
+              }
+            } catch (e) {
+              console.error("Error parsing SSE event:", e, data)
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error en streaming:", error)
+      callbacks.onError?.(
+        error instanceof Error ? error.message : "Error de conexión"
+      )
+    }
+  },
+
+  /**
    * Evaluar pregunta de respuesta corta
    */
   async evaluateLessonQuestion(

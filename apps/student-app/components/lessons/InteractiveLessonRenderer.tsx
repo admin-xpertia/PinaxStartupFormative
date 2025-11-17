@@ -101,6 +101,77 @@ const extractSections = (markdown?: string): LessonSectionInfo[] => {
   return sections
 }
 
+const normalizeLooseExampleBlocks = (markdown?: string): string => {
+  const text = typeof markdown === "string" ? markdown : ""
+  if (!text || !text.toLowerCase().includes("example {")) return text
+
+  let result = ""
+  let cursor = 0
+  const lower = text.toLowerCase()
+
+  while (cursor < text.length) {
+    const nextIdx = lower.indexOf("example {", cursor)
+    if (nextIdx === -1) {
+      result += text.slice(cursor)
+      break
+    }
+
+    // Skip if inside a fenced code block
+    const fencesBefore = (text.slice(0, nextIdx).match(/```/g) || []).length
+    if (fencesBefore % 2 === 1) {
+      result += text.slice(cursor, nextIdx + "example {".length)
+      cursor = nextIdx + "example {".length
+      continue
+    }
+
+    const braceStart = text.indexOf("{", nextIdx)
+    if (braceStart === -1) {
+      result += text.slice(cursor)
+      break
+    }
+
+    let depth = 0
+    let inString = false
+    let endIdx = -1
+
+    for (let i = braceStart; i < text.length; i++) {
+      const char = text[i]
+      const prev = text[i - 1]
+
+      if (char === '"' && prev !== "\\") {
+        inString = !inString
+      }
+
+      if (!inString) {
+        if (char === "{") depth += 1
+        if (char === "}") depth -= 1
+        if (depth === 0) {
+          endIdx = i
+          break
+        }
+      }
+    }
+
+    if (endIdx === -1) {
+      result += text.slice(cursor)
+      break
+    }
+
+    const rawBlock = text.slice(braceStart, endIdx + 1)
+    const cleanedBlock = rawBlock
+      .split("\n")
+      .map((line) => line.replace(/^\s*>\s?/, "").trimEnd())
+      .join("\n")
+      .trim()
+
+    const jsonBlock = cleanedBlock.startsWith("{") ? cleanedBlock : `{${cleanedBlock}`
+    result += `${text.slice(cursor, nextIdx)}\n\n\`\`\`example\n${jsonBlock}\n\`\`\`\n\n`
+    cursor = endIdx + 1
+  }
+
+  return result
+}
+
 const remarkCallout = () => (tree: any) => {
   visit(tree, (node: any) => {
     if (node.type === "containerDirective" && node.name === "callout") {
@@ -426,7 +497,7 @@ const LessonExampleCard = ({ data }: { data: LessonExampleNormalizedData }) => {
   const hasMetrics = data.metrics.length > 0
 
   return (
-    <div className="rounded-3xl border border-amber-100 bg-amber-50/70 p-6 shadow-sm">
+    <div className="w-full max-w-[900px] mx-auto whitespace-normal break-words hyphens-auto [overflow-wrap:anywhere] overflow-visible rounded-3xl border border-amber-100 bg-amber-50/70 p-6 shadow-sm">
       <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-amber-600">
         <Lightbulb className="h-4 w-4" />
         Ejemplo práctico
@@ -516,7 +587,11 @@ export function InteractiveLessonRenderer({
 }: InteractiveLessonRendererProps) {
   const [questionState, setQuestionState] = useState<Record<string, QuestionUIState>>({})
   const [attempts, setAttempts] = useState<Record<string, number>>({})
-  const sections = useMemo(() => extractSections(content.markdown), [content.markdown])
+  const enhancedMarkdown = useMemo(
+    () => normalizeLooseExampleBlocks(content.markdown),
+    [content.markdown],
+  )
+  const sections = useMemo(() => extractSections(enhancedMarkdown), [enhancedMarkdown])
   const articleRef = useRef<HTMLDivElement | null>(null)
   const sectionMap = useMemo(() => {
     const obj: Record<string, LessonSectionInfo> = {}
@@ -526,8 +601,8 @@ export function InteractiveLessonRenderer({
     return obj
   }, [sections])
   const hasInlineVerificationBlocks = useMemo(
-    () => typeof content.markdown === "string" && content.markdown.includes("```verification"),
-    [content.markdown],
+    () => typeof enhancedMarkdown === "string" && enhancedMarkdown.includes("```verification"),
+    [enhancedMarkdown],
   )
 
   const questionsMap = useMemo(() => {
@@ -1017,7 +1092,7 @@ export function InteractiveLessonRenderer({
         rehypePlugins={[rehypeKatex]}
         components={components}
       >
-        {content.markdown}
+        {enhancedMarkdown}
       </ReactMarkdown>
 
       {!hasInlineVerificationBlocks && content.preguntasVerificacion && content.preguntasVerificacion.length > 0 && (
