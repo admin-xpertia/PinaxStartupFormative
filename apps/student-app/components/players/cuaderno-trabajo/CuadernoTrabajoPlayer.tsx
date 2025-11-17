@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useMemo } from "react"
 import { ExercisePlayer } from "../base/ExercisePlayer"
 import { exercisesApi } from "@/services/api/exercises.api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { useDebouncedCallback } from "@/hooks/useDebouncedCallback"
 import { ProactiveSuggestionCard } from "./ProactiveSuggestionCard"
+import { useToast } from "@/hooks/use-toast"
 import {
   CheckCircle2,
   Circle,
@@ -78,6 +79,7 @@ export function CuadernoTrabajoPlayer({
   const [completedSections, setCompletedSections] = useState<Set<number>>(new Set())
   const [proactiveFeedback, setProactiveFeedback] = useState<Record<string, string | null>>({})
   const [isAnalyzing, setIsAnalyzing] = useState<Record<string, boolean>>({})
+  const { toast } = useToast()
 
   const totalSections = content.secciones.length
   const currentSectionData = content.secciones[currentSection]
@@ -275,8 +277,14 @@ export function CuadernoTrabajoPlayer({
 
   const handleNext = () => {
     if (currentSection < totalSections - 1) {
-      if (isSectionComplete(currentSection)) {
+      const wasSectionComplete = isSectionComplete(currentSection)
+      if (wasSectionComplete) {
         setCompletedSections(prev => new Set([...prev, currentSection]))
+        toast({
+          title: "Sección Completada",
+          description: "Tus respuestas han sido guardadas.",
+          variant: "default",
+        })
       }
       setCurrentSection(currentSection + 1)
     }
@@ -501,6 +509,16 @@ export function CuadernoTrabajoPlayer({
     await onComplete(responses)
   }
 
+  // Verificar si todas las secciones están completas (incluyendo la actual)
+  const isFullyComplete = useMemo(() => {
+    const currentComplete = isSectionComplete(currentSection)
+    const allPreviousComplete = Array.from({ length: totalSections }, (_, i) => i)
+      .filter(i => i !== currentSection)
+      .every(i => completedSections.has(i) || isSectionComplete(i))
+
+    return currentComplete && allPreviousComplete
+  }, [completedSections, currentSection, totalSections, isSectionComplete])
+
   return (
     <ExercisePlayer
       exerciseId={exerciseId}
@@ -518,6 +536,7 @@ export function CuadernoTrabajoPlayer({
       showAIAssistant={true}
       aiContext={currentSectionData.titulo}
       onAskAssistant={handleAskAssistant}
+      canComplete={isFullyComplete}
     >
       <div className="space-y-6">
         {/* Context Card */}

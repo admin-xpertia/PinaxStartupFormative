@@ -6,6 +6,12 @@ import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
   ChevronLeft,
   ChevronRight,
   Check,
@@ -35,6 +41,7 @@ export interface ExercisePlayerProps {
   aiContext?: string
   contentMaxWidthClassName?: string
   onAskAssistant?: (message: string, history: Array<{ role: "user" | "assistant"; content: string }>) => Promise<string>
+  canComplete?: boolean
 }
 
 export function ExercisePlayer({
@@ -55,6 +62,7 @@ export function ExercisePlayer({
   aiContext,
   contentMaxWidthClassName,
   onAskAssistant,
+  canComplete = true,
 }: ExercisePlayerProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [isCompleting, setIsCompleting] = useState(false)
@@ -293,22 +301,33 @@ export function ExercisePlayer({
           </div>
 
           {isLastStep ? (
-            <Button
-              onClick={handleComplete}
-              disabled={isCompleting || !onComplete}
-            >
-              {isCompleting ? (
-                <>
-                  <RotateCcw className="h-4 w-4 mr-2 animate-spin" />
-                  Completando...
-                </>
-              ) : (
-                <>
-                  <Check className="h-4 w-4 mr-2" />
-                  Completar
-                </>
-              )}
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={handleComplete}
+                    disabled={isCompleting || !onComplete || !canComplete}
+                  >
+                    {isCompleting ? (
+                      <>
+                        <RotateCcw className="h-4 w-4 mr-2 animate-spin" />
+                        Completando...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="h-4 w-4 mr-2" />
+                        Completar
+                      </>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                {!canComplete && (
+                  <TooltipContent>
+                    <p>Completa todas las actividades para finalizar</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
           ) : (
             <Button onClick={onNext} disabled={!onNext}>
               Siguiente

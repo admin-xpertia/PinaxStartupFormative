@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react"
 import useSWR from "swr"
-import { BookOpen } from "lucide-react"
+import { BookOpen, Target, Map } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { enrollmentsApi, progressApi } from "@/services/api"
 import {
@@ -15,6 +15,8 @@ import {
 } from "@/components/student/dashboard"
 import { getPhaseProgress, getPhaseStatus, type PhaseStatus } from "@/lib/dashboard"
 import type { Phase } from "@shared-types/enrollment"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 
 function DashboardContent() {
   const router = useRouter()
@@ -26,6 +28,7 @@ function DashboardContent() {
     process.env.NEXT_PUBLIC_DEFAULT_STUDENT_ID ??
     undefined
   const [selectedPhaseIdx, setSelectedPhaseIdx] = useState(0)
+  const [viewMode, setViewMode] = useState<'focus' | 'roadmap'>('focus')
 
   const {
     data: enrollments,
@@ -193,44 +196,133 @@ function DashboardContent() {
       <DashboardHeader />
 
       <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 px-6 py-8">
-        <section className="grid gap-6 lg:grid-cols-[1.5fr,1fr]">
-          <ProgramHero
-            programName={activeEnrollment.programName}
-            programDescription={activeEnrollment.programDescription}
-            selectedPhaseDurationWeeks={selectedPhase?.duracionSemanas}
-            selectedPhaseOrder={selectedPhase?.orden}
-            estimatedCompletionLabel={estimatedCompletionLabel}
-            stats={stats}
-            onPrimaryAction={handlePrimaryAction}
-            primaryActionLabel={
-              continuePoint ? "Continuar donde te quedaste" : "Ver mi progreso"
-            }
-          />
+        {/* Toggle View Mode */}
+        <div className="flex justify-center gap-2">
+          <Button
+            variant={viewMode === 'focus' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('focus')}
+            className="gap-2"
+          >
+            <Target className="h-4 w-4" />
+            Modo Enfoque
+          </Button>
+          <Button
+            variant={viewMode === 'roadmap' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('roadmap')}
+            className="gap-2"
+          >
+            <Map className="h-4 w-4" />
+            Ver Roadmap Completo
+          </Button>
+        </div>
 
-          <NextExerciseCard
-            continuePoint={continuePoint}
-            onContinue={() =>
-              continuePoint && router.push(`/exercises/${continuePoint.exerciseId}`)
-            }
-          />
-        </section>
+        {/* Focus Mode */}
+        {viewMode === 'focus' && (
+          <div className="flex flex-col items-center justify-center gap-8 py-8">
+            <div className="text-center">
+              <h1 className="text-4xl font-bold mb-2">
+                Hola, {activeEnrollment.studentName || 'Estudiante'}
+              </h1>
+              <p className="text-xl text-muted-foreground">
+                Tu misión de hoy
+              </p>
+            </div>
 
-        <StatsOverview
-          stats={stats}
-          selectedPhase={selectedPhase}
-          selectedPhaseProgress={selectedPhaseProgress}
-          selectedPhaseStatus={selectedPhaseStatus}
-        />
+            <Card className="w-full max-w-2xl border-2 border-primary/20 shadow-lg">
+              <CardContent className="p-8">
+                {continuePoint ? (
+                  <div className="space-y-6">
+                    <div className="text-center space-y-2">
+                      <h2 className="text-2xl font-semibold">
+                        {continuePoint.proofPointName}
+                      </h2>
+                      <p className="text-lg text-muted-foreground">
+                        {continuePoint.exerciseName}
+                      </p>
+                      {continuePoint.exerciseDescription && (
+                        <p className="text-sm text-muted-foreground">
+                          {continuePoint.exerciseDescription}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      size="lg"
+                      onClick={() => router.push(`/exercises/${continuePoint.exerciseId}`)}
+                      className="w-full text-lg h-14"
+                    >
+                      Comenzar Ejercicio
+                    </Button>
+                    <div className="text-center text-sm text-muted-foreground">
+                      Progreso general: {stats.progress.toFixed(0)}% • {stats.proofPointsLabel} Proof Points completados
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center space-y-4">
+                    <h2 className="text-2xl font-semibold">
+                      ¡Felicidades! 🎉
+                    </h2>
+                    <p className="text-lg text-muted-foreground">
+                      Has completado todos los ejercicios disponibles
+                    </p>
+                    <Button
+                      size="lg"
+                      onClick={() => router.push('/dashboard/progress')}
+                      className="w-full text-lg h-14"
+                    >
+                      Ver Mi Progreso
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
-        <section className="grid gap-6 lg:grid-cols-[360px,1fr]">
-          <PhaseRoadmap
-            phases={phases}
-            selectedPhaseIdx={selectedPhaseIdx}
-            onSelect={handleSelectPhase}
-          />
+        {/* Roadmap Mode */}
+        {viewMode === 'roadmap' && (
+          <>
+            <section className="grid gap-6 lg:grid-cols-[1.5fr,1fr]">
+              <ProgramHero
+                programName={activeEnrollment.programName}
+                programDescription={activeEnrollment.programDescription}
+                selectedPhaseDurationWeeks={selectedPhase?.duracionSemanas}
+                selectedPhaseOrder={selectedPhase?.orden}
+                estimatedCompletionLabel={estimatedCompletionLabel}
+                stats={stats}
+                onPrimaryAction={handlePrimaryAction}
+                primaryActionLabel={
+                  continuePoint ? "Continuar donde te quedaste" : "Ver mi progreso"
+                }
+              />
 
-          <PhaseProofPoints phase={selectedPhase} onOpenProofPoint={handleOpenProofPoint} />
-        </section>
+              <NextExerciseCard
+                continuePoint={continuePoint}
+                onContinue={() =>
+                  continuePoint && router.push(`/exercises/${continuePoint.exerciseId}`)
+                }
+              />
+            </section>
+
+            <StatsOverview
+              stats={stats}
+              selectedPhase={selectedPhase}
+              selectedPhaseProgress={selectedPhaseProgress}
+              selectedPhaseStatus={selectedPhaseStatus}
+            />
+
+            <section className="grid gap-6 lg:grid-cols-[360px,1fr]">
+              <PhaseRoadmap
+                phases={phases}
+                selectedPhaseIdx={selectedPhaseIdx}
+                onSelect={handleSelectPhase}
+              />
+
+              <PhaseProofPoints phase={selectedPhase} onOpenProofPoint={handleOpenProofPoint} />
+            </section>
+          </>
+        )}
       </main>
     </div>
   )
