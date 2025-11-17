@@ -16,7 +16,12 @@ export interface ProofPointProgress {
 
 export interface ExerciseProgressSummary {
   exerciseId: string
-  status: "not_started" | "in_progress" | "completed"
+  status:
+    | "not_started"
+    | "in_progress"
+    | "submitted_for_review"
+    | "requires_iteration"
+    | "approved"
   progress: number
   score?: number
   lastAccessed?: Date

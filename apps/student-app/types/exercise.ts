@@ -35,12 +35,19 @@ export interface ExerciseContent {
 export interface ExerciseProgress {
   exerciseId: string
   studentId: string
-  status: "not_started" | "in_progress" | "completed"
+  status:
+    | "not_started"
+    | "in_progress"
+    | "submitted_for_review"
+    | "requires_iteration"
+    | "approved"
   progress: number // 0-100
   startedAt?: Date
   completedAt?: Date
+  submittedAt?: Date
   lastSavedAt?: Date
   timeSpentMinutes: number
+  instructorFeedback?: Record<string, string>
   data: any // Progreso específico del tipo de ejercicio
 }
 

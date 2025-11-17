@@ -1,4 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
+import type { ExerciseProgressStatus } from "./exercise-progress-response.dto";
 
 /**
  * DTO for exercise progress summary within a proof point
@@ -12,10 +13,16 @@ export class ExerciseProgressSummaryDto {
 
   @ApiProperty({
     description: "Exercise status",
-    enum: ["not_started", "in_progress", "completed"],
-    example: "in_progress",
+    enum: [
+      "not_started",
+      "in_progress",
+      "submitted_for_review",
+      "requires_iteration",
+      "approved",
+    ],
+    example: "submitted_for_review",
   })
-  status: "not_started" | "in_progress" | "completed";
+  status: ExerciseProgressStatus;
 
   @ApiProperty({
     description: "Progress percentage (0-100)",

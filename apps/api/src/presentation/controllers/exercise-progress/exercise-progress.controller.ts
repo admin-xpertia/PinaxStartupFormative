@@ -27,6 +27,7 @@ import {
   CompleteExerciseDto,
   CompleteExerciseResponseDto,
   ExerciseProgressResponseDto,
+  ExerciseProgressStatus,
   StudentProgressSummaryDto,
   ProofPointProgressResponseDto,
   ExerciseProgressSummaryDto,
@@ -142,8 +143,11 @@ export class ExerciseProgressController {
         estudiante: type::thing($estudianteId),
         cohorte: type::thing($cohorteId),
         estado: 'en_progreso',
+        status: 'in_progress',
         porcentaje_completitud: 0,
         fecha_inicio: time::now(),
+        submitted_at: null,
+        instructor_feedback: {},
         tiempo_invertido_minutos: 0,
         numero_intentos: 1,
         created_at: time::now(),
@@ -228,23 +232,33 @@ export class ExerciseProgressController {
       );
     }
 
+    const resolvedStatus = this.normalizeStatusFromRecord(progress);
+    const instructorFeedback = progress.instructor_feedback ?? null;
+    const submittedAt = progress.submitted_at ?? null;
+
     // Update progress
     const updateQuery = `
       UPDATE type::thing($progressId) SET
+        status = $status,
         porcentaje_completitud = $porcentaje,
         tiempo_invertido_minutos = $tiempo,
         datos_guardados = $datos,
+        instructor_feedback = $instructorFeedback,
+        submitted_at = $submittedAt,
         updated_at = time::now()
       RETURN AFTER
     `;
 
     const updateResult = await this.db.query(updateQuery, {
       progressId: progress.id,
+      status: resolvedStatus,
       porcentaje:
         saveDto.porcentajeCompletitud ?? progress.porcentaje_completitud,
       tiempo:
         saveDto.tiempoInvertidoMinutos ?? progress.tiempo_invertido_minutos,
       datos: saveDto.datos ?? progress.datos_guardados ?? {},
+      instructorFeedback,
+      submittedAt,
     });
 
     let updatedProgress: any;
@@ -323,11 +337,14 @@ export class ExerciseProgressController {
     const updateQuery = `
       UPDATE type::thing($progressId) SET
         estado = 'completado',
+        status = 'submitted_for_review',
         porcentaje_completitud = 100,
         fecha_completado = time::now(),
+        submitted_at = time::now(),
         tiempo_invertido_minutos = $tiempo,
         score_final = $score,
         datos_guardados = $datos,
+        instructor_feedback = $instructorFeedback,
         updated_at = time::now()
       RETURN AFTER
     `;
@@ -338,6 +355,7 @@ export class ExerciseProgressController {
         completeDto.tiempoInvertidoMinutos ?? progress.tiempo_invertido_minutos,
       score: completeDto.scoreFinal ?? null,
       datos: completeDto.datos,
+      instructorFeedback: progress.instructor_feedback ?? null,
     });
 
     let completedProgress: any;
@@ -379,7 +397,9 @@ export class ExerciseProgressController {
     return {
       id: completedProgress.id,
       estado: completedProgress.estado,
+      status: this.normalizeStatusFromRecord(completedProgress),
       scoreFinal: completedProgress.score_final,
+      submittedAt: completedProgress.submitted_at,
       feedback,
       completado: true,
     };
@@ -480,9 +500,13 @@ export class ExerciseProgressController {
         id,
         exercise_instance,
         estado,
+        status,
         score_final,
         tiempo_invertido_minutos,
-        fecha_completado
+        fecha_completado,
+        submitted_at,
+        instructor_feedback,
+        porcentaje_completitud
       FROM exercise_progress
       WHERE estudiante = type::thing($estudianteId)
         AND cohorte = type::thing($cohorteId)
@@ -522,11 +546,12 @@ export class ExerciseProgressController {
 
     // Calculate overall statistics
     const completedRecords = progressRecords.filter(
-      (p) => p.estado === "completado",
+      (p) => this.normalizeStatusFromRecord(p) === "approved",
     );
-    const inProgressRecords = progressRecords.filter(
-      (p) => p.estado === "en_progreso",
-    );
+    const inProgressRecords = progressRecords.filter((p) => {
+      const status = this.normalizeStatusFromRecord(p);
+      return status === "in_progress" || status === "requires_iteration";
+    });
 
     const totalTimeInvested = progressRecords.reduce(
       (sum, p) => sum + (p.tiempo_invertido_minutos || 0),
@@ -580,9 +605,12 @@ export class ExerciseProgressController {
       stats.totalExercises++;
 
       const progress = progressRecords.find(
-        (p) => p.exercise_instance === exercise.id && p.estado === "completado",
+        (p) => p.exercise_instance === exercise.id,
       );
-      if (progress) {
+      if (
+        progress &&
+        this.normalizeStatusFromRecord(progress) === "approved"
+      ) {
         stats.completedExercises++;
         stats.timeInvestedMinutes += progress.tiempo_invertido_minutos || 0;
         if (
@@ -749,10 +777,13 @@ export class ExerciseProgressController {
         id,
         exercise_instance,
         estado,
+        status,
         porcentaje_completitud,
         score_final,
         fecha_inicio,
         fecha_completado,
+        submitted_at,
+        instructor_feedback,
         fecha_ultimo_acceso
       FROM exercise_progress
       WHERE estudiante = type::thing($estudianteId)
@@ -783,18 +814,21 @@ export class ExerciseProgressController {
           (p) => p.exercise_instance === exercise.id,
         );
 
-        let status: "not_started" | "in_progress" | "completed" = "not_started";
+        let status: ExerciseProgressStatus = "not_started";
         let progressPercentage = 0;
         let score: number | undefined = undefined;
         let lastAccessed: Date | undefined = undefined;
 
         if (progress) {
-          if (progress.estado === "completado") {
-            status = "completed";
+          status = this.normalizeStatusFromRecord(progress);
+          const storedProgress = progress.porcentaje_completitud || 0;
+
+          if (status === "approved") {
             progressPercentage = 100;
-          } else if (progress.estado === "en_progreso") {
-            status = "in_progress";
-            progressPercentage = progress.porcentaje_completitud || 0;
+          } else if (status === "submitted_for_review") {
+            progressPercentage = storedProgress > 0 ? storedProgress : 100;
+          } else {
+            progressPercentage = storedProgress;
           }
           score = progress.score_final;
           lastAccessed = progress.fecha_ultimo_acceso;
@@ -812,7 +846,7 @@ export class ExerciseProgressController {
 
     // Calculate overall statistics
     const completedExercises = exerciseSummaries.filter(
-      (e) => e.status === "completed",
+      (e) => e.status === "approved",
     ).length;
     const totalExercises = exercises.length;
     const progressPercentage =
@@ -841,17 +875,13 @@ export class ExerciseProgressController {
       totalExercises === 0 ? "locked" : "available";
     if (completedExercises === totalExercises && totalExercises > 0) {
       status = "completed";
-    } else if (
-      exerciseSummaries.some(
-        (e) => e.status === "in_progress" || e.status === "completed",
-      )
-    ) {
+    } else if (exerciseSummaries.some((e) => e.status !== "not_started")) {
       status = "in_progress";
     }
 
     // Find earliest start date and latest completion date
     const completedProgressRecords = progressRecords.filter(
-      (p) => p.estado === "completado",
+      (p) => this.normalizeStatusFromRecord(p) === "approved",
     );
     const startedAtRaw = progressRecords
       .map((p) => p.fecha_inicio)
@@ -1177,22 +1207,71 @@ ${evaluationDto.respuestaEstudiante}`;
     return null;
   }
 
+  private normalizeStatusFromRecord(
+    progress: any,
+  ): ExerciseProgressStatus {
+    const mappedStatus = this.mapStatus(progress?.status);
+    if (mappedStatus) {
+      return mappedStatus;
+    }
+    return this.mapEstadoToStatus(progress?.estado);
+  }
+
+  private mapStatus(
+    status?: string | null,
+  ): ExerciseProgressStatus | null {
+    switch (status) {
+      case "not_started":
+      case "in_progress":
+      case "submitted_for_review":
+      case "requires_iteration":
+      case "approved":
+        return status;
+      default:
+        return null;
+    }
+  }
+
+  private mapEstadoToStatus(
+    estado?: string | null,
+  ): ExerciseProgressStatus {
+    switch (estado) {
+      case "no_iniciado":
+        return "not_started";
+      case "en_progreso":
+        return "in_progress";
+      case "pendiente_revision":
+        return "submitted_for_review";
+      case "revision_requerida":
+        return "requires_iteration";
+      case "completado":
+        return "approved";
+      default:
+        return "not_started";
+    }
+  }
+
   /**
    * Helper to map database record to DTO
    */
   private mapProgressToDto(progress: any): ExerciseProgressResponseDto {
+    const status = this.normalizeStatusFromRecord(progress);
+
     return {
       id: progress.id,
       exerciseInstance: progress.exercise_instance,
       estudiante: progress.estudiante,
       cohorte: progress.cohorte,
       estado: progress.estado,
+      status,
       porcentajeCompletitud: progress.porcentaje_completitud,
       fechaInicio: progress.fecha_inicio,
       fechaCompletado: progress.fecha_completado,
+      submittedAt: progress.submitted_at,
       tiempoInvertidoMinutos: progress.tiempo_invertido_minutos,
       numeroIntentos: progress.numero_intentos,
       scoreFinal: progress.score_final,
+      instructorFeedback: progress.instructor_feedback,
       datosGuardados: progress.datos_guardados,
       createdAt: progress.created_at,
       updatedAt: progress.updated_at,

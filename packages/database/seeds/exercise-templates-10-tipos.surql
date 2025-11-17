@@ -341,51 +341,6 @@ CREATE exercise_template:herramienta_creacion SET
   created_at = time::now(),
   updated_at = time::now();
 
--- 7. SISTEMAS DE TRACKING Y MONITOREO
-CREATE exercise_template:sistema_tracking SET
-  nombre = 'Sistema de Tracking',
-  categoria = 'sistema_tracking',
-  descripcion = 'Mantener visibilidad continua del progreso e identificar tendencias longitudinales',
-  objetivo_pedagogico = 'Alertar proactivamente cuando atencion o intervencion es necesaria',
-  rol_ia = 'Sistema de vigilancia inteligente que visualiza estado vs objetivos, solicita updates, detecta patrones problematicos, contextualiza metricas, monitorea adherencia a proceso y dispara intervenciones',
-  configuracion_schema = {
-    type: 'object',
-    properties: {
-      metricas_seguimiento: { type: 'array', items: { type: 'string' }, description: 'Que metricas trackear' },
-      frecuencia_updates: { type: 'string', enum: ['diaria', 'semanal', 'por_hito'], default: 'semanal' },
-      detectar_estancamiento: { type: 'boolean', default: true },
-      detectar_frustration: { type: 'boolean', default: true },
-      benchmarks: { type: 'object', description: 'Benchmarks de comparacion' },
-      disparar_intervenciones: { type: 'boolean', default: true }
-    }
-  },
-  configuracion_default = {
-    frecuencia_updates: 'semanal',
-    detectar_estancamiento: true,
-    detectar_frustration: true,
-    disparar_intervenciones: true
-  },
-  prompt_template = 'Crea un sistema de tracking para monitorear: {{metricas_seguimiento}}. Frecuencia: {{frecuencia_updates}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "descripcion": string, "metricas": [{ "nombre": string, "descripcion": string, "tipo": "numerico"|"booleano"|"porcentaje", "umbral_critico": number, "meta": number }], "dashboard": { "graficos": string[], "kpis_principales": string[] }, "alertas": [{ "condicion": string, "mensaje": string, "nivel": "info"|"warning"|"critico" }], "recomendaciones_mejora": string[] }{{#if detectar_estancamiento}}. Detecta estancamiento{{/if}}{{#if disparar_intervenciones}}. Dispara intervenciones automaticas{{/if}}.',
-  output_schema = {
-    titulo: 'string',
-    descripcion: 'string',
-    metricas: 'array',
-    dashboard: 'object',
-    alertas: 'array',
-    recomendaciones_mejora: 'array'
-  },
-  preview_config = {
-    dashboard_interactivo: true,
-    graficas_tendencias: true
-  },
-  icono = '📊',
-  color = '#0ea5e9',
-  es_oficial = true,
-  activo = true,
-  created_at = time::now(),
-  updated_at = time::now();
-
--- 8. HERRAMIENTAS DE REVISION Y FEEDBACK
 CREATE exercise_template:herramienta_revision SET
   nombre = 'Herramienta de Revision',
   categoria = 'herramienta_revision',
@@ -480,53 +435,6 @@ CREATE exercise_template:simulador_entorno SET
   created_at = time::now(),
   updated_at = time::now();
 
--- 10. SISTEMAS DE PROGRESION Y DESBLOQUEO
-CREATE exercise_template:sistema_progresion SET
-  nombre = 'Sistema de Progresion',
-  categoria = 'sistema_progresion',
-  descripcion = 'Gestionar flujo del aprendiz asegurando dominio suficiente antes de avanzar',
-  objetivo_pedagogico = 'Personalizar ruta segun fortalezas/debilidades manteniendo motivacion mediante desbloqueos apropiados',
-  rol_ia = 'Guardian pedagogico que evalua objetivamente contra criterios de suficiencia, diagnostica estado de dominio, recomienda rutas adaptativas, verifica pre-requisitos, permite reintentos con diagnostico claro y documenta evidencia de dominio',
-  configuracion_schema = {
-    type: 'object',
-    properties: {
-      criterios_suficiencia: { type: 'object', description: 'Criterios para permitir progresion' },
-      umbrales_dominio: { type: 'object', description: 'Umbrales de dominio por concepto' },
-      permitir_rutas_alternativas: { type: 'boolean', default: true },
-      verificar_prerequisitos: { type: 'boolean', default: true },
-      permitir_reintentos: { type: 'boolean', default: true },
-      max_reintentos: { type: 'number', default: 3, minimum: 1 },
-      diagnostico_entre_intentos: { type: 'boolean', default: true }
-    }
-  },
-  configuracion_default = {
-    permitir_rutas_alternativas: true,
-    verificar_prerequisitos: true,
-    permitir_reintentos: true,
-    max_reintentos: 3,
-    diagnostico_entre_intentos: true
-  },
-  prompt_template = 'Crea un sistema de progresion contra criterios: {{criterios_suficiencia}} con umbrales: {{umbrales_dominio}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "descripcion": string, "niveles": [{ "numero": number, "nombre": string, "descripcion": string, "requisitos": string[], "objetivos_aprendizaje": string[], "contenido_desbloqueado": string[] }], "arbol_dependencias": [{ "nivel": number, "prerequisitos": number[], "opcional": boolean }], "criterios_evaluacion": [{ "nivel": number, "criterio": string, "umbral": number, "metodo_evaluacion": string }], "rutas_alternativas": [{ "nombre": string, "niveles_incluidos": number[], "enfoque": string }] }{{#if verificar_prerequisitos}}. Verifica pre-requisitos{{/if}}{{#if permitir_rutas_alternativas}}. Incluye rutas adaptativas{{/if}}.',
-  output_schema = {
-    titulo: 'string',
-    descripcion: 'string',
-    niveles: 'array',
-    arbol_dependencias: 'array',
-    criterios_evaluacion: 'array',
-    rutas_alternativas: 'array'
-  },
-  preview_config = {
-    mostrar_arbol_progresion: true,
-    indicar_bloqueados: true
-  },
-  icono = '🎯',
-  color = '#a855f7',
-  es_oficial = true,
-  activo = true,
-  created_at = time::now(),
-  updated_at = time::now();
-
--- 11. CASOS DE ANALISIS
 CREATE exercise_template:caso SET
   nombre = 'Caso de Analisis',
   categoria = 'caso',

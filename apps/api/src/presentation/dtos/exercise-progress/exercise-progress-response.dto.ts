@@ -1,5 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
+export type ExerciseProgressStatus =
+  | "not_started"
+  | "in_progress"
+  | "submitted_for_review"
+  | "requires_iteration"
+  | "approved";
+
 export class ExerciseProgressResponseDto {
   @ApiProperty({
     description: "ID del progreso",
@@ -31,6 +38,19 @@ export class ExerciseProgressResponseDto {
     example: "en_progreso",
   })
   estado: string;
+
+  @ApiProperty({
+    description: "Nuevo estado extendido del ejercicio",
+    enum: [
+      "not_started",
+      "in_progress",
+      "submitted_for_review",
+      "requires_iteration",
+      "approved",
+    ],
+    example: "in_progress",
+  })
+  status: ExerciseProgressStatus;
 
   @ApiProperty({
     description: "Porcentaje de completitud",
@@ -65,6 +85,19 @@ export class ExerciseProgressResponseDto {
     example: 8.5,
   })
   scoreFinal?: number;
+
+  @ApiPropertyOptional({
+    description:
+      "Feedback del instructor por pregunta (clave de pregunta -> feedback)",
+    example: { q1: "Profundiza en la hipótesis y agrega evidencia" },
+  })
+  instructorFeedback?: Record<string, string>;
+
+  @ApiPropertyOptional({
+    description: "Fecha de la última entrega para revisión",
+    example: "2025-01-15T10:30:00Z",
+  })
+  submittedAt?: string;
 
   @ApiPropertyOptional({
     description: "Datos guardados del estudiante",

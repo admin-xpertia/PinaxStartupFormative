@@ -174,6 +174,17 @@ export enum ProgresoEstado {
 }
 
 /**
+ * Estados extendidos de progreso de ejercicio (flujo de revisión)
+ */
+export enum ExerciseProgressStatus {
+  NOT_STARTED = 'not_started',
+  IN_PROGRESS = 'in_progress',
+  SUBMITTED_FOR_REVIEW = 'submitted_for_review',
+  REQUIRES_ITERATION = 'requires_iteration',
+  APPROVED = 'approved',
+}
+
+/**
  * Tipos de componente
  */
 export enum ComponenteTipo {

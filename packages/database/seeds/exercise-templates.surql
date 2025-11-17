@@ -316,36 +316,6 @@ CREATE exercise_template:herramienta_creacion CONTENT {
     activo: true
 };
 
--- 7. SISTEMA DE TRACKING Y MONITOREO
-CREATE exercise_template:sistema_tracking CONTENT {
-    nombre: "Sistema de Tracking y Monitoreo",
-    categoria: "sistema_tracking",
-    descripcion: "Mantener visibilidad continua del progreso, identificar tendencias longitudinales, y alertar proactivamente cuando atención o intervención es necesaria.",
-    objetivo_pedagogico: "Mantener accountability y visibilidad del progreso del estudiante",
-    rol_ia: "La IA opera como sistema de vigilancia inteligente que visualiza estado vs objetivos, solicita updates regulares, detecta patrones problemáticos, y dispara intervenciones proactivas.",
-    icono: "📊",
-    color: "#06b6d4",
-    configuracion_schema: {
-        duracion_minutos: { type: "number", default: 10, min: 5, max: 20 },
-        frecuencia_updates: { type: "select", options: ["diario", "semanal", "cada_hito"], default: "semanal" },
-        metricas_track: { type: "multiselect", options: ["tiempo_invertido", "hitos_completados", "calidad_trabajo", "adherencia_proceso"], default: ["hitos_completados", "calidad_trabajo"] }
-    },
-    configuracion_default: {
-        duracion_minutos: 10,
-        frecuencia_updates: "semanal",
-        metricas_track: ["hitos_completados", "calidad_trabajo"]
-    },
-    prompt_template: "Eres un diseñador de sistemas de tracking creando un monitor de progreso.\n\nCONTEXTO: {{contexto_completo}}\n\nTAREA:\nCrea un sistema que trackee {{configuracion.metricas_track}} con frecuencia {{configuracion.frecuencia_updates}}.\n\nOUTPUT (JSON): {{output_schema}}",
-    output_schema: {
-        titulo: "string",
-        metricas_configuradas: [{ nombre: "string", tipo: "string" }]
-    },
-    preview_config: {},
-    es_oficial: true,
-    activo: true
-};
-
--- 8. HERRAMIENTA DE REVISIÓN Y FEEDBACK
 CREATE exercise_template:herramienta_revision CONTENT {
     nombre: "Herramienta de Revisión y Feedback",
     categoria: "herramienta_revision",
@@ -408,41 +378,6 @@ CREATE exercise_template:simulador_entorno CONTENT {
     activo: true
 };
 
--- 10. SISTEMA DE PROGRESIÓN Y DESBLOQUEO
-CREATE exercise_template:sistema_progresion CONTENT {
-    nombre: "Sistema de Progresión y Desbloqueo",
-    categoria: "sistema_progresion",
-    descripcion: "Gestionar flujo del aprendiz a través del programa asegurando dominio suficiente antes de avanzar, personalizando ruta según fortalezas/debilidades, y manteniendo motivación mediante desbloqueos apropiados.",
-    objetivo_pedagogico: "Asegurar dominio antes de progresión mientras se mantiene motivación",
-    rol_ia: "La IA opera como guardián pedagógico que evalúa objetivamente, diagnostica dominio, recomienda rutas adaptativas, verifica pre-requisitos, permite reintentos con diagnóstico, y balancea personalización con estructura.",
-    icono: "🔓",
-    color: "#a855f7",
-    configuracion_schema: {
-        duracion_minutos: { type: "number", default: 20, min: 10, max: 45 },
-        tipo_evaluacion: { type: "select", options: ["quiz", "proyecto", "portafolio", "mixto"], default: "mixto" },
-        umbral_progresion: { type: "number", default: 70, min: 60, max: 90 },
-        permitir_reintentos: { type: "boolean", default: true },
-        numero_reintentos_max: { type: "number", default: 3, min: 1, max: 5 }
-    },
-    configuracion_default: {
-        duracion_minutos: 20,
-        tipo_evaluacion: "mixto",
-        umbral_progresion: 70,
-        permitir_reintentos: true,
-        numero_reintentos_max: 3
-    },
-    prompt_template: "Eres un diseñador de sistemas de evaluación creando un guardián pedagógico.\n\nCONTEXTO: {{contexto_completo}}\n\nTAREA:\nCrea una evaluación tipo {{configuracion.tipo_evaluacion}} con umbral {{configuracion.umbral_progresion}}% que permita {{configuracion.numero_reintentos_max}} reintentos.\n\nOUTPUT (JSON): {{output_schema}}",
-    output_schema: {
-        titulo: "string",
-        tipo_evaluacion: "string",
-        umbral_progresion: {}
-    },
-    preview_config: {},
-    es_oficial: true,
-    activo: true
-};
-
--- 11. CASO DE ANÁLISIS
 CREATE exercise_template:caso CONTENT {
     nombre: "Caso de Análisis",
     categoria: "caso",

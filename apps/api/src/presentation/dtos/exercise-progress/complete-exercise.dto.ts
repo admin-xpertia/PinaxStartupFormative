@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import type { ExerciseProgressStatus } from "./exercise-progress-response.dto";
 import {
   IsString,
   IsNumber,
@@ -65,6 +66,25 @@ export class CompleteExerciseResponseDto {
     example: "completado",
   })
   estado: string;
+
+  @ApiProperty({
+    description: "Estado extendido del ejercicio",
+    enum: [
+      "not_started",
+      "in_progress",
+      "submitted_for_review",
+      "requires_iteration",
+      "approved",
+    ],
+    example: "submitted_for_review",
+  })
+  status: ExerciseProgressStatus;
+
+  @ApiPropertyOptional({
+    description: "Fecha de envío a revisión",
+    example: "2025-01-15T10:30:00Z",
+  })
+  submittedAt?: string;
 
   @ApiPropertyOptional({
     description: "Score final obtenido",

@@ -635,13 +635,26 @@ export interface ExerciseProgress {
   exercise_instance: RecordId<'exercise_instance'>;
   estudiante: RecordId<'estudiante'>;
   cohorte: RecordId<'cohorte'>;
-  estado: 'no_iniciado' | 'en_progreso' | 'completado' | 'pendiente_revision';
+  estado:
+    | 'no_iniciado'
+    | 'en_progreso'
+    | 'completado'
+    | 'pendiente_revision'
+    | 'revision_requerida';
+  status:
+    | 'not_started'
+    | 'in_progress'
+    | 'submitted_for_review'
+    | 'requires_iteration'
+    | 'approved';
   porcentaje_completitud: number;
   fecha_inicio?: DateTime;
   fecha_completado?: DateTime;
+  submitted_at?: DateTime;
   tiempo_invertido_minutos: number;
   numero_intentos: number;
   score_final?: number;
+  instructor_feedback?: JSONObject;
   datos_estudiante?: RecordId<'datos_estudiante'>;
   created_at: DateTime;
   updated_at: DateTime;
