@@ -100,7 +100,8 @@ const markdownComponents: Components = {
       {children}
     </blockquote>
   ),
-  code({ inline, children, className, ...props }) {
+  code({ node, children, className, ...props }: any) {
+    const inline = !className?.includes('language-')
     if (inline) {
       return (
         <code className={cn("rounded bg-slate-100 px-1 py-0.5 text-sm", className)} {...props}>

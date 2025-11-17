@@ -67,6 +67,15 @@ export interface AddExerciseToProofPointRequest {
   esObligatorio: boolean
 }
 
+export interface UpdateExerciseInstanceRequest {
+  nombre?: string
+  descripcionBreve?: string
+  consideracionesContexto?: string
+  configuracionPersonalizada?: Record<string, any>
+  duracionEstimadaMinutos?: number
+  esObligatorio?: boolean
+}
+
 // ============================================================================
 // Program Design - Response DTOs
 // ============================================================================

@@ -8,6 +8,7 @@ import type {
   ExerciseTemplateResponse,
   ExerciseInstanceResponse,
   AddExerciseToProofPointRequest,
+  UpdateExerciseInstanceRequest,
   ExerciseCategory,
 } from '@/types/api'
 
@@ -82,7 +83,7 @@ export const exerciseInstancesApi = {
   /**
    * Update exercise instance
    */
-  update: (id: string, data: Partial<AddExerciseToProofPointRequest>) =>
+  update: (id: string, data: UpdateExerciseInstanceRequest) =>
     apiClient.put<ExerciseInstanceResponse>(`/exercises/${id}`, data),
 
   /**
@@ -107,6 +108,24 @@ export const exerciseInstancesApi = {
       `/exercises/${id}/generate`,
       { forceRegenerate }
     ),
+
+  /**
+   * Publish exercise (make it available to students)
+   */
+  publish: (id: string) =>
+    apiClient.put<ExerciseInstanceResponse>(`/exercises/${id}/publish`),
+
+  /**
+   * Unpublish exercise (remove from student view)
+   */
+  unpublish: (id: string) =>
+    apiClient.put<ExerciseInstanceResponse>(`/exercises/${id}/unpublish`),
+
+  /**
+   * Reset stuck exercise (change from generando to error state)
+   */
+  resetStuck: (id: string) =>
+    apiClient.put<ExerciseInstanceResponse>(`/exercises/${id}/reset`),
 }
 
 // ============================================================================

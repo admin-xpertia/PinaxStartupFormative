@@ -85,6 +85,10 @@ export class ContentStatus extends ValueObject<{ value: ContentStatusType }> {
     return this.props.value === "draft" || this.props.value === "generado";
   }
 
+  canUnpublish(): boolean {
+    return this.props.value === "publicado";
+  }
+
   equals(vo?: ValueObject<{ value: ContentStatusType }>): boolean {
     if (!vo) return false;
     return this.props.value === (vo as ContentStatus).props.value;

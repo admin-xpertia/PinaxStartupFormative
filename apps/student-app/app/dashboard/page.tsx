@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react"
 import useSWR from "swr"
-import { BookOpen, Target, Map } from "lucide-react"
+import { BookOpen, Target, Map as MapIcon } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { enrollmentsApi, progressApi } from "@/services/api"
 import {
@@ -213,7 +213,7 @@ function DashboardContent() {
             onClick={() => setViewMode('roadmap')}
             className="gap-2"
           >
-            <Map className="h-4 w-4" />
+            <MapIcon className="h-4 w-4" />
             Ver Roadmap Completo
           </Button>
         </div>
@@ -223,7 +223,7 @@ function DashboardContent() {
           <div className="flex flex-col items-center justify-center gap-8 py-8">
             <div className="text-center">
               <h1 className="text-4xl font-bold mb-2">
-                Hola, {activeEnrollment.studentName || 'Estudiante'}
+                Hola, {activeEnrollment.studentId ?? 'Estudiante'}
               </h1>
               <p className="text-xl text-muted-foreground">
                 Tu misión de hoy
@@ -241,11 +241,6 @@ function DashboardContent() {
                       <p className="text-lg text-muted-foreground">
                         {continuePoint.exerciseName}
                       </p>
-                      {continuePoint.exerciseDescription && (
-                        <p className="text-sm text-muted-foreground">
-                          {continuePoint.exerciseDescription}
-                        </p>
-                      )}
                     </div>
                     <Button
                       size="lg"

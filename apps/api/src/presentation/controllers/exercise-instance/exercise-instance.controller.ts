@@ -30,6 +30,7 @@ import {
 } from "../../../domain/exercise-instance/value-objects/ContentStatus";
 import {
   AddExerciseToProofPointRequestDto,
+  UpdateExerciseInstanceRequestDto,
   ExerciseInstanceResponseDto,
   GenerateContentRequestDto,
   GenerateContentResponseDto,
@@ -396,30 +397,60 @@ export class ExerciseInstanceController {
   @ApiResponse({ status: 404, description: "Exercise not found" })
   async updateExercise(
     @Param("id") id: string,
-    @Body() updateDto: AddExerciseToProofPointRequestDto,
+    @Body() updateDto: UpdateExerciseInstanceRequestDto,
   ): Promise<ExerciseInstanceResponseDto> {
     const decodedId = decodeURIComponent(id);
+
+    // Build update fields dynamically based on what's provided
+    const updateFields: string[] = [];
+    const params: Record<string, any> = { id: decodedId };
+
+    if (updateDto.nombre !== undefined) {
+      updateFields.push("nombre = $nombre");
+      params.nombre = updateDto.nombre;
+    }
+
+    if (updateDto.descripcionBreve !== undefined) {
+      updateFields.push("descripcion_breve = $descripcionBreve");
+      params.descripcionBreve = updateDto.descripcionBreve;
+    }
+
+    if (updateDto.consideracionesContexto !== undefined) {
+      updateFields.push("consideraciones_contexto = $consideracionesContexto");
+      params.consideracionesContexto = updateDto.consideracionesContexto;
+    }
+
+    if (updateDto.configuracionPersonalizada !== undefined) {
+      updateFields.push("configuracion_personalizada = $configuracionPersonalizada");
+      params.configuracionPersonalizada = updateDto.configuracionPersonalizada;
+    }
+
+    if (updateDto.duracionEstimadaMinutos !== undefined) {
+      updateFields.push("duracion_estimada_minutos = $duracionEstimadaMinutos");
+      params.duracionEstimadaMinutos = updateDto.duracionEstimadaMinutos;
+    }
+
+    if (updateDto.esObligatorio !== undefined) {
+      updateFields.push("es_obligatorio = $esObligatorio");
+      params.esObligatorio = updateDto.esObligatorio;
+    }
+
+    // Always update the updated_at timestamp
+    updateFields.push("updated_at = time::now()");
+
+    if (updateFields.length === 1) {
+      // Only updated_at, no actual changes
+      throw new BadRequestException("No fields to update");
+    }
 
     // Update using direct database query
     const query = `
       UPDATE type::thing($id) SET
-        nombre = $nombre,
-        descripcion_breve = $descripcionBreve,
-        consideraciones_contexto = $consideracionesContexto,
-        configuracion_personalizada = $configuracionPersonalizada,
-        duracion_estimada_minutos = $duracionEstimadaMinutos,
-        updated_at = time::now()
+        ${updateFields.join(",\n        ")}
       RETURN AFTER
     `;
 
-    const result = await this.db.query(query, {
-      id: decodedId,
-      nombre: updateDto.nombre,
-      descripcionBreve: updateDto.descripcionBreve || "",
-      consideracionesContexto: updateDto.consideracionesContexto || "",
-      configuracionPersonalizada: updateDto.configuracionPersonalizada || {},
-      duracionEstimadaMinutos: updateDto.duracionEstimadaMinutos,
-    });
+    const result = await this.db.query(query, params);
 
     let updated: any;
     if (Array.isArray(result) && result.length > 0) {
@@ -511,6 +542,199 @@ export class ExerciseInstanceController {
     const updateQuery = `
       UPDATE type::thing($id) SET
         estado_contenido = 'publicado',
+        updated_at = time::now()
+      RETURN AFTER
+    `;
+
+    const updateResult = await this.db.query(updateQuery, { id: decodedId });
+
+    let updated: any;
+    if (Array.isArray(updateResult) && updateResult.length > 0) {
+      if (Array.isArray(updateResult[0]) && updateResult[0].length > 0) {
+        updated = updateResult[0][0];
+      } else if (!Array.isArray(updateResult[0])) {
+        updated = updateResult[0];
+      }
+    }
+
+    if (!updated) {
+      throw new NotFoundException(`Failed to update exercise: ${id}`);
+    }
+
+    return {
+      id: updated.id,
+      template: updated.template,
+      proofPoint: updated.proof_point,
+      nombre: updated.nombre,
+      descripcionBreve: updated.descripcion_breve,
+      consideracionesContexto: updated.consideraciones_contexto,
+      configuracionPersonalizada: updated.configuracion_personalizada,
+      orden: updated.orden,
+      duracionEstimadaMinutos: updated.duracion_estimada_minutos,
+      estadoContenido: updated.estado_contenido,
+      contenidoActual: updated.contenido_actual,
+      esObligatorio: updated.es_obligatorio,
+      createdAt: updated.created_at,
+      updatedAt: updated.updated_at,
+    };
+  }
+
+  /**
+   * Reset stuck exercise (change status from generando to error)
+   */
+  @Put("exercises/:id/reset")
+  @ApiOperation({
+    summary: "Reset stuck exercise",
+    description: "Reset an exercise stuck in 'generando' state to 'error' state so it can be retried",
+  })
+  @ApiParam({
+    name: "id",
+    description: "ExerciseInstance ID",
+    example: "exercise_instance:abc123",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Exercise reset successfully",
+    type: ExerciseInstanceResponseDto,
+  })
+  @ApiResponse({ status: 404, description: "Exercise not found" })
+  @ApiResponse({
+    status: 400,
+    description: "Exercise must be in generando state to reset",
+  })
+  async resetStuckExercise(
+    @Param("id") id: string,
+  ): Promise<ExerciseInstanceResponseDto> {
+    const decodedId = decodeURIComponent(id);
+
+    // First, check if exercise exists and is in generando state
+    const checkQuery = "SELECT * FROM type::thing($id)";
+    const checkResult = await this.db.query(checkQuery, { id: decodedId });
+
+    let exercise: any;
+    if (Array.isArray(checkResult) && checkResult.length > 0) {
+      if (Array.isArray(checkResult[0]) && checkResult[0].length > 0) {
+        exercise = checkResult[0][0];
+      } else if (!Array.isArray(checkResult[0])) {
+        exercise = checkResult[0];
+      }
+    }
+
+    if (!exercise) {
+      throw new NotFoundException(`Exercise not found: ${id}`);
+    }
+
+    const contentStatus = ContentStatus.create(
+      exercise.estado_contenido as ContentStatusType,
+    );
+
+    // Allow reset from generando state
+    if (!contentStatus.isGenerando()) {
+      throw new BadRequestException(
+        `Exercise must be in 'generando' state to reset. Current state: ${exercise.estado_contenido}`,
+      );
+    }
+
+    // Update status to error
+    const updateQuery = `
+      UPDATE type::thing($id) SET
+        estado_contenido = 'error',
+        updated_at = time::now()
+      RETURN AFTER
+    `;
+
+    const updateResult = await this.db.query(updateQuery, { id: decodedId });
+
+    let updated: any;
+    if (Array.isArray(updateResult) && updateResult.length > 0) {
+      if (Array.isArray(updateResult[0]) && updateResult[0].length > 0) {
+        updated = updateResult[0][0];
+      } else if (!Array.isArray(updateResult[0])) {
+        updated = updateResult[0];
+      }
+    }
+
+    if (!updated) {
+      throw new NotFoundException(`Failed to update exercise: ${id}`);
+    }
+
+    return {
+      id: updated.id,
+      template: updated.template,
+      proofPoint: updated.proof_point,
+      nombre: updated.nombre,
+      descripcionBreve: updated.descripcion_breve,
+      consideracionesContexto: updated.consideraciones_contexto,
+      configuracionPersonalizada: updated.configuracion_personalizada,
+      orden: updated.orden,
+      duracionEstimadaMinutos: updated.duracion_estimada_minutos,
+      estadoContenido: updated.estado_contenido,
+      contenidoActual: updated.contenido_actual,
+      esObligatorio: updated.es_obligatorio,
+      createdAt: updated.created_at,
+      updatedAt: updated.updated_at,
+    };
+  }
+
+  /**
+   * Unpublish exercise (change status from published to draft)
+   */
+  @Put("exercises/:id/unpublish")
+  @ApiOperation({
+    summary: "Unpublish exercise",
+    description: "Change exercise content status from published back to draft",
+  })
+  @ApiParam({
+    name: "id",
+    description: "ExerciseInstance ID",
+    example: "exercise_instance:abc123",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Exercise unpublished successfully",
+    type: ExerciseInstanceResponseDto,
+  })
+  @ApiResponse({ status: 404, description: "Exercise not found" })
+  @ApiResponse({
+    status: 400,
+    description: "Exercise must be published to unpublish",
+  })
+  async unpublishExercise(
+    @Param("id") id: string,
+  ): Promise<ExerciseInstanceResponseDto> {
+    const decodedId = decodeURIComponent(id);
+
+    // First, check if exercise exists and is published
+    const checkQuery = "SELECT * FROM type::thing($id)";
+    const checkResult = await this.db.query(checkQuery, { id: decodedId });
+
+    let exercise: any;
+    if (Array.isArray(checkResult) && checkResult.length > 0) {
+      if (Array.isArray(checkResult[0]) && checkResult[0].length > 0) {
+        exercise = checkResult[0][0];
+      } else if (!Array.isArray(checkResult[0])) {
+        exercise = checkResult[0];
+      }
+    }
+
+    if (!exercise) {
+      throw new NotFoundException(`Exercise not found: ${id}`);
+    }
+
+    const contentStatus = ContentStatus.create(
+      exercise.estado_contenido as ContentStatusType,
+    );
+
+    if (!contentStatus.canUnpublish()) {
+      throw new BadRequestException(
+        `Exercise must be published to unpublish. Current state: ${exercise.estado_contenido}`,
+      );
+    }
+
+    // Update status to draft
+    const updateQuery = `
+      UPDATE type::thing($id) SET
+        estado_contenido = 'draft',
         updated_at = time::now()
       RETURN AFTER
     `;
