@@ -30,6 +30,7 @@ interface MentorStep {
   pregunta_reflexion: string
   recursos?: Array<{ titulo: string; contenido: string; tipo: "consejo" | "ejemplo" | "link" }>
   criterio_avance: string
+  criterios_ia?: string[] // Semantic validation criteria
 }
 
 interface MentorContent {
@@ -80,6 +81,12 @@ export function MentorIAPlayer({
   const [showMentorAdvice, setShowMentorAdvice] = useState(false)
   const [mentorMessage, setMentorMessage] = useState("")
   const [isRequestingAdvice, setIsRequestingAdvice] = useState(false)
+  const [validationError, setValidationError] = useState<{
+    feedback: string
+    missingAspects: string[]
+    qualityScore: number
+  } | null>(null)
+  const [isValidating, setIsValidating] = useState(false)
 
   const currentStepData = content.pasos[currentStep]
   const totalSteps = content.pasos.length
@@ -92,6 +99,11 @@ export function MentorIAPlayer({
         [field]: value,
       },
     }))
+
+    // Clear validation error when user edits their reflexion
+    if (field === "reflexion" && validationError) {
+      setValidationError(null)
+    }
   }
 
   const getResponse = (field: keyof StepResponse) => {
@@ -150,12 +162,67 @@ ${reflections || "No hay reflexiones previas todavía."}`
     return response?.reflexion && response.reflexion.trim().length > 100
   }
 
-  const handleStepComplete = () => {
-    if (isStepComplete(currentStep)) {
-      setCompletedSteps(prev => new Set([...prev, currentStep]))
-      if (currentStep < totalSteps - 1) {
-        setCurrentStep(currentStep + 1)
+  const handleStepComplete = async () => {
+    if (!isStepComplete(currentStep)) return
+
+    // Clear previous validation error
+    setValidationError(null)
+
+    // Check if this step has semantic validation criteria
+    const criteriosIA = currentStepData.criterios_ia
+    if (criteriosIA && criteriosIA.length > 0) {
+      setIsValidating(true)
+
+      try {
+        const studentResponse = getResponse("reflexion") as string
+
+        // Send validation request
+        const response = await exercisesApi.sendLessonAssistantMessage(exerciseId, {
+          pregunta: studentResponse,
+          seccionId: `mentor_step_${currentStep + 1}`,
+          seccionTitulo: currentStepData.titulo,
+          seccionContenido: buildMentorContext(),
+          historial: buildMentorHistory(studentResponse),
+          conceptoFocal: content.objetivo_general,
+          perfilComprension: {
+            tipo: "mentor",
+            pasosCompletados: completedSteps.size,
+            pasoActual: currentStep + 1,
+          },
+          // Shadow Monitor validation parameters
+          criteriosValidacion: criteriosIA,
+          umbralCalidad: 3, // From template default config
+        })
+
+        // Check validation result
+        if (response.validationResult?.isValid === false) {
+          // Show error feedback - don't advance
+          setValidationError({
+            feedback: response.validationResult.feedback,
+            missingAspects: response.validationResult.missingAspects,
+            qualityScore: response.validationResult.qualityScore,
+          })
+          setIsValidating(false)
+          return // Block advance
+        }
+      } catch (error) {
+        console.error("Validation error:", error)
+        setValidationError({
+          feedback: "No se pudo validar la respuesta. Por favor, intenta nuevamente.",
+          missingAspects: [],
+          qualityScore: 0,
+        })
+        setIsValidating(false)
+        return
+      } finally {
+        setIsValidating(false)
       }
+    }
+
+    // If validation passed (or no validation required), proceed with completion
+    setCompletedSteps(prev => new Set([...prev, currentStep]))
+    if (currentStep < totalSteps - 1) {
+      setCurrentStep(currentStep + 1)
     }
   }
 
@@ -367,6 +434,57 @@ ${reflections || "No hay reflexiones previas todavía."}`
             </CardContent>
           </Card>
 
+          {/* Validation Error Feedback */}
+          {validationError && (
+            <Card className="border-red-500 bg-red-50">
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-red-900 mb-2">
+                        La respuesta necesita mayor profundidad
+                      </h4>
+                      <p className="text-sm text-red-800 mb-3">{validationError.feedback}</p>
+
+                      {validationError.missingAspects.length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-sm font-medium text-red-900 mb-2">
+                            Aspectos que necesitan más desarrollo:
+                          </p>
+                          <ul className="space-y-1">
+                            {validationError.missingAspects.map((aspect, idx) => (
+                              <li key={idx} className="text-sm text-red-800 flex items-start gap-2">
+                                <span className="text-red-600">•</span>
+                                {aspect}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      <div className="mt-4 p-3 bg-red-100 rounded-lg">
+                        <p className="text-xs text-red-900">
+                          <strong>Calidad actual:</strong> {validationError.qualityScore}/5
+                          (necesitas mínimo 3/5 para continuar)
+                        </p>
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setValidationError(null)}
+                        className="mt-4"
+                      >
+                        Entendido, voy a mejorar mi respuesta
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Mentor Advice */}
           {showMentorAdvice && mentorMessage && (
             <Card className="border-primary bg-primary/5">
@@ -462,9 +580,16 @@ ${reflections || "No hay reflexiones previas todavía."}`
             <CardContent className="p-4">
               <div className="flex items-start gap-2">
                 <AlertCircle className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
-                <div>
+                <div className="flex-1">
                   <p className="text-sm font-medium mb-1">Para avanzar al siguiente paso:</p>
                   <p className="text-sm text-muted-foreground">{currentStepData.criterio_avance}</p>
+                  {currentStepData.criterios_ia && currentStepData.criterios_ia.length > 0 && (
+                    <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded">
+                      <p className="text-xs text-blue-800">
+                        ✨ <strong>Validación Semántica Activa:</strong> Tu respuesta será evaluada automáticamente por calidad y profundidad argumentativa, no solo por extensión.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -474,12 +599,12 @@ ${reflections || "No hay reflexiones previas todavía."}`
           {!completedSteps.has(currentStep) && (
             <Button
               onClick={handleStepComplete}
-              disabled={!isStepComplete(currentStep)}
+              disabled={!isStepComplete(currentStep) || isValidating}
               size="lg"
               className="w-full"
             >
               <CheckCircle2 className="h-5 w-5 mr-2" />
-              Completar Paso {currentStep + 1}
+              {isValidating ? "Validando respuesta..." : `Completar Paso ${currentStep + 1}`}
             </Button>
           )}
         </div>

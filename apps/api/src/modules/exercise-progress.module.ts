@@ -6,6 +6,7 @@ import { ExerciseProgressController } from "../presentation/controllers/exercise
 
 // Services
 import { OpenAIService } from "../infrastructure/ai/OpenAIService";
+import { ShadowMonitorService } from "../application/exercise-instance/services/ShadowMonitorService";
 
 /**
  * ExerciseProgressModule
@@ -15,11 +16,12 @@ import { OpenAIService } from "../infrastructure/ai/OpenAIService";
  * - REST API endpoints for students to track exercise progress
  * - Start, save progress, and complete exercises
  * - AI-powered feedback generation
+ * - Semantic validation through Shadow Monitor
  */
 @Module({
   imports: [SurrealDbModule],
   controllers: [ExerciseProgressController],
-  providers: [OpenAIService],
+  providers: [OpenAIService, ShadowMonitorService],
   exports: [],
 })
 export class ExerciseProgressModule {}

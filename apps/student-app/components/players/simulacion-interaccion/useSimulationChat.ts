@@ -87,6 +87,28 @@ Criterios de éxito alcanzados: ${criteriosLogrados || "ninguno todavía"}.`
       setError(null)
 
       try {
+        // Transform criterios_exito to the format expected by Shadow Monitor
+        const criteriosExito = content.criterios_exito?.map((criterio, idx) => {
+          // Handle both old format (string) and new format (object with rubrica)
+          if (typeof criterio === "string") {
+            return {
+              id: `criterio_${idx}`,
+              descripcion: criterio,
+              rubrica_evaluacion: undefined,
+            }
+          }
+          return {
+            id: criterio.id || `criterio_${idx}`,
+            descripcion: criterio.descripcion || criterio,
+            rubrica_evaluacion: criterio.rubrica_evaluacion,
+          }
+        }) || []
+
+        // Build list of already met criteria IDs
+        const criteriosCumplidos = Array.from(successCriteriaMet).map(idx =>
+          criteriosExito[idx]?.id || `criterio_${idx}`
+        )
+
         const response = await exercisesApi.sendLessonAssistantMessage(exerciseId, {
           pregunta: trimmed,
           seccionId: "simulacion_interaccion",
@@ -96,8 +118,15 @@ Criterios de éxito alcanzados: ${criteriosLogrados || "ninguno todavía"}.`
           conceptoFocal: content.objetivo_estudiante,
           perfilComprension: {
             tipo: "simulacion_interaccion",
-            criteriosMarcados: Array.from(successCriteriaMet),
+            criteriosMarcados: criteriosCumplidos,
             dificultad: content.nivel_dificultad,
+          },
+          // Shadow Monitor parameters
+          criteriosExito,
+          criteriosCumplidos,
+          shadowMonitorConfig: {
+            activado: true,
+            frecuencia_turnos: 2,
           },
         })
 
@@ -106,6 +135,20 @@ Criterios de éxito alcanzados: ${criteriosLogrados || "ninguno todavía"}.`
           "No pude procesar tu mensaje en este momento. Intenta nuevamente."
         const assistantMessage = createMessage("assistant", assistantReply)
         setMessages((prev) => [...prev, assistantMessage])
+
+        // Process Shadow Monitor results (auto-mark criteria as met)
+        if (response.shadowMonitorResult?.metCriteriaIds) {
+          const newlyMetCriteriaIds = response.shadowMonitorResult.metCriteriaIds
+
+          // Convert criteria IDs back to indices
+          newlyMetCriteriaIds.forEach((criterioId) => {
+            const criterioIndex = criteriosExito.findIndex(c => c.id === criterioId)
+            if (criterioIndex !== -1 && !successCriteriaMet.has(criterioIndex)) {
+              console.log(`✅ Shadow Monitor: Criterio "${criteriosExito[criterioIndex].descripcion}" cumplido automáticamente`)
+              setSuccessCriteriaMet((prev) => new Set([...prev, criterioIndex]))
+            }
+          })
+        }
       } catch (err) {
         console.error("Simulation chat error:", err)
         setError("No pudimos obtener respuesta del asistente.")
@@ -120,6 +163,7 @@ Criterios de éxito alcanzados: ${criteriosLogrados || "ninguno todavía"}.`
     },
     [
       buildScenarioContext,
+      content.criterios_exito,
       content.nivel_dificultad,
       content.objetivo_estudiante,
       content.titulo,

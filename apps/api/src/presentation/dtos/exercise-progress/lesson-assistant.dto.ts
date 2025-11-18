@@ -98,6 +98,76 @@ export class LessonAssistantRequestDto {
   @IsOptional()
   @IsString()
   systemPromptOverride?: string;
+
+  @ApiPropertyOptional({
+    description:
+      "Criterios de éxito para simulaciones de interacción (Shadow Monitor)",
+    example: [
+      {
+        id: "criterio_1",
+        descripcion: "Mostrar empatía genuina",
+        rubrica_evaluacion: "El estudiante hace preguntas abiertas y valida emociones",
+      },
+    ],
+  })
+  @IsOptional()
+  @IsArray()
+  criteriosExito?: Array<{
+    id: string;
+    descripcion: string;
+    rubrica_evaluacion?: string;
+  }>;
+
+  @ApiPropertyOptional({
+    description:
+      "IDs de criterios ya cumplidos (para evitar re-evaluarlos)",
+    example: ["criterio_1"],
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  criteriosCumplidos?: string[];
+
+  @ApiPropertyOptional({
+    description:
+      "Configuración del Shadow Monitor (activación, frecuencia, etc.)",
+    example: {
+      activado: true,
+      frecuencia_turnos: 2,
+    },
+  })
+  @IsOptional()
+  @IsObject()
+  shadowMonitorConfig?: Record<string, any>;
+
+  @ApiPropertyOptional({
+    description:
+      "Criterios de evaluación semántica para pasos de mentor (validación)",
+    example: [
+      "Identifica al menos 3 riesgos financieros",
+      "Propone estrategias de mitigación concretas",
+    ],
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  criteriosValidacion?: string[];
+
+  @ApiPropertyOptional({
+    description:
+      "Umbral de calidad para validación semántica (1-5)",
+    example: 3,
+  })
+  @IsOptional()
+  umbralCalidad?: number;
+
+  @ApiPropertyOptional({
+    description:
+      "Contador actual de insights (para metacognición)",
+    example: 2,
+  })
+  @IsOptional()
+  insightCount?: number;
 }
 
 export class LessonAssistantResponseDto {
@@ -126,4 +196,54 @@ export class LessonAssistantResponseDto {
   })
   @IsOptional()
   tokensUsados?: number;
+
+  @ApiPropertyOptional({
+    description:
+      "Resultados del Shadow Monitor (evaluación de criterios)",
+    example: {
+      metCriteriaIds: ["criterio_1"],
+      qualityScores: { criterio_1: 4 },
+      internalFeedback: "El estudiante demostró empatía genuina",
+    },
+  })
+  @IsOptional()
+  shadowMonitorResult?: {
+    metCriteriaIds: string[];
+    qualityScores: Record<string, number>;
+    internalFeedback: string;
+  };
+
+  @ApiPropertyOptional({
+    description:
+      "Resultado de validación semántica (para mentor steps)",
+    example: {
+      isValid: true,
+      qualityScore: 4,
+      feedback: "Respuesta completa y bien fundamentada",
+      missingAspects: [],
+    },
+  })
+  @IsOptional()
+  validationResult?: {
+    isValid: boolean;
+    qualityScore: number;
+    feedback: string;
+    missingAspects: string[];
+  };
+
+  @ApiPropertyOptional({
+    description:
+      "Insights detectados (para metacognición)",
+    example: {
+      insightCount: 3,
+      latestInsight: "Me di cuenta que aprendo mejor con ejemplos visuales",
+      detectedInsights: ["Aprendo mejor con ejemplos visuales"],
+    },
+  })
+  @IsOptional()
+  insightsResult?: {
+    insightCount: number;
+    latestInsight: string | null;
+    detectedInsights: string[];
+  };
 }
