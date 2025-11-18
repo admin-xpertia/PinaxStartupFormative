@@ -90,7 +90,7 @@ Quality scores: 1-5 (1=poor, 3=adequate, 5=excellent). Only include scores for c
         ],
         maxTokens: 500,
         responseFormat: { type: "json_object" },
-        model: "gpt-4o-mini", // Use faster/cheaper model for evaluation
+        model: "gpt-5-nano", // Use faster/cheaper model for evaluation
       });
 
       const parsed = JSON.parse(response.content);
@@ -166,7 +166,7 @@ Respond with JSON:
         ],
         maxTokens: 400,
         responseFormat: { type: "json_object" },
-        model: "gpt-4o-mini",
+        model: "gpt-5-nano",
       });
 
       const parsed = JSON.parse(response.content);
@@ -243,7 +243,7 @@ Respond with JSON:
         ],
         maxTokens: 300,
         responseFormat: { type: "json_object" },
-        model: "gpt-4o-mini",
+        model: "gpt-5-nano",
       });
 
       const parsed = JSON.parse(response.content);

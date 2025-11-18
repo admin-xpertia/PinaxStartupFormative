@@ -192,7 +192,7 @@ CREATE exercise_template:simulacion_interaccion SET
         properties: {
           activado: { type: 'boolean', default: true },
           frecuencia_turnos: { type: 'number', default: 2, description: 'Evaluar cada X mensajes del usuario' },
-          modelo_evaluador: { type: 'string', default: 'gpt-4o-mini', description: 'Modelo para evaluacion (mas rapido/barato)' }
+          modelo_evaluador: { type: 'string', default: 'gpt-5-nano', description: 'Modelo para evaluacion (mas rapido/barato)' }
         }
       }
     }
@@ -203,7 +203,7 @@ CREATE exercise_template:simulacion_interaccion SET
     shadow_monitor: {
       activado: true,
       frecuencia_turnos: 2,
-      modelo_evaluador: 'gpt-4o-mini'
+      modelo_evaluador: 'gpt-5-nano'
     }
   },
   prompt_template = 'Crea una simulacion de interaccion con {{rol_simulado}} en contexto: {{contexto_situacion}}. Nivel de dificultad: {{nivel_dificultad}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "descripcion": string, "personaje_ia": { "nombre": string, "rol": string, "personalidad": string, "tono": string, "contexto": string, "niveles_resistencia": { "alta": string, "baja": string } }, "objetivo_estudiante": string, "situacion_inicial": string, "criterios_exito": [{ "id": string, "descripcion": string, "rubrica_evaluacion": string }], "nivel_dificultad": "principiante"|"intermedio"|"avanzado", "tiempo_sugerido": number, "instrucciones_personaje": string }. El personaje debe tener personalidad coherente{{#if personalidad}} con rasgos: {{personalidad}}{{/if}}. IMPORTANTE: Define "niveles_resistencia" para el personaje (como se comporta cuando el usuario es cortante vs empatico) e "instrucciones_personaje" que incluyan: "Mantén estrictamente tu personaje. Nunca felicites al usuario ni menciones los criterios de éxito en tu diálogo. Tu cooperación depende de la calidad de la interacción del usuario."',
