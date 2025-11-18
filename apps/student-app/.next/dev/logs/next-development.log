@@ -1,171 +1,31 @@
-[00:00:00.533] Server  LOG      ✓ Ready in 377ms
-[00:00:04.038] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:00:04.499] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:00:04.499] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
-[00:00:04.499] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/dashboard","route":"/dashboard"}
-[00:00:04.499] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3002/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763477632707}
-[00:00:04.499] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/dashboard color: rgb(120, 120, 120) color: inherit {"dp":"/dashboard","o":"http://localhost:3002/dashboard","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763477632707}
-[00:00:13.484] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","o":"http://localhost:3002/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763477641691}
-[00:00:17.440] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","o":"http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763477645648}
-[00:00:29.881] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","o":"http://localhost:3002/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763477658087}
-[00:00:31.782] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:00:31.897] Browser ERROR   React has detected a change in the order of Hooks called by %s. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://react.dev/link/rules-of-hooks
-
-   Previous render            Next render
-   ------------------------------------------------------
-%s   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- ProofPointPage 1. useContext                 useContext
-2. useContext                 useContext
-3. useContext                 useContext
-4. useContext                 useContext
-5. useContext                 useMemo
-
-[00:00:31.897] Browser ERROR   Internal React error: Expected static flag was missing. Please notify the React team.
-[00:00:31.897] Browser ERROR   Internal React error: Expected static flag was missing. Please notify the React team.
-[00:00:31.897] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:00:31.897] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","route":"/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9"}
-[00:00:31.897] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","o":"http://localhost:3002/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763477660104}
-[00:00:34.708] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","o":"http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763477662914}
-[00:01:16.282] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:01:16.421] Browser ERROR   React has detected a change in the order of Hooks called by %s. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://react.dev/link/rules-of-hooks
-
-   Previous render            Next render
-   ------------------------------------------------------
-%s   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- ExercisePage 1. useContext                 useContext
-2. useContext                 useContext
-3. useContext                 useContext
-4. useRef                     useRef
-5. useContext                 useContext
-6. useMemo                    useMemo
-7. useRef                     useRef
-8. useRef                     useRef
-9. useRef                     useRef
-10. useRef                    useRef
-11. useRef                    useRef
-12. useRef                    useRef
-13. useMemo                   useMemo
-14. useCallback               useCallback
-15. useSyncExternalStore      useSyncExternalStore
-16. useRef                    useRef
-17. useCallback               useCallback
-18. useCallback               useCallback
-19. useLayoutEffect           useLayoutEffect
-20. useLayoutEffect           useLayoutEffect
-21. useLayoutEffect           useLayoutEffect
-22. useDebugValue             useDebugValue
-23. undefined                 useMemo
-
-[00:01:16.421] Browser ERROR   uncaughtError: Error: Rendered more hooks than during the previous render.
-[00:02:54.435] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
-[00:02:54.527] Server  LOG      ✓ Compiled in 42ms
-[00:02:54.669] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:02:55.704] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:02:55.704] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","route":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9"}
-[00:02:55.704] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","o":"http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763477803059}
-[00:03:05.129] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:03:05.264] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:03:05.264] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","route":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9"}
-[00:03:05.264] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","o":"http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763477813471}
-[00:03:15.542] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:03:15.679] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:03:15.679] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","route":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9"}
-[00:03:15.679] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","o":"http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763477823886}
-[00:03:54.998] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:03:55.210] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:03:55.210] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","route":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9"}
-[00:03:55.210] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","o":"http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763477863410}
-[00:06:17.639] Browser ERROR   Error completing exercise: {"details":{"error":"Bad Request","message":["property datos should not exist"],"statusCode":400},"message":["property datos should not exist"],"name":"APIError","statusCode":400}
-[00:12:19.801] Browser ERROR   uncaughtError: TypeError: t.matchAll is not a function
-[00:12:23.258] Browser ERROR   Error completing exercise: {"details":{"error":"Bad Request","message":["property datos should not exist"],"statusCode":400},"message":["property datos should not exist"],"name":"APIError","statusCode":400}
-[00:12:33.050] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","o":"http://localhost:3002/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763478381248}
-[00:12:35.260] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","o":"http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763478383380}
-[00:12:51.711] Browser ERROR   Error completing exercise: {"details":{"error":"Bad Request","message":["property datos should not exist"],"statusCode":400},"message":["property datos should not exist"],"name":"APIError","statusCode":400}
-[00:14:10.214] Server  LOG      ✓ Compiled in 48ms
-[00:14:21.772] Server  LOG      ✓ Compiled in 35ms
-[00:15:09.047] Server  LOG      ✓ Compiled in 46ms
-[00:15:09.701] Browser ERROR   uncaughtError: ReferenceError: useEffect is not defined
-[00:15:18.865] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
-[00:15:18.898] Server  LOG      ✓ Compiled in 31ms
-[00:15:19.292] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:15:19.702] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:15:19.702] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","route":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9"}
-[00:15:19.702] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","o":"http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763478547825}
-[00:15:44.688] Server  LOG      ✓ Compiled in 26ms
-[00:16:16.553] Server  LOG      ✓ Compiled in 35ms
-[00:16:16.768] Browser ERROR   The final argument passed to %s changed size between renders. The order and size of this array must remain constant.
-
-Previous: %s
-Incoming: %s useEffect [[object Object]] [[object Object], [object Object], [object Object], leccion-interactiva-validacion-de-hipotesis-y-aprendizaje-validado-en-startups]
-[00:16:21.788] Server  LOG      ✓ Compiled in 22ms
-[00:16:32.763] Server  LOG      ✓ Compiled in 29ms
-[00:17:54.279] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","o":"http://localhost:3002/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763478702475}
-[00:17:57.699] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","o":"http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763478705774}
-[00:18:05.776] Browser ERROR   uncaughtError: Error: Maximum update depth exceeded. This can happen when a component repeatedly calls setState inside componentWillUpdate or componentDidUpdate. React limits the number of nested updates to prevent infinite loops.
-[00:18:11.409] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:18:11.629] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:18:11.629] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","route":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9"}
-[00:18:11.629] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","o":"http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763478719826}
-[00:18:18.317] Browser ERROR   uncaughtError: Error: Maximum update depth exceeded. This can happen when a component repeatedly calls setState inside componentWillUpdate or componentDidUpdate. React limits the number of nested updates to prevent infinite loops.
-[00:19:00.996] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
-[00:19:01.079] Server  LOG      ✓ Compiled in 35ms
-[00:19:01.318] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:19:01.701] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:19:01.701] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","route":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9"}
-[00:19:01.701] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","o":"http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763478769892}
-[00:19:23.515] Browser ERROR   uncaughtError: Error: Maximum update depth exceeded. This can happen when a component repeatedly calls setState inside componentWillUpdate or componentDidUpdate. React limits the number of nested updates to prevent infinite loops.
-[00:19:25.941] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:19:26.150] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:19:26.150] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","route":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9"}
-[00:19:26.150] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","o":"http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763478794346}
-[00:19:33.064] Browser ERROR   uncaughtError: Error: Maximum update depth exceeded. This can happen when a component repeatedly calls setState inside componentWillUpdate or componentDidUpdate. React limits the number of nested updates to prevent infinite loops.
-[00:19:56.397] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:19:56.610] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:19:56.610] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","route":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9"}
-[00:19:56.610] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","o":"http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763478824806}
-[00:20:43.764] Server  LOG      ✓ Compiled in 28ms
-[00:21:10.331] Server  LOG      ✓ Compiled in 41ms
-[00:21:10.457] Browser ERROR   uncaughtError: ReferenceError: lastEmittedStateRef is not defined
-[00:21:28.154] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
-[00:21:28.237] Server  LOG      ✓ Compiled in 42ms
-[00:21:28.386] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","o":"http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763478916456}
-[00:21:28.489] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:21:28.621] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:21:28.621] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","route":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9"}
-[00:21:28.621] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","o":"http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763478916816}
-[00:22:21.542] Browser ERROR   uncaughtError: Error: Maximum update depth exceeded. This can happen when a component repeatedly calls setState inside componentWillUpdate or componentDidUpdate. React limits the number of nested updates to prevent infinite loops.
-[00:22:24.654] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:22:24.795] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:22:24.795] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","route":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9"}
-[00:22:24.795] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","o":"http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763478972990}
-[00:22:32.939] Browser ERROR   uncaughtError: Error: Maximum update depth exceeded. This can happen when a component repeatedly calls setState inside componentWillUpdate or componentDidUpdate. React limits the number of nested updates to prevent infinite loops.
-[00:23:33.202] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
-[00:23:33.226] Server  LOG      ✓ Compiled in 34ms
-[00:23:33.563] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:23:33.712] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:23:33.712] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","route":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9"}
-[00:23:33.712] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","o":"http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763479041907}
-[00:24:41.145] Browser ERROR   uncaughtError: Error: Maximum update depth exceeded. This can happen when a component repeatedly calls setState inside componentWillUpdate or componentDidUpdate. React limits the number of nested updates to prevent infinite loops.
-[00:24:49.761] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:24:49.895] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:24:49.895] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","route":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9"}
-[00:24:49.895] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","o":"http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763479118122}
-[00:25:11.044] Browser ERROR   uncaughtError: Error: Maximum update depth exceeded. This can happen when a component repeatedly calls setState inside componentWillUpdate or componentDidUpdate. React limits the number of nested updates to prevent infinite loops.
-[00:25:48.817] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:25:48.953] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:25:48.953] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","route":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9"}
-[00:25:48.953] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","o":"http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763479177181}
-[00:25:57.596] Browser ERROR   uncaughtError: Error: Maximum update depth exceeded. This can happen when a component repeatedly calls setState inside componentWillUpdate or componentDidUpdate. React limits the number of nested updates to prevent infinite loops.
-[00:26:15.810] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
-[00:26:15.875] Server  LOG      ✓ Compiled in 23ms
-[00:26:16.056] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:26:16.198] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:26:16.198] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","route":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9"}
-[00:26:16.198] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","o":"http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763479204427}
-[00:26:30.847] Server  LOG      ✓ Compiled in 21ms
-[00:26:39.150] Server  LOG      ✓ Compiled in 30ms
-[00:47:05.716] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:47:05.924] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:47:05.924] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","route":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9"}
-[00:47:05.924] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","o":"http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763480454112}
-[00:47:25.749] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","o":"http://localhost:3002/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763480473935}
+[00:00:00.793] Server  LOG      ✓ Ready in 602ms
+[00:00:06.246] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:06.753] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:00:06.753] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:00:06.753] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/dashboard","route":"/dashboard"}
+[00:00:06.753] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3002/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763487632513}
+[00:00:06.753] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/dashboard color: rgb(120, 120, 120) color: inherit {"dp":"/dashboard","o":"http://localhost:3002/dashboard","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763487632514}
+[00:00:12.747] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","o":"http://localhost:3002/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763487638506}
+[00:02:20.705] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/dashboard color: rgb(120, 120, 120) color: inherit {"dp":"/dashboard","o":"http://localhost:3002/dashboard","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763487766465}
+[00:12:30.473] Server  LOG      ✓ Compiled in 29ms
+[00:12:36.786] Server  LOG      ✓ Compiled in 51ms
+[00:12:44.560] Server  LOG      ✓ Compiled in 21ms
+[00:12:50.067] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","o":"http://localhost:3002/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763488395876}
+[00:12:52.565] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:12:52.689] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:12:52.689] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","route":"/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9"}
+[00:12:52.689] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","o":"http://localhost:3002/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763488398500}
+[00:13:07.832] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","o":"http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763488413643}
+[00:13:18.114] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","o":"http://localhost:3002/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763488423924}
+[00:13:25.524] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:13:25.632] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:13:25.632] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","route":"/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9"}
+[00:13:25.632] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","o":"http://localhost:3002/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763488431443}
+[00:13:27.878] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","o":"http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168276730_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763488433689}
+[00:13:36.947] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","o":"http://localhost:3002/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763488442757}
+[00:15:19.571] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:15:19.707] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:15:19.707] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","route":"/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9"}
+[00:15:19.707] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","o":"http://localhost:3002/proof-points/proof_point:%E2%9F%A81762989163751_0%E2%9F%A9","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763488545520}
+[00:16:43.987] Server  LOG      ✓ Compiled in 33ms
+[00:17:23.383] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168278070_0%E2%9F%A9 color: rgb(120, 120, 120) color: inherit {"dp":"/exercises/exercise_instance:%E2%9F%A81763168278070_0%E2%9F%A9","o":"http://localhost:3002/exercises/exercise_instance:%E2%9F%A81763168278070_0%E2%9F%A9","sdkn":"@vercel/analytics/next","sdkv":"1.5.0","sv":"0.1.3","ts":1763488669197}

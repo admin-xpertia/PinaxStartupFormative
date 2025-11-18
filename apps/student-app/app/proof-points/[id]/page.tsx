@@ -64,10 +64,10 @@ export default function ProofPointPage() {
       if (proofPointLocked) {
         status = "locked"
       } else if (summary) {
-        if (summary.status === "approved") {
+        if (summary.status === "approved" || summary.status === "submitted_for_review") {
           status = "completed"
           progressValue = 100
-        } else if (summary.status === "in_progress" || summary.status === "submitted_for_review" || summary.status === "requires_iteration") {
+        } else if (summary.status === "in_progress" || summary.status === "requires_iteration") {
           status = "in_progress"
           progressValue = Math.max(0, Math.min(100, summary.progress ?? 0))
         }
@@ -84,6 +84,12 @@ export default function ProofPointPage() {
     })
   }, [publishedExercises, proofPointProgress])
 
+  // Calcular progreso real: (Ejercicios Completados / Ejercicios Totales) * 100
+  const totalExercises = exercises.length
+  const completedExercises = exercises.filter((e) => e.status === "completed").length
+  const calculatedProgress =
+    totalExercises > 0 ? Math.round((completedExercises / totalExercises) * 100) : 0
+
   // Build proof point overview from real data
   const proofPoint: ProofPointOverview | null =
     proofPointDetails && publishedExercises
@@ -94,7 +100,7 @@ export default function ProofPointPage() {
           nivelId: "",
           nivelNombre: "",
           phaseNombre: `Fase ${proofPointDetails.faseNumero}: ${proofPointDetails.faseNombre}`,
-          progress: proofPointProgress?.progress ?? 0,
+          progress: calculatedProgress,
           exercises,
         }
       : null

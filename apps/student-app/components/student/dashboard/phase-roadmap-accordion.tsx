@@ -7,6 +7,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { getPhaseProgress } from "@/lib/dashboard"
+import { cn } from "@/lib/utils"
 import type { Phase } from "@shared-types/enrollment"
 import { CheckCircle2, Lock, PlayCircle } from "lucide-react"
 
@@ -79,10 +80,14 @@ export function PhaseRoadmapAccordion({
                     <div
                       key={pp.id}
                       onClick={() => pp.status !== "locked" && onOpenProofPoint(pp.id)}
-                      className={`
-                        flex items-center p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md
-                        ${pp.status === "locked" ? "bg-slate-50 opacity-60 cursor-not-allowed" : "bg-white border-slate-200 hover:border-primary/50"}
-                      `}
+                      className={cn(
+                        "flex items-center p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md",
+                        pp.status === "completed"
+                          ? "bg-emerald-50 border-emerald-200 hover:border-emerald-300"
+                          : pp.status === "locked"
+                            ? "bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed"
+                            : "bg-white border-slate-200 hover:border-primary/50"
+                      )}
                     >
                       <div className="mr-4">
                         {pp.status === "completed" ? (

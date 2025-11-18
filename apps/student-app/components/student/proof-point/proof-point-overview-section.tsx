@@ -90,10 +90,12 @@ export function ProofPointOverviewSection({
                 key={exercise.id}
                 onClick={() => !isLocked && onStartExercise(exercise)}
                 className={cn(
-                  "group flex items-center justify-between p-4 rounded-xl border bg-white transition-all",
-                  isLocked
-                    ? "opacity-60 bg-slate-50 cursor-not-allowed"
-                    : "hover:border-primary/40 hover:shadow-md cursor-pointer"
+                  "group flex items-center justify-between p-4 rounded-xl border transition-all",
+                  isCompleted
+                    ? "bg-emerald-50 border-emerald-200 hover:border-emerald-300 hover:shadow-md cursor-pointer"
+                    : isLocked
+                      ? "opacity-60 bg-slate-50 border-slate-200 cursor-not-allowed"
+                      : "bg-white border-slate-200 hover:border-primary/40 hover:shadow-md cursor-pointer"
                 )}
               >
                 <div className="flex items-center gap-4">
