@@ -59,7 +59,7 @@ export class AuthController {
     description: "Usuario autenticado",
     type: AuthUserDto,
   })
-  getProfile(@User() user: any): AuthUserDto {
+  async getProfile(@User() user: any): Promise<AuthUserDto> {
     return this.authService.mapUser(user);
   }
 

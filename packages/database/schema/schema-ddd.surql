@@ -181,7 +181,7 @@ DEFINE INDEX idx_user_rol ON user FIELDS rol;
 -- Scope para estudiantes (signup crea estudiantes)
 DEFINE SCOPE user_scope SESSION 24h
   SIGNIN (
-    SELECT * FROM user WHERE email = $email AND crypto::argon2::compare(password_hash, $password)
+    SELECT * FROM user WHERE email = $email AND crypto::argon2::compare(password_hash, $password) AND rol = 'estudiante' AND activo = true
   )
   SIGNUP (
     CREATE user SET

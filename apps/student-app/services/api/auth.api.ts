@@ -22,6 +22,7 @@ export interface AuthResponse {
     nombre: string
     apellido: string
     rol: "estudiante"
+    studentId?: string
   }
 }
 
@@ -32,6 +33,7 @@ export interface User {
   apellido: string
   rol: "estudiante"
   avatar?: string
+  studentId?: string
 }
 
 export const authApi = {

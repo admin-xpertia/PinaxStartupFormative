@@ -8,6 +8,7 @@ import type { CompleteExerciseParams, SaveProgressParams } from "@/services/api"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
 import { useStudentSession } from "@/lib/hooks/use-student-session"
+import { Button } from "@/components/ui/button"
 
 // Import all players
 import {
@@ -30,20 +31,21 @@ export default function ExercisePage() {
   const params = useParams()
   const router = useRouter()
   const exerciseId = params.exerciseId as string
-  const { estudianteId, cohorteId } = useStudentSession()
+  const { estudianteId, cohortId } = useStudentSession()
   const startedExercisesRef = useRef<Set<string>>(new Set())
 
   // Fetch exercise data and content
-  const swrKey = exerciseId
-    ? ["exercise", exerciseId, estudianteId ?? "no-student", cohorteId ?? "no-cohorte"]
-    : null
+  const swrKey =
+    exerciseId && estudianteId && cohortId
+      ? ["exercise", exerciseId, estudianteId, cohortId]
+      : null
 
   const { data: exercise, error, isLoading } = useSWR(
     swrKey,
     async () => {
       const exerciseData = await exercisesApi.getById(exerciseId, {
         estudianteId,
-        cohorteId,
+        cohorteId: cohortId,
       })
       const contentResponse = await exercisesApi.getContent(exerciseId)
 
@@ -62,6 +64,15 @@ export default function ExercisePage() {
     }
   )
 
+  if (!estudianteId || !cohortId) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3">
+        <p className="text-muted-foreground">Inicia sesión para continuar con tus ejercicios.</p>
+        <Button onClick={() => router.push("/login")}>Ir a login</Button>
+      </div>
+    )
+  }
+
   const proofPointId = useMemo(() => {
     if (!exercise) return undefined
     return (
@@ -72,7 +83,7 @@ export default function ExercisePage() {
   }, [exercise])
 
   useEffect(() => {
-    if (!exerciseId || !estudianteId || !cohorteId) {
+    if (!exerciseId || !estudianteId || !cohortId) {
       return
     }
 
@@ -86,7 +97,7 @@ export default function ExercisePage() {
       try {
         await exercisesApi.start(exerciseId, {
           estudianteId,
-          cohorteId,
+          cohorteId: cohortId,
         })
       } catch (error) {
         console.warn("Failed to start exercise", error)
@@ -94,7 +105,7 @@ export default function ExercisePage() {
     }
 
     startExercise()
-  }, [exerciseId, estudianteId, cohorteId])
+  }, [exerciseId, estudianteId, cohortId])
 
   const ensureRecord = (value: any): Record<string, any> => {
     if (value && typeof value === "object") {
@@ -119,7 +130,7 @@ export default function ExercisePage() {
 
       return {
         estudianteId: (payloadEstudianteId as string) ?? estudianteId,
-        cohorteId: (payloadCohorteId as string) ?? cohorteId,
+        cohorteId: (payloadCohorteId as string) ?? cohortId,
         datos: ensureRecord(datos ?? rest),
         porcentajeCompletitud,
         tiempoInvertidoMinutos,
@@ -128,7 +139,7 @@ export default function ExercisePage() {
 
     return {
       estudianteId: estudianteId!,
-      cohorteId: cohorteId!,
+      cohorteId: cohortId!,
       datos: ensureRecord(rawData),
     }
   }
@@ -146,7 +157,7 @@ export default function ExercisePage() {
 
       return {
         estudianteId: (payloadEstudianteId as string) ?? estudianteId,
-        cohorteId: (payloadCohorteId as string) ?? cohorteId,
+        cohorteId: (payloadCohorteId as string) ?? cohortId,
         datos: ensureRecord(datos ?? rest),
         tiempoInvertidoMinutos,
         scoreFinal,
@@ -155,13 +166,13 @@ export default function ExercisePage() {
 
     return {
       estudianteId: estudianteId!,
-      cohorteId: cohorteId!,
+      cohorteId: cohortId!,
       datos: ensureRecord(rawData),
     }
   }
 
   const handleSave = async (data: any) => {
-    if (!estudianteId || !cohorteId) {
+    if (!estudianteId || !cohortId) {
       toast.error("Falta el contexto de estudiante/cohorte para guardar el progreso")
       return
     }
@@ -178,7 +189,7 @@ export default function ExercisePage() {
   }
 
   const handleComplete = async (data: any) => {
-    if (!estudianteId || !cohorteId) {
+    if (!estudianteId || !cohortId) {
       toast.error("Falta el contexto de estudiante/cohorte para completar el ejercicio")
       return
     }

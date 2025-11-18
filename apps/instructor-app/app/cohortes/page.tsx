@@ -14,8 +14,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { useUIStore } from "@/stores/ui-store"
-import { cohortsApi, programsApi } from "@/services/api"
-import type { CohortResponse, ProgramResponse } from "@/types/api"
+import { cohortsApi, programsApi, studentsApi } from "@/services/api"
+import type { CohortResponse, ProgramResponse, CreateStudentRequest } from "@/types/api"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2, Users, Calendar, Layers } from "lucide-react"
 
@@ -46,7 +46,14 @@ export default function CohortsPage() {
     descripcion: "",
     fechaInicio: new Date().toISOString().slice(0, 16),
   })
+  const [studentForm, setStudentForm] = useState({
+    nombre: "",
+    email: "",
+    password: "",
+    cohorteId: "",
+  })
   const [creating, setCreating] = useState(false)
+  const [creatingStudent, setCreatingStudent] = useState(false)
   const [enrollmentInputs, setEnrollmentInputs] = useState<Record<string, string>>({})
   const [enrolling, setEnrolling] = useState<Record<string, boolean>>({})
 
@@ -98,6 +105,55 @@ export default function CohortsPage() {
       })
     } finally {
       setCreating(false)
+    }
+  }
+
+  const handleCreateStudent = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!studentForm.email || !studentForm.nombre || !studentForm.password) {
+      toast({
+        title: "Faltan datos",
+        description: "Completa email, nombre y contraseña para crear el estudiante.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setCreatingStudent(true)
+    try {
+      const payload: CreateStudentRequest = {
+        email: studentForm.email.trim().toLowerCase(),
+        nombre: studentForm.nombre.trim(),
+        password: studentForm.password,
+        cohorteId: studentForm.cohorteId || undefined,
+      }
+      const created = await studentsApi.create(payload)
+
+      toast({
+        title: "Estudiante creado",
+        description: created.cohortEnrollment
+          ? `Se creó ${created.email} y se inscribió en la cohorte seleccionada.`
+          : `Se creó ${created.email}. Asigna cohortes cuando quieras.`,
+      })
+
+      setStudentForm({
+        nombre: "",
+        email: "",
+        password: "",
+        cohorteId: "",
+      })
+
+      if (created.cohortEnrollment) {
+        mutate()
+      }
+    } catch (error: any) {
+      toast({
+        title: "No se pudo crear el estudiante",
+        description: error?.message ?? "Intenta nuevamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setCreatingStudent(false)
     }
   }
 
@@ -170,80 +226,151 @@ export default function CohortsPage() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-[2fr,3fr]">
-            <Card>
-              <CardHeader>
-                <CardTitle>Crear nueva cohorte</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form className="space-y-4" onSubmit={handleCreateCohort}>
-                  <div className="space-y-2">
-                    <Label>Programa publicado</Label>
-                    <select
-                      value={formState.programaId}
-                      onChange={(event) =>
-                        setFormState((prev) => ({
-                          ...prev,
-                          programaId: event.target.value,
-                        }))
-                      }
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    >
-                      <option value="">Selecciona programa</option>
-                      {(programs ?? [])
-                        .filter((p) => p.estado === "publicado")
-                        .map((program) => (
-                          <option key={program.id} value={program.id}>
-                            {program.nombre}
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Crear nueva cohorte</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form className="space-y-4" onSubmit={handleCreateCohort}>
+                    <div className="space-y-2">
+                      <Label>Programa publicado</Label>
+                      <select
+                        value={formState.programaId}
+                        onChange={(event) =>
+                          setFormState((prev) => ({
+                            ...prev,
+                            programaId: event.target.value,
+                          }))
+                        }
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      >
+                        <option value="">Selecciona programa</option>
+                        {(programs ?? [])
+                          .filter((p) => p.estado === "publicado")
+                          .map((program) => (
+                            <option key={program.id} value={program.id}>
+                              {program.nombre}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Nombre de la cohorte</Label>
+                      <Input
+                        value={formState.nombre}
+                        onChange={(event) =>
+                          setFormState((prev) => ({
+                            ...prev,
+                            nombre: event.target.value,
+                          }))
+                        }
+                        placeholder="Cohorte Primavera 2025"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Fecha de inicio</Label>
+                      <Input
+                        type="datetime-local"
+                        value={formState.fechaInicio}
+                        onChange={(event) =>
+                          setFormState((prev) => ({
+                            ...prev,
+                            fechaInicio: event.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Descripción</Label>
+                      <Textarea
+                        value={formState.descripcion}
+                        onChange={(event) =>
+                          setFormState((prev) => ({
+                            ...prev,
+                            descripcion: event.target.value,
+                          }))
+                        }
+                        placeholder="Notas y contexto para los estudiantes"
+                      />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={creating}>
+                      {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Crear cohorte
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Crear estudiante con acceso</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form className="space-y-3" onSubmit={handleCreateStudent}>
+                    <div className="space-y-2">
+                      <Label>Nombre completo</Label>
+                      <Input
+                        value={studentForm.nombre}
+                        onChange={(event) =>
+                          setStudentForm((prev) => ({ ...prev, nombre: event.target.value }))
+                        }
+                        placeholder="Estudiante Demo"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Correo</Label>
+                      <Input
+                        type="email"
+                        value={studentForm.email}
+                        onChange={(event) =>
+                          setStudentForm((prev) => ({ ...prev, email: event.target.value }))
+                        }
+                        placeholder="estudiante@xpertia.com"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Contraseña</Label>
+                      <Input
+                        type="password"
+                        value={studentForm.password}
+                        onChange={(event) =>
+                          setStudentForm((prev) => ({ ...prev, password: event.target.value }))
+                        }
+                        placeholder="Mínimo 8 caracteres"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Asignar a cohorte (opcional)</Label>
+                      <select
+                        value={studentForm.cohorteId}
+                        onChange={(event) =>
+                          setStudentForm((prev) => ({
+                            ...prev,
+                            cohorteId: event.target.value,
+                          }))
+                        }
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      >
+                        <option value="">Sin asignar</option>
+                        {(cohorts ?? []).map((cohort) => (
+                          <option key={cohort.id} value={cohort.id}>
+                            {cohort.nombre}
                           </option>
                         ))}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Nombre de la cohorte</Label>
-                    <Input
-                      value={formState.nombre}
-                      onChange={(event) =>
-                        setFormState((prev) => ({
-                          ...prev,
-                          nombre: event.target.value,
-                        }))
-                      }
-                      placeholder="Cohorte Primavera 2025"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Fecha de inicio</Label>
-                    <Input
-                      type="datetime-local"
-                      value={formState.fechaInicio}
-                      onChange={(event) =>
-                        setFormState((prev) => ({
-                          ...prev,
-                          fechaInicio: event.target.value,
-                        }))
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Descripción</Label>
-                    <Textarea
-                      value={formState.descripcion}
-                      onChange={(event) =>
-                        setFormState((prev) => ({
-                          ...prev,
-                          descripcion: event.target.value,
-                        }))
-                      }
-                      placeholder="Notas y contexto para los estudiantes"
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={creating}>
-                    {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Crear cohorte
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
+                      </select>
+                    </div>
+                    <Button type="submit" className="w-full" disabled={creatingStudent}>
+                      {creatingStudent && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Crear estudiante
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      Se crea el usuario con rol estudiante y, si eliges cohorte, se inscribe automáticamente.
+                    </p>
+                  </form>
+                </CardContent>
+              </Card>
+            </div>
 
             <div className="space-y-4">
               {isLoading && (

@@ -11,6 +11,7 @@ import { ExerciseCatalogModule } from "./modules/exercise-catalog.module";
 import { ExerciseInstanceModule } from "./modules/exercise-instance.module";
 import { ExerciseProgressModule } from "./modules/exercise-progress.module";
 import { CohortModule } from "./modules/cohort.module";
+import { StudentModule } from "./modules/student.module";
 
 /**
  * Módulo principal de la aplicación
@@ -36,6 +37,7 @@ import { CohortModule } from "./modules/cohort.module";
     ExerciseInstanceModule,
     ExerciseProgressModule,
     CohortModule,
+    StudentModule,
   ],
   providers: [
     // Guard global de autenticación

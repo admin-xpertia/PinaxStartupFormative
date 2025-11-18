@@ -72,6 +72,7 @@ export interface User {
   rol: string;
   preferencias?: Record<string, any>;
   activo?: boolean;
+  studentId?: string;
 }
 
 /**

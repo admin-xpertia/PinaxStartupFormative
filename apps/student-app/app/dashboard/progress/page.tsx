@@ -23,13 +23,26 @@ import { cn } from "@/lib/utils"
 import { useStudentSession } from "@/lib/hooks/use-student-session"
 
 export default function ProgressDashboardPage() {
-  const { estudianteId, cohorteId } = useStudentSession()
+  const { estudianteId, cohortId } = useStudentSession()
 
   // Fetch progress summary - only when we have valid IDs
   const { data: summary, isLoading } = useSWR(
-    estudianteId && cohorteId ? ["progress-summary", estudianteId, cohorteId] : null,
-    () => progressApi.getProgressSummary(estudianteId!, cohorteId!)
+    estudianteId && cohortId ? ["progress-summary", estudianteId, cohortId] : null,
+    () => progressApi.getProgressSummary(estudianteId!, cohortId!)
   )
+
+  if (!estudianteId || !cohortId) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <p className="text-muted-foreground">Inicia sesión para ver tu avance.</p>
+          <Button asChild>
+            <Link href="/login">Ir a login</Link>
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   // Format time
   const formatTime = (minutes: number): string => {

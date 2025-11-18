@@ -6,44 +6,69 @@ import { useAuth } from "../contexts/auth-context"
  */
 interface StudentSession {
   estudianteId: string | null
-  cohorteId: string | null
+  cohortId: string | null
   programId: string | null
   isAuthenticated: boolean
   isLoading: boolean
 }
 
 export function useStudentSession(): StudentSession {
-  const { enrollment, isAuthenticated, isLoading } = useAuth()
-  const defaultStudentId = process.env.NEXT_PUBLIC_DEFAULT_STUDENT_ID || null
-  const defaultCohorteId =
-    process.env.NEXT_PUBLIC_DEFAULT_COHORTE_ID ||
-    process.env.NEXT_PUBLIC_DEFAULT_COHORT_ID ||
-    null
+  const { enrollment, isAuthenticated, isLoading, user } = useAuth()
 
-  if (!enrollment) {
-    if (defaultStudentId || defaultCohorteId) {
-      return {
-        estudianteId: defaultStudentId,
-        cohorteId: defaultCohorteId,
-        programId: null,
-        isAuthenticated,
-        isLoading: false,
-      }
-    }
-
+  // Si hay enrollment, usarlo directamente
+  if (enrollment) {
     return {
-      estudianteId: null,
-      cohorteId: null,
+      estudianteId: enrollment.estudianteId,
+      cohortId: enrollment.cohortId,
+      programId: enrollment.programId,
+      isAuthenticated,
+      isLoading,
+    }
+  }
+
+  // Si hay usuario autenticado con studentId, usarlo
+  if (user?.studentId) {
+    return {
+      estudianteId: user.studentId,
+      cohortId: null,
       programId: null,
       isAuthenticated,
       isLoading,
     }
   }
 
+  // Solo usar variables de entorno si NO estamos autenticados y NO estamos cargando
+  // Esto permite desarrollo sin login SOLO si explícitamente no hay sesión
+  if (!isAuthenticated && !isLoading) {
+    const defaultStudentId = process.env.NEXT_PUBLIC_DEFAULT_STUDENT_ID || null
+    const defaultCohorteId =
+      process.env.NEXT_PUBLIC_DEFAULT_COHORTE_ID ||
+      process.env.NEXT_PUBLIC_DEFAULT_COHORT_ID ||
+      null
+
+    // Solo usar defaults si están configurados Y no contienen placeholders
+    const useDefaults =
+      defaultStudentId &&
+      defaultCohorteId &&
+      !defaultStudentId.includes("REEMPLAZAR") &&
+      !defaultCohorteId.includes("REEMPLAZAR")
+
+    if (useDefaults) {
+      return {
+        estudianteId: defaultStudentId,
+        cohortId: defaultCohorteId,
+        programId: null,
+        isAuthenticated: false,
+        isLoading: false,
+      }
+    }
+  }
+
+  // Si no hay nada, retornar vacío
   return {
-    estudianteId: enrollment.estudianteId,
-    cohorteId: enrollment.cohorteId,
-    programId: enrollment.programId,
+    estudianteId: null,
+    cohortId: null,
+    programId: null,
     isAuthenticated,
     isLoading,
   }

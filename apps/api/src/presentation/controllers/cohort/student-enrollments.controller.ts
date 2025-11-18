@@ -22,11 +22,11 @@ import type {
   GetStudentEnrollmentsParams,
 } from "../../../application/cohort/queries/GetStudentEnrollments/GetStudentEnrollmentsQuery";
 import type { ProgramStructure } from "@xpertia/types/enrollment";
-import { Public } from "../../../core/decorators";
 import { CohortStructureService } from "../../../application/cohort/services/CohortStructureService";
 import { SurrealDbService } from "../../../core/database/surrealdb.service";
 import { ProgramSnapshotService } from "../../../application/cohort/services/ProgramSnapshotService";
 import { RecordId } from "../../../domain/shared/value-objects/RecordId";
+import { User } from "../../../core/decorators";
 
 interface ContinuePointDto {
   exerciseId: string;
@@ -41,7 +41,6 @@ interface ContinuePointDto {
 @ApiTags("student-enrollments")
 @Controller("student/enrollments")
 @ApiBearerAuth("JWT-auth")
-@Public()
 export class StudentEnrollmentsController {
   private readonly logger = new Logger(StudentEnrollmentsController.name);
 
@@ -52,7 +51,6 @@ export class StudentEnrollmentsController {
     private readonly programSnapshotService: ProgramSnapshotService,
   ) {}
 
-  @Public()
   @Get()
   @ApiOperation({
     summary: "Listar inscripciones del estudiante actual",
@@ -69,8 +67,9 @@ export class StudentEnrollmentsController {
   })
   async getEnrollments(
     @Query("estudianteId") estudianteId?: string,
+    @User() user?: any,
   ): Promise<StudentEnrollmentResponseDto[]> {
-    const resolvedId = this.resolveStudentId(estudianteId);
+    const resolvedId = this.resolveStudentId(estudianteId, user);
     const result = await this.getStudentEnrollmentsQuery.execute({
       estudianteId: resolvedId,
     });
@@ -83,7 +82,6 @@ export class StudentEnrollmentsController {
     });
   }
 
-  @Public()
   @Get(":id")
   @ApiOperation({
     summary: "Detalle de una inscripción específica",
@@ -104,7 +102,6 @@ export class StudentEnrollmentsController {
     return this.mapEnrollment(enrollment);
   }
 
-  @Public()
   @Get(":id/structure")
   @ApiOperation({
     summary: "Estructura del programa para esta inscripción",
@@ -119,7 +116,6 @@ export class StudentEnrollmentsController {
     return this.refreshProofPointExercises(enrollment.snapshotStructure);
   }
 
-  @Public()
   @Get(":id/continue")
   @ApiOperation({
     summary: "Obtener punto de continuación del estudiante",
@@ -170,8 +166,16 @@ export class StudentEnrollmentsController {
     return null;
   }
 
-  private resolveStudentId(param?: string): string {
-    return param || process.env.DEFAULT_STUDENT_ID || "estudiante:demo";
+  private resolveStudentId(param?: string, user?: any): string {
+    if (param) {
+      return param;
+    }
+
+    if (user?.studentId) {
+      return user.studentId;
+    }
+
+    return process.env.DEFAULT_STUDENT_ID || "estudiante:demo";
   }
 
   private async fetchEnrollmentById(

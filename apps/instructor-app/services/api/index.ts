@@ -8,6 +8,7 @@ export { programsApi } from './programs'
 export { fasesApi } from './fases'
 export { proofPointsApi } from './proof-points'
 export { cohortsApi } from './cohorts'
+export { studentsApi } from './students'
 export {
   exerciseTemplatesApi,
   exerciseInstancesApi,

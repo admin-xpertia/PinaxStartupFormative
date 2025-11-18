@@ -13,12 +13,22 @@ import type { ExerciseProgressSummary } from "@/types/progress"
 import type { ProofPointExercise, ProofPointOverview } from "@/types/proof-point"
 import { getHighlightExercise } from "@/lib/proof-point"
 import { useStudentSession } from "@/lib/hooks/use-student-session"
+import { Button } from "@/components/ui/button"
 
 export default function ProofPointPage() {
   const params = useParams()
   const router = useRouter()
   const proofPointId = params.id as string
-  const { estudianteId, cohorteId } = useStudentSession()
+  const { estudianteId, cohortId } = useStudentSession()
+
+  if (!estudianteId || !cohortId) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3">
+        <p className="text-muted-foreground">Inicia sesión para revisar este proof point.</p>
+        <Button onClick={() => router.push("/login")}>Ir a login</Button>
+      </div>
+    )
+  }
 
   // Fetch proof point details
   const { data: proofPointDetails, error: detailsError } = useSWR(
@@ -28,8 +38,8 @@ export default function ProofPointPage() {
 
   // Fetch proof point progress
   const { data: proofPointProgress, error: progressError } = useSWR(
-    proofPointId && estudianteId && cohorteId ? `proof-point-progress-${proofPointId}` : null,
-    () => progressApi.getProofPointProgress(proofPointId, estudianteId!, cohorteId!)
+    proofPointId && estudianteId && cohortId ? `proof-point-progress-${proofPointId}` : null,
+    () => progressApi.getProofPointProgress(proofPointId, estudianteId!, cohortId!)
   )
 
   // Fetch published exercises

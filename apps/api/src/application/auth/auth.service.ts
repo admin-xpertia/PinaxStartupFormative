@@ -8,6 +8,7 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { SurrealDbService } from "../../core/database/surrealdb.service";
+import { StudentService } from "../student/student.service";
 import {
   AuthResponseDto,
   AuthUserDto,
@@ -25,6 +26,7 @@ export class AuthService {
   constructor(
     private readonly surrealDb: SurrealDbService,
     private readonly configService: ConfigService,
+    private readonly studentService: StudentService,
   ) {
     this.instructorScope =
       this.configService.get<string>("AUTH_INSTRUCTOR_SCOPE") ||
@@ -65,7 +67,8 @@ export class AuthService {
         );
       }
 
-      return this.buildAuthResponse(token, user);
+      const mappedUser = await this.mapUser(user);
+      return this.buildAuthResponse(token, mappedUser);
     } catch (error: any) {
       this.logger.error("Error durante el signup", error);
 
@@ -129,18 +132,28 @@ export class AuthService {
       throw new UnauthorizedException("Usuario inactivo");
     }
 
-    return this.buildAuthResponse(token, user);
+    const mappedUser = await this.mapUser(user);
+    return this.buildAuthResponse(token, mappedUser);
   }
 
   /**
    * Maps raw Surreal user record into DTO
    */
-  mapUser(user: any): AuthUserDto {
+  async mapUser(user: any): Promise<AuthUserDto> {
     if (!user) {
       throw new UnauthorizedException("Usuario no disponible en el contexto");
     }
 
     const id = user.id || user.ID || user?.["id"];
+    let studentId: string | undefined;
+
+    if (user.rol === "estudiante") {
+      const studentProfile = await this.studentService.ensureProfileForUser({
+        id,
+        nombre: user.nombre,
+      });
+      studentId = studentProfile.id;
+    }
 
     return {
       id,
@@ -149,20 +162,24 @@ export class AuthService {
       rol: user.rol,
       activo: user.activo,
       preferencias: user.preferencias || {},
+      studentId,
     };
   }
 
   /**
    * Builds the AuthResponse payload
    */
-  private buildAuthResponse(token: string, user: any): AuthResponseDto {
+  private buildAuthResponse(
+    token: string,
+    user: AuthUserDto,
+  ): AuthResponseDto {
     const payload = this.decodeTokenPayload(token);
 
     return {
       token,
       tokenType: "Bearer",
       expiresIn: this.calculateExpiresIn(payload),
-      user: this.mapUser(user),
+      user,
     };
   }
 

@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { SurrealDbService } from "../database";
+import { StudentService } from "../../application/student/student.service";
 
 /**
  * Guard de autenticación
@@ -21,6 +22,7 @@ export class AuthGuard implements CanActivate {
   constructor(
     private readonly surrealDb: SurrealDbService,
     private readonly reflector: Reflector,
+    private readonly studentService: StudentService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -83,6 +85,22 @@ export class AuthGuard implements CanActivate {
 
       // Adjuntar usuario al request
       request.user = user;
+
+      if (user.rol === "estudiante") {
+        try {
+          const studentProfile = await this.studentService.ensureProfileForUser(
+            {
+              id: userId,
+              nombre: user.nombre,
+            },
+          );
+          request.user.studentId = studentProfile.id;
+        } catch (error) {
+          this.logger.warn(
+            `No se pudo obtener el perfil de estudiante para ${userId}: ${error}`,
+          );
+        }
+      }
 
       return true;
     } catch (error) {

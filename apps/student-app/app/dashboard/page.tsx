@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useMemo, useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
 import useSWR from "swr"
 import { BookOpen } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -25,25 +25,30 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import { useStudentSession } from "@/lib/hooks/use-student-session"
 
 function DashboardContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-
-  const studentId =
-    searchParams.get("studentId") ??
-    process.env.NEXT_PUBLIC_STUDENT_ID ??
-    process.env.NEXT_PUBLIC_DEFAULT_STUDENT_ID ??
-    undefined
+  const session = useStudentSession()
+  const studentIdOverride = searchParams.get("studentId")
+  const studentId = studentIdOverride ?? session.estudianteId ?? undefined
   const [activePhaseId, setActivePhaseId] = useState<string | null>(null)
   const [selectedEnrollmentId, setSelectedEnrollmentId] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Redirigir al login si no hay autenticación y no hay ID de estudiante
+    if (!session.isLoading && !session.isAuthenticated && !session.estudianteId && !studentIdOverride) {
+      router.replace("/login")
+    }
+  }, [session.isLoading, session.isAuthenticated, session.estudianteId, studentIdOverride, router])
 
   const {
     data: enrollments,
     isLoading: loadingEnrollments,
   } = useSWR(
-    ["my-enrollments", studentId ?? "default-student"],
-    () => enrollmentsApi.getMy(studentId)
+    studentId ? ["my-enrollments", studentId] : null,
+    () => enrollmentsApi.getMy(studentId!)
   )
 
   // Auto-select if only one enrollment, or use manually selected one
@@ -183,6 +188,23 @@ function DashboardContent() {
 
   const handleOpenProofPoint = (proofPointId: string) =>
     router.push(`/proof-points/${proofPointId}`)
+
+  if (!studentId) {
+    if (session.isLoading) {
+      return (
+        <div className="flex min-h-screen items-center justify-center text-muted-foreground">
+          Cargando tu espacio de aprendizaje...
+        </div>
+      )
+    }
+
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4">
+        <p className="text-muted-foreground">Inicia sesión para ver tus programas.</p>
+        <Button onClick={() => router.push("/login")}>Ir a login</Button>
+      </div>
+    )
+  }
 
   if (loadingEnrollments) {
     return (

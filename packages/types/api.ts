@@ -233,3 +233,39 @@ export interface EnrollStudentRequest {
   estudianteId: string
   estado?: "activo" | "completado" | "abandonado" | "suspendido"
 }
+
+// ============================================================================
+// Students - DTOs
+// ============================================================================
+
+export interface CreateStudentRequest {
+  email: string
+  nombre: string
+  password: string
+  cohorteId?: string
+  metadata?: Record<string, any>
+  pais?: string
+  ciudad?: string
+  nivelEducativo?: string
+  intereses?: string[]
+  biografia?: string
+}
+
+export interface StudentAccountResponse {
+  userId: string
+  studentId: string
+  email: string
+  nombre: string
+  cohortEnrollment?: {
+    cohorteId: string
+    inscripcionId: string
+  }
+}
+
+export interface StudentProfileResponse {
+  id: string
+  userId: string
+  nombre: string
+  email?: string
+  metadata?: Record<string, any>
+}

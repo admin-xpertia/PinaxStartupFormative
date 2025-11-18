@@ -38,4 +38,11 @@ export class AuthUserDto {
     required: false,
   })
   preferencias?: Record<string, any>;
+
+  @ApiProperty({
+    description: "ID del perfil de estudiante (cuando aplica)",
+    example: "estudiante:demo",
+    required: false,
+  })
+  studentId?: string;
 }
