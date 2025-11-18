@@ -1,7 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import type { ExerciseProgressStatus } from "./exercise-progress-response.dto";
 import { Type } from "class-transformer";
-import { IsString, IsNumber, IsOptional, Min, Max } from "class-validator";
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  Min,
+  Max,
+  IsDefined,
+  IsNotEmpty,
+} from "class-validator";
 
 export class CompleteExerciseDto {
   @ApiPropertyOptional({
@@ -24,6 +32,8 @@ export class CompleteExerciseDto {
     description: "Datos finales del ejercicio (respuestas, trabajo completado)",
     example: { respuestas: [], trabajo_final: {} },
   })
+  @IsDefined()
+  @IsNotEmpty()
   datos: Record<string, any> | any[];
 
   @ApiPropertyOptional({

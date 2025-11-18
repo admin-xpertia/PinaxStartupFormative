@@ -2,9 +2,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { CheckCircle2, Circle, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
+import type { SimulationSuccessCriterion } from "../types"
 
 interface SuccessCriteriaCardProps {
-  criterios: string[]
+  criterios: SimulationSuccessCriterion[]
   met: Set<number>
   onToggle: (index: number) => void
   onHide?: () => void
@@ -34,7 +35,10 @@ export function SuccessCriteriaCard({ criterios, met, onToggle, onHide }: Succes
           {criterios.map((criterio, idx) => {
             const isMet = met.has(idx)
             // Extract description if criterio is an object
-            const descripcion = typeof criterio === "string" ? criterio : (criterio as any).descripcion || criterio
+            const descripcion =
+              typeof criterio === "string"
+                ? criterio
+                : criterio.descripcion || String(criterio)
 
             return (
               <li key={idx} className="flex items-start gap-3 group">

@@ -99,7 +99,7 @@ Criterios de éxito alcanzados: ${criteriosLogrados || "ninguno todavía"}.`
           }
           return {
             id: criterio.id || `criterio_${idx}`,
-            descripcion: criterio.descripcion || criterio,
+            descripcion: criterio.descripcion || "",
             rubrica_evaluacion: criterio.rubrica_evaluacion,
           }
         }) || []

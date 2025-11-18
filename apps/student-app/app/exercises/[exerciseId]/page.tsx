@@ -64,15 +64,6 @@ export default function ExercisePage() {
     }
   )
 
-  if (!estudianteId || !cohortId) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3">
-        <p className="text-muted-foreground">Inicia sesión para continuar con tus ejercicios.</p>
-        <Button onClick={() => router.push("/login")}>Ir a login</Button>
-      </div>
-    )
-  }
-
   const proofPointId = useMemo(() => {
     if (!exercise) return undefined
     return (
@@ -106,6 +97,17 @@ export default function ExercisePage() {
 
     startExercise()
   }, [exerciseId, estudianteId, cohortId])
+
+  const isAuthenticated = Boolean(estudianteId && cohortId)
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3">
+        <p className="text-muted-foreground">Inicia sesión para continuar con tus ejercicios.</p>
+        <Button onClick={() => router.push("/login")}>Ir a login</Button>
+      </div>
+    )
+  }
 
   const ensureRecord = (value: any): Record<string, any> => {
     if (value && typeof value === "object") {

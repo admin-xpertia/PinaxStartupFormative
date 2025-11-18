@@ -735,11 +735,13 @@ FORMATO PARA EJEMPLOS PRÁCTICOS:
     messages,
     maxTokens,
     responseFormat,
+    model,
   }: {
     systemPrompt: string;
     messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[];
     maxTokens?: number;
     responseFormat?: OpenAI.Chat.Completions.ChatCompletionCreateParams["response_format"];
+    model?: string;
   }): Promise<{
     content: string;
     raw: OpenAI.Chat.Completions.ChatCompletion;
@@ -747,6 +749,7 @@ FORMATO PARA EJEMPLOS PRÁCTICOS:
     try {
       const chatMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] =
         [{ role: "system", content: systemPrompt }, ...messages];
+      const modelToUse = model || this.model;
 
       let tokenBudget = Math.min(
         maxTokens && maxTokens > 0 ? maxTokens : this.initialCompletionTokens,
@@ -759,7 +762,7 @@ FORMATO PARA EJEMPLOS PRÁCTICOS:
         this.logger.debug(
           `🤖 Sending chat completion request (attempt ${attempt + 1})`,
         );
-        this.logger.debug(`   Model: ${this.model}`);
+        this.logger.debug(`   Model: ${modelToUse}`);
         this.logger.debug(`   Messages count: ${chatMessages.length}`);
         this.logger.debug(`   Max tokens: ${tokenBudget}`);
         this.logger.debug(
@@ -767,7 +770,7 @@ FORMATO PARA EJEMPLOS PRÁCTICOS:
         );
 
         const response = await this.client.chat.completions.create({
-          model: this.model,
+          model: modelToUse,
           messages: chatMessages,
           max_completion_tokens: tokenBudget,
           response_format: responseFormat ?? { type: "text" },

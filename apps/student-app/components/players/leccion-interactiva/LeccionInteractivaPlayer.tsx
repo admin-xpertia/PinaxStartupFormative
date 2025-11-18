@@ -13,9 +13,37 @@ import {
   type QuestionResultPayload,
   type EvaluateShortAnswerInput,
   type EvaluateShortAnswerResult,
+  type LessonProgressState,
+  type QuestionUIState,
 } from "../../lessons/InteractiveLessonRenderer"
 import { exercisesApi } from "@/services/api"
 import { useToast } from "@/hooks/use-toast"
+
+const defaultProfile = {
+  correctas: 0,
+  incorrectas: 0,
+  parciales: 0,
+  preguntasDificiles: [] as string[],
+}
+
+const deriveProfileFromState = (state: Record<string, QuestionUIState> = {}) => {
+  const next = { ...defaultProfile }
+
+  Object.entries(state).forEach(([questionId, info]) => {
+    if (info.status === "correcto") {
+      next.correctas += 1
+    } else if (info.status === "parcialmente_correcto") {
+      next.parciales += 1
+      next.preguntasDificiles.push(questionId)
+    } else if (info.status === "incorrecto") {
+      next.incorrectas += 1
+      next.preguntasDificiles.push(questionId)
+    }
+  })
+
+  next.preguntasDificiles = Array.from(new Set(next.preguntasDificiles))
+  return next
+}
 
 interface LeccionInteractivaPlayerProps {
   exerciseId: string
@@ -36,16 +64,23 @@ export function LeccionInteractivaPlayer({
   onSave,
   onComplete,
   onExit,
+  savedData,
 }: LeccionInteractivaPlayerProps) {
   const normalizedContent = useMemo(() => ensureLessonContentHasMarkdown(content), [content])
   const [sections, setSections] = useState<LessonSectionInfo[]>([])
   const [currentSection, setCurrentSection] = useState<LessonSectionInfo | null>(null)
-  const [profile, setProfile] = useState({
-    correctas: 0,
-    incorrectas: 0,
-    parciales: 0,
-    preguntasDificiles: [] as string[],
-  })
+
+  // Store initial state separately from the synced state
+  const initialLessonState = useMemo(() => ({
+    questionState: savedData?.questionState || {},
+    attempts: savedData?.attempts || {},
+    currentSectionId: savedData?.currentSectionId ?? null,
+  }), []) // Empty deps - only initialize once
+
+  const [lessonState, setLessonState] = useState<LessonProgressState>(initialLessonState)
+  const [profile, setProfile] = useState(() =>
+    savedData?.profile ? { ...defaultProfile, ...savedData.profile } : deriveProfileFromState(savedData?.questionState)
+  )
   const { toast } = useToast()
 
   const exerciseDescription = useMemo(() => {
@@ -58,7 +93,7 @@ export function LeccionInteractivaPlayer({
 
   const handleQuestionResult = useCallback(
     (payload: QuestionResultPayload) => {
-      setProfile((prev) => ({
+      setProfile((prev: typeof defaultProfile) => ({
         correctas: payload.status === "correcto" ? prev.correctas + 1 : prev.correctas,
         incorrectas: payload.status === "incorrecto" ? prev.incorrectas + 1 : prev.incorrectas,
         parciales: payload.status === "parcialmente_correcto" ? prev.parciales + 1 : prev.parciales,
@@ -121,6 +156,51 @@ export function LeccionInteractivaPlayer({
     }),
     [profile]
   )
+
+  const syncLessonState = useCallback(
+    (state: LessonProgressState) => {
+      setLessonState((prev) => {
+        const nextSectionId = state.currentSectionId ?? prev.currentSectionId
+        const noChange =
+          prev.questionState === state.questionState &&
+          prev.attempts === state.attempts &&
+          prev.currentSectionId === nextSectionId
+
+        if (noChange) {
+          return prev
+        }
+
+        return {
+          ...prev,
+          questionState: state.questionState,
+          attempts: state.attempts,
+          currentSectionId: nextSectionId,
+        }
+      })
+    },
+    []
+  )
+
+  // Remove this effect - savedData is only used for initialization
+  // Syncing back from savedData would cause loops
+
+  const buildProgressPayload = useCallback(() => {
+    return {
+      ...lessonState,
+      currentSectionId: currentSection?.id ?? lessonState.currentSectionId ?? null,
+      profile,
+    }
+  }, [currentSection?.id, lessonState, profile])
+
+  const handlePersistedSave = useCallback(async () => {
+    const payload = buildProgressPayload()
+    await onSave(payload)
+  }, [buildProgressPayload, onSave])
+
+  const handlePersistedComplete = useCallback(async () => {
+    const payload = buildProgressPayload()
+    await onComplete(payload)
+  }, [buildProgressPayload, onComplete])
 
   const handleAssistantMessageStream = useCallback(
     async (
@@ -202,6 +282,31 @@ export function LeccionInteractivaPlayer({
     return porcentajeCompletado >= 70
   }, [profile, normalizedContent.preguntasVerificacion])
 
+  const handleSectionChange = useCallback(
+    (section: LessonSectionInfo | null) => {
+      setCurrentSection((prevSection) => {
+        const nextId = section?.id || null
+        const prevId = prevSection?.id || null
+        if (prevId === nextId) {
+          return prevSection
+        }
+        return section
+      })
+
+      setLessonState((prev) => {
+        const nextId = section?.id ?? prev.currentSectionId ?? null
+        if (prev.currentSectionId === nextId) {
+          return prev
+        }
+        return {
+          ...prev,
+          currentSectionId: nextId,
+        }
+      })
+    },
+    []
+  )
+
   return (
     <ExercisePlayer
       exerciseId={exerciseId}
@@ -211,8 +316,8 @@ export function LeccionInteractivaPlayer({
       totalSteps={1}
       contentMaxWidthClassName="max-w-4xl"
       currentStep={1}
-      onSave={onSave}
-      onComplete={onComplete}
+      onSave={handlePersistedSave}
+      onComplete={handlePersistedComplete}
       onExit={onExit}
       showAIAssistant={true}
       aiContext={currentSection?.title || normalizedContent.metadata?.titulo || "Lección General"}
@@ -223,13 +328,15 @@ export function LeccionInteractivaPlayer({
       <InteractiveLessonRenderer
         content={normalizedContent}
         onSectionsMetadata={setSections}
-        onSectionChange={setCurrentSection}
+        onSectionChange={handleSectionChange}
         onQuestionResult={handleQuestionResult}
         onRequestDeepDive={(_, prompt) => {
           // Deep dive functionality can be integrated with AI assistant if needed
           console.log("Deep dive requested:", prompt)
         }}
         evaluateShortAnswer={handleEvaluateShortAnswer}
+        initialState={initialLessonState}
+        onStateChange={syncLessonState}
       />
     </ExercisePlayer>
   )

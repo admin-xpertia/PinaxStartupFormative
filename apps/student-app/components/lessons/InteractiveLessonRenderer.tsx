@@ -13,7 +13,7 @@ import type { GlossaryEntry, LeccionContent, LessonVerificationQuestion } from "
 import "katex/dist/katex.min.css"
 import { Lightbulb } from "lucide-react"
 
-interface LessonSectionInfo {
+export interface LessonSectionInfo {
   id: string
   title: string
   content: string
@@ -46,14 +46,22 @@ export interface InteractiveLessonRendererProps {
   onQuestionResult?: (payload: QuestionResultPayload) => void
   onRequestDeepDive?: (question: LessonVerificationQuestion, prompt: string) => void
   evaluateShortAnswer?: (input: EvaluateShortAnswerInput) => Promise<EvaluateShortAnswerResult>
+  initialState?: Partial<LessonProgressState>
+  onStateChange?: (state: LessonProgressState) => void
 }
 
-interface QuestionUIState {
+export interface QuestionUIState {
   selectedOptionIds?: string[]
   answerText?: string
   status?: "idle" | "checking" | "correcto" | "incorrecto" | "parcialmente_correcto"
   feedback?: string
   suggestions?: string[]
+}
+
+export interface LessonProgressState {
+  questionState: Record<string, QuestionUIState>
+  attempts: Record<string, number>
+  currentSectionId: string | null
 }
 
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
@@ -99,6 +107,15 @@ const extractSections = (markdown?: string): LessonSectionInfo[] => {
 
   pushCurrent()
   return sections
+}
+
+const shallowEqualRecord = (a?: Record<string, any>, b?: Record<string, any>) => {
+  if (a === b) return true
+  if (!a || !b) return false
+  const aKeys = Object.keys(a)
+  const bKeys = Object.keys(b)
+  if (aKeys.length !== bKeys.length) return false
+  return aKeys.every((key) => a[key] === b[key])
 }
 
 const normalizeLooseExampleBlocks = (markdown?: string): string => {
@@ -584,15 +601,25 @@ export function InteractiveLessonRenderer({
   onQuestionResult,
   onRequestDeepDive,
   evaluateShortAnswer,
+  initialState,
+  onStateChange,
 }: InteractiveLessonRendererProps) {
-  const [questionState, setQuestionState] = useState<Record<string, QuestionUIState>>({})
-  const [attempts, setAttempts] = useState<Record<string, number>>({})
+  const [questionState, setQuestionState] = useState<Record<string, QuestionUIState>>(
+    () => initialState?.questionState || {},
+  )
+  const [attempts, setAttempts] = useState<Record<string, number>>(
+    () => initialState?.attempts || {},
+  )
+  const [currentSectionId, setCurrentSectionId] = useState<string | null>(
+    initialState?.currentSectionId ?? null,
+  )
   const enhancedMarkdown = useMemo(
     () => normalizeLooseExampleBlocks(content.markdown),
     [content.markdown],
   )
   const sections = useMemo(() => extractSections(enhancedMarkdown), [enhancedMarkdown])
   const articleRef = useRef<HTMLDivElement | null>(null)
+  const lastEmittedStateRef = useRef<LessonProgressState | null>(null)
   const sectionMap = useMemo(() => {
     const obj: Record<string, LessonSectionInfo> = {}
     sections.forEach((section) => {
@@ -633,6 +660,7 @@ export function InteractiveLessonRenderer({
         if (!visibleEntry?.target?.id) return
         const section = sectionMap[visibleEntry.target.id]
         onSectionChange?.(section || null)
+        setCurrentSectionId(section?.id || null)
       },
       {
         root: null,
@@ -651,6 +679,49 @@ export function InteractiveLessonRenderer({
       return next
     })
   }, [])
+
+  // Sync with initialState only when initialState changes (not when local state changes)
+  // This prevents infinite loops
+  const initialStateRef = useRef(initialState)
+
+  useEffect(() => {
+    // Only update if initialState reference changed
+    if (initialStateRef.current === initialState) return
+
+    initialStateRef.current = initialState
+
+    if (initialState?.questionState) {
+      setQuestionState(initialState.questionState)
+    }
+    if (initialState?.attempts) {
+      setAttempts(initialState.attempts)
+    }
+    if (initialState && "currentSectionId" in initialState) {
+      setCurrentSectionId(initialState.currentSectionId ?? null)
+    }
+  }, [initialState])
+
+  useEffect(() => {
+    if (!onStateChange) return
+
+    const nextState = {
+      questionState,
+      attempts,
+      currentSectionId,
+    }
+
+    if (
+      lastEmittedStateRef.current &&
+      shallowEqualRecord(lastEmittedStateRef.current.questionState, nextState.questionState) &&
+      shallowEqualRecord(lastEmittedStateRef.current.attempts, nextState.attempts) &&
+      lastEmittedStateRef.current.currentSectionId === nextState.currentSectionId
+    ) {
+      return
+    }
+
+    lastEmittedStateRef.current = nextState
+    onStateChange(nextState)
+  }, [questionState, attempts, currentSectionId, onStateChange])
 
   const incrementAttempts = useCallback((questionId: string) => {
     setAttempts((prev) => ({
@@ -1123,5 +1194,3 @@ export function InteractiveLessonRenderer({
     </article>
   )
 }
-
-export type { LessonSectionInfo }

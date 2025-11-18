@@ -21,15 +21,6 @@ export default function ProofPointPage() {
   const proofPointId = params.id as string
   const { estudianteId, cohortId } = useStudentSession()
 
-  if (!estudianteId || !cohortId) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3">
-        <p className="text-muted-foreground">Inicia sesión para revisar este proof point.</p>
-        <Button onClick={() => router.push("/login")}>Ir a login</Button>
-      </div>
-    )
-  }
-
   // Fetch proof point details
   const { data: proofPointDetails, error: detailsError } = useSWR(
     proofPointId ? `proof-point-details-${proofPointId}` : null,
@@ -51,6 +42,8 @@ export default function ProofPointPage() {
     proofPointId ? `proof-point-exercises-${proofPointId}` : null,
     () => proofPointsApi.getPublishedExercises(proofPointId)
   )
+
+  const isAuthenticated = Boolean(estudianteId && cohortId)
 
   const exercises: ProofPointExercise[] = useMemo(() => {
     if (!publishedExercises) return []
@@ -111,6 +104,15 @@ export default function ProofPointPage() {
   const handleExerciseClick = (exercise: ProofPointExercise) => {
     if (exercise.status === "locked") return
     router.push(`/exercises/${exercise.id}`)
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3">
+        <p className="text-muted-foreground">Inicia sesión para revisar este proof point.</p>
+        <Button onClick={() => router.push("/login")}>Ir a login</Button>
+      </div>
+    )
   }
 
   // Loading state

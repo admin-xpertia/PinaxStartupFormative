@@ -48,12 +48,38 @@ export interface LessonAssistantRequest {
   perfilComprension?: Record<string, any>
   conceptoFocal?: string
   systemPromptOverride?: string
+  criteriosExito?: Array<{
+    id: string
+    descripcion: string
+    rubrica_evaluacion?: string
+  }>
+  criteriosCumplidos?: string[]
+  shadowMonitorConfig?: Record<string, any>
+  criteriosValidacion?: string[]
+  umbralCalidad?: number
+  insightCount?: number
 }
 
 export interface LessonAssistantResponse {
   respuesta: string
   referencias?: string[]
   tokensUsados?: number
+  shadowMonitorResult?: {
+    metCriteriaIds: string[]
+    qualityScores: Record<string, number>
+    internalFeedback: string
+  }
+  validationResult?: {
+    isValid: boolean
+    qualityScore: number
+    feedback: string
+    missingAspects: string[]
+  }
+  insightsResult?: {
+    insightCount: number
+    latestInsight: string | null
+    detectedInsights: string[]
+  }
 }
 
 export interface EvaluateLessonQuestionRequest {

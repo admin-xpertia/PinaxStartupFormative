@@ -10,7 +10,7 @@ export interface SimulationScenario {
   }
   objetivo_estudiante: string
   situacion_inicial: string
-  criterios_exito: string[]
+  criterios_exito: SimulationSuccessCriterion[]
   nivel_dificultad: "principiante" | "intermedio" | "avanzado"
   tiempo_sugerido?: number
 }
@@ -23,3 +23,11 @@ export interface SimulationMessage {
   content: string
   timestamp: string
 }
+
+export type SimulationSuccessCriterion =
+  | string
+  | {
+      id?: string
+      descripcion?: string
+      rubrica_evaluacion?: string
+    }
