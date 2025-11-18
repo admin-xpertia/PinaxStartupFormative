@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
-import { MessageCircle, Bot, User, Send, RotateCcw, Sparkles } from "lucide-react"
+import { MessageCircle, Bot, User, Send, RotateCcw, Sparkles, Lightbulb, CheckCircle2, AlertCircle } from "lucide-react"
 import { exercisesApi } from "@/services/api"
 
 type ChatRole = "user" | "assistant"
@@ -24,6 +25,7 @@ interface MetacognitionContent {
   titulo: string
   mensaje_apertura_ia?: string
   system_prompt_chat?: string
+  minimo_insights_requeridos?: number
 }
 
 interface MetacognicionPlayerProps {
@@ -90,7 +92,13 @@ export function MetacognicionPlayer({
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
   const [input, setInput] = useState("")
   const [isSending, setIsSending] = useState(false)
+  const [insightCount, setInsightCount] = useState(savedData?.insightCount || 0)
+  const [detectedInsights, setDetectedInsights] = useState<string[]>(savedData?.detectedInsights || [])
+  const [latestInsight, setLatestInsight] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
+
+  const minimoInsights = content?.minimo_insights_requeridos || 3
+  const canComplete = insightCount >= minimoInsights
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -134,6 +142,7 @@ ${recentThoughts || "Aun no hay mensajes previos."}`
       setMessages((prev) => [...prev, userMessage])
       setInput("")
       setIsSending(true)
+      setLatestInsight(null) // Clear previous latest insight
 
       try {
         const response = await exercisesApi.sendLessonAssistantMessage(exerciseId, {
@@ -148,11 +157,33 @@ ${recentThoughts || "Aun no hay mensajes previos."}`
           },
           conceptoFocal: "metacognicion",
           systemPromptOverride: content?.system_prompt_chat,
+          // Shadow Monitor insight tracking
+          insightCount: insightCount,
         })
 
         const assistantReply = response.respuesta?.trim() || "Estoy procesando tus reflexiones..."
         const assistantMessage = createMessage("assistant", assistantReply)
         setMessages((prev) => [...prev, assistantMessage])
+
+        // Process Shadow Monitor insights result
+        if (response.insightsResult) {
+          const newInsightCount = response.insightsResult.insightCount || insightCount
+          const newDetectedInsights = response.insightsResult.detectedInsights || []
+
+          if (newInsightCount > insightCount) {
+            console.log(`✨ Shadow Monitor: Nuevo insight detectado! Total: ${newInsightCount}`)
+            setInsightCount(newInsightCount)
+            setLatestInsight(response.insightsResult.latestInsight)
+          }
+
+          if (newDetectedInsights.length > 0) {
+            setDetectedInsights((prev) => {
+              const combined = [...prev, ...newDetectedInsights]
+              // Remove duplicates
+              return Array.from(new Set(combined))
+            })
+          }
+        }
       } catch (error) {
         console.error("Metacognicion chat error:", error)
         const fallback = createMessage(
@@ -164,19 +195,27 @@ ${recentThoughts || "Aun no hay mensajes previos."}`
         setIsSending(false)
       }
     },
-    [buildSectionContext, content?.system_prompt_chat, exerciseId, historyPayload, messages.length, sessionTitle]
+    [buildSectionContext, content?.system_prompt_chat, exerciseId, historyPayload, insightCount, messages.length, sessionTitle]
   )
 
   const handleSaveWithData = async () => {
     await onSave({
       messages,
+      insightCount,
+      detectedInsights,
       lastInteraction: messages[messages.length - 1]?.timestamp,
     })
   }
 
   const handleCompleteWithData = async () => {
+    if (!canComplete) {
+      return // Block completion if minimum insights not reached
+    }
+
     await onComplete({
       messages,
+      insightCount,
+      detectedInsights,
       completedAt: new Date().toISOString(),
       turns: messages.length,
     })
@@ -198,34 +237,113 @@ ${recentThoughts || "Aun no hay mensajes previos."}`
       contentMaxWidthClassName="max-w-5xl"
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,0.5fr)_minmax(0,1fr)]">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Sparkles className="h-5 w-5 text-rose-500" />
-              Ritual de Metacognición
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 text-sm text-muted-foreground">
-            <p>
-              Esta sesión está centrada en tu proceso, no en la evaluación de respuestas. Sé honesto con lo que
-              funcionó, lo que confundió y cómo te sentiste.
-            </p>
-            <div className="rounded-2xl border border-dashed border-rose-200 bg-rose-50/60 p-4 text-rose-900">
-              <p className="font-semibold">Protocolo Conversacional</p>
-              <ol className="mt-2 list-decimal space-y-1 pl-5">
-                <li>Anclar: vuelve a la pregunta detonadora.</li>
-                <li>Profundizar: explora comprensión, estrategias y emociones.</li>
-                <li>Conectar: busca patrones con reflexiones pasadas.</li>
-                <li>Transferir: imagina cómo aplicarás estos insights.</li>
-                <li>Sintetizar: cierra identificando aprendizajes clave.</li>
-              </ol>
-            </div>
-            <p>
-              El facilitador virtual mantendrá un tono empático y normalizará la confusión. Usa la conversación para
-              regular tu proceso y planear tu próximo movimiento.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          {/* Insights Progress Card */}
+          <Card className={cn(
+            "border-2 transition-all",
+            canComplete ? "border-green-500 bg-green-50/30" : "border-amber-500 bg-amber-50/30"
+          )}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Lightbulb className={cn(
+                  "h-5 w-5",
+                  canComplete ? "text-green-600" : "text-amber-600"
+                )} />
+                Insights Detectados
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium">
+                    {insightCount} de {minimoInsights} insights
+                  </span>
+                  <Badge variant={canComplete ? "default" : "secondary"}>
+                    {canComplete ? "Completo ✓" : "En progreso"}
+                  </Badge>
+                </div>
+                <Progress
+                  value={(insightCount / minimoInsights) * 100}
+                  className={cn(
+                    "h-3",
+                    canComplete && "bg-green-100"
+                  )}
+                />
+              </div>
+
+              {!canComplete && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-amber-900">
+                      Necesitas {minimoInsights - insightCount} insight{minimoInsights - insightCount > 1 ? 's' : ''} más para completar la sesión. Los insights son conexiones causales sobre tu aprendizaje.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {canComplete && (
+                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-green-900 font-medium">
+                      ¡Excelente! Has identificado suficientes insights. Puedes finalizar cuando estés listo.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {detectedInsights.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-foreground">Tus insights:</p>
+                  <ul className="space-y-2">
+                    {detectedInsights.map((insight, idx) => (
+                      <li
+                        key={idx}
+                        className={cn(
+                          "flex items-start gap-2 p-2 rounded-lg text-xs bg-blue-50 border border-blue-100",
+                          idx === detectedInsights.length - 1 && latestInsight && "ring-2 ring-blue-400 animate-pulse"
+                        )}
+                      >
+                        <Lightbulb className="h-3 w-3 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <span className="text-blue-900">{insight}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Sparkles className="h-5 w-5 text-rose-500" />
+                Ritual de Metacognición
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm text-muted-foreground">
+              <p>
+                Esta sesión está centrada en tu proceso, no en la evaluación de respuestas. Sé honesto con lo que
+                funcionó, lo que confundió y cómo te sentiste.
+              </p>
+              <div className="rounded-2xl border border-dashed border-rose-200 bg-rose-50/60 p-4 text-rose-900">
+                <p className="font-semibold">Protocolo Conversacional</p>
+                <ol className="mt-2 list-decimal space-y-1 pl-5">
+                  <li>Anclar: vuelve a la pregunta detonadora.</li>
+                  <li>Profundizar: explora comprensión, estrategias y emociones.</li>
+                  <li>Conectar: busca patrones con reflexiones pasadas.</li>
+                  <li>Transferir: imagina cómo aplicarás estos insights.</li>
+                  <li>Sintetizar: cierra identificando aprendizajes clave.</li>
+                </ol>
+              </div>
+              <p>
+                El facilitador virtual mantendrá un tono empático y normalizará la confusión. Usa la conversación para
+                regular tu proceso y planear tu próximo movimiento.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
         <Card className="border-2">
           <CardHeader className="border-b bg-muted/50">
