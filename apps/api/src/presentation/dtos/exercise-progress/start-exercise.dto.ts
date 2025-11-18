@@ -1,18 +1,20 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { IsString } from "class-validator";
+import { ApiPropertyOptional } from "@nestjs/swagger";
+import { IsOptional, IsString } from "class-validator";
 
 export class StartExerciseDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: "ID del estudiante",
     example: "estudiante:abc123",
   })
+  @IsOptional()
   @IsString()
-  estudianteId: string;
+  estudianteId?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: "ID de la cohorte",
     example: "cohorte:xyz789",
   })
+  @IsOptional()
   @IsString()
-  cohorteId: string;
+  cohorteId?: string;
 }

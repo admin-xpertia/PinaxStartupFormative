@@ -89,4 +89,22 @@ export class ExerciseInstanceResponseDto {
     description: "Fecha de última actualización",
   })
   updatedAt: string;
+
+  @ApiPropertyOptional({
+    description: "Datos guardados del estudiante (solo endpoints de estudiante)",
+    type: "object",
+  })
+  savedData?: any;
+
+  @ApiPropertyOptional({
+    description: "Estado del progreso del estudiante",
+    example: "in_progress",
+  })
+  progressStatus?: string;
+
+  @ApiPropertyOptional({
+    description: "Porcentaje de completitud del estudiante",
+    example: 45,
+  })
+  progressPercentage?: number;
 }

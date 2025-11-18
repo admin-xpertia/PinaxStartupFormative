@@ -90,6 +90,10 @@ export function ExercisePlayerEnhanced({
 
   // Start exercise on mount
   useEffect(() => {
+    if (!exerciseId || !estudianteId || !cohorteId) {
+      return
+    }
+
     const startExercise = async () => {
       try {
         await exercisesApi.start(exerciseId, {
@@ -131,21 +135,8 @@ export function ExercisePlayerEnhanced({
     }
   }, [])
 
-  // Auto-save every 30 seconds
-  useEffect(() => {
-    autoSaveTimerRef.current = setInterval(() => {
-      handleAutoSave()
-    }, 30000) // 30 seconds
-
-    return () => {
-      if (autoSaveTimerRef.current) {
-        clearInterval(autoSaveTimerRef.current)
-      }
-    }
-  }, [progress, timeSpent])
-
   const handleAutoSave = useCallback(async () => {
-    if (!getData) return
+    if (!getData || !estudianteId || !cohorteId) return
 
     try {
       const data = getData()
@@ -165,8 +156,31 @@ export function ExercisePlayerEnhanced({
     }
   }, [exerciseId, estudianteId, cohorteId, getData, progress, timeSpent])
 
+  // Auto-save every 30 seconds
+  useEffect(() => {
+    if (!estudianteId || !cohorteId) return
+
+    autoSaveTimerRef.current = setInterval(() => {
+      handleAutoSave()
+    }, 30000) // 30 seconds
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearInterval(autoSaveTimerRef.current)
+      }
+    }
+  }, [cohorteId, estudianteId, handleAutoSave])
+
   const handleManualSave = async () => {
     if (!getData) return
+    if (!estudianteId || !cohorteId) {
+      toast({
+        title: "No se puede guardar",
+        description: "Falta el contexto de estudiante o cohorte para guardar el progreso",
+        variant: "destructive",
+      })
+      return
+    }
 
     setIsSaving(true)
     try {
@@ -199,6 +213,14 @@ export function ExercisePlayerEnhanced({
 
   const handleComplete = async () => {
     if (!getData) return
+    if (!estudianteId || !cohorteId) {
+      toast({
+        title: "No se puede completar",
+        description: "Falta el contexto de estudiante o cohorte para completar el ejercicio",
+        variant: "destructive",
+      })
+      return
+    }
 
     setIsCompleting(true)
     try {

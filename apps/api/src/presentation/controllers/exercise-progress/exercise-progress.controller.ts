@@ -81,95 +81,41 @@ export class ExerciseProgressController {
   async startExercise(
     @Param("exerciseId") exerciseId: string,
     @Body() startDto: StartExerciseDto,
+    @Query("estudianteId") estudianteIdQuery?: string,
+    @Query("cohorteId") cohorteIdQuery?: string,
   ): Promise<ExerciseProgressResponseDto> {
     const decodedId = decodeURIComponent(exerciseId);
 
-    // Verify exercise is published
-    const exerciseQuery = `
-      SELECT * FROM type::thing($id)
-      WHERE estado_contenido = 'publicado'
-    `;
-
-    const exerciseResult = await this.db.query(exerciseQuery, {
-      id: decodedId,
-    });
-    let exercise: any;
-    if (Array.isArray(exerciseResult) && exerciseResult.length > 0) {
-      if (Array.isArray(exerciseResult[0]) && exerciseResult[0].length > 0) {
-        exercise = exerciseResult[0][0];
-      } else if (!Array.isArray(exerciseResult[0])) {
-        exercise = exerciseResult[0];
-      }
-    }
-
-    if (!exercise) {
-      throw new NotFoundException(
-        `Published exercise not found: ${exerciseId}`,
-      );
-    }
-
-    // Check if progress already exists
-    const checkProgressQuery = `
-      SELECT * FROM exercise_progress
-      WHERE exercise_instance = type::thing($exerciseId)
-        AND estudiante = type::thing($estudianteId)
-        AND cohorte = type::thing($cohorteId)
-      LIMIT 1
-    `;
-
-    const progressResult = await this.db.query(checkProgressQuery, {
-      exerciseId: decodedId,
-      estudianteId: startDto.estudianteId,
-      cohorteId: startDto.cohorteId,
+    const { estudianteId, cohorteId } = this.resolveStudentContext({
+      bodyEstudianteId: startDto.estudianteId,
+      bodyCohorteId: startDto.cohorteId,
+      queryEstudianteId: estudianteIdQuery,
+      queryCohorteId: cohorteIdQuery,
     });
 
-    let existingProgress: any;
-    if (Array.isArray(progressResult) && progressResult.length > 0) {
-      if (Array.isArray(progressResult[0]) && progressResult[0].length > 0) {
-        existingProgress = progressResult[0][0];
-      } else if (!Array.isArray(progressResult[0])) {
-        existingProgress = progressResult[0];
-      }
-    }
+    await this.getPublishedExerciseOrThrow(decodedId);
+
+    const existingProgress = await this.findProgressRecord(
+      decodedId,
+      estudianteId,
+      cohorteId,
+    );
 
     // If progress exists, return it
     if (existingProgress) {
       return this.mapProgressToDto(existingProgress);
     }
 
-    // Create new progress record
-    const createProgressQuery = `
-      CREATE exercise_progress CONTENT {
-        exercise_instance: type::thing($exerciseId),
-        estudiante: type::thing($estudianteId),
-        cohorte: type::thing($cohorteId),
-        estado: 'en_progreso',
-        status: 'in_progress',
-        porcentaje_completitud: 0,
-        fecha_inicio: time::now(),
-        submitted_at: null,
-        instructor_feedback: {},
-        tiempo_invertido_minutos: 0,
-        numero_intentos: 1,
-        created_at: time::now(),
-        updated_at: time::now()
-      }
-    `;
-
-    const createResult = await this.db.query(createProgressQuery, {
+    const newProgress = await this.createProgressRecord({
       exerciseId: decodedId,
-      estudianteId: startDto.estudianteId,
-      cohorteId: startDto.cohorteId,
+      estudianteId,
+      cohorteId,
+      estado: "en_progreso",
+      status: "in_progress",
+      porcentajeCompletitud: 0,
+      tiempoInvertidoMinutos: 0,
+      datosGuardados: {},
     });
-
-    let newProgress: any;
-    if (Array.isArray(createResult) && createResult.length > 0) {
-      if (Array.isArray(createResult[0]) && createResult[0].length > 0) {
-        newProgress = createResult[0][0];
-      } else if (!Array.isArray(createResult[0])) {
-        newProgress = createResult[0];
-      }
-    }
 
     if (!newProgress) {
       throw new BadRequestException("Failed to create progress record");
@@ -200,36 +146,40 @@ export class ExerciseProgressController {
   async saveProgress(
     @Param("exerciseId") exerciseId: string,
     @Body() saveDto: SaveProgressDto,
+    @Query("estudianteId") estudianteIdQuery?: string,
+    @Query("cohorteId") cohorteIdQuery?: string,
   ): Promise<ExerciseProgressResponseDto> {
     const decodedId = decodeURIComponent(exerciseId);
-
-    // Get existing progress
-    const getProgressQuery = `
-      SELECT * FROM exercise_progress
-      WHERE exercise_instance = type::thing($exerciseId)
-        AND estudiante = type::thing($estudianteId)
-        AND cohorte = type::thing($cohorteId)
-      LIMIT 1
-    `;
-
-    const progressResult = await this.db.query(getProgressQuery, {
-      exerciseId: decodedId,
-      estudianteId: saveDto.estudianteId,
-      cohorteId: saveDto.cohorteId,
+    const { estudianteId, cohorteId } = this.resolveStudentContext({
+      bodyEstudianteId: saveDto.estudianteId,
+      bodyCohorteId: saveDto.cohorteId,
+      queryEstudianteId: estudianteIdQuery,
+      queryCohorteId: cohorteIdQuery,
     });
 
-    let progress: any;
-    if (Array.isArray(progressResult) && progressResult.length > 0) {
-      if (Array.isArray(progressResult[0]) && progressResult[0].length > 0) {
-        progress = progressResult[0][0];
-      } else if (!Array.isArray(progressResult[0])) {
-        progress = progressResult[0];
-      }
+    let progress = await this.findProgressRecord(
+      decodedId,
+      estudianteId,
+      cohorteId,
+    );
+
+    if (!progress) {
+      await this.getPublishedExerciseOrThrow(decodedId);
+      progress = await this.createProgressRecord({
+        exerciseId: decodedId,
+        estudianteId,
+        cohorteId,
+        estado: "en_progreso",
+        status: "in_progress",
+        porcentajeCompletitud: saveDto.porcentajeCompletitud ?? 0,
+        tiempoInvertidoMinutos: saveDto.tiempoInvertidoMinutos ?? 0,
+        datosGuardados: saveDto.datos ?? {},
+      });
     }
 
     if (!progress) {
-      throw new NotFoundException(
-        "Progress record not found. Start the exercise first.",
+      throw new BadRequestException(
+        "No se pudo crear o recuperar el progreso del ejercicio",
       );
     }
 
@@ -301,8 +251,22 @@ export class ExerciseProgressController {
   async completeExercise(
     @Param("exerciseId") exerciseId: string,
     @Body() completeDto: CompleteExerciseDto,
+    @Query("estudianteId") estudianteIdQuery?: string,
+    @Query("cohorteId") cohorteIdQuery?: string,
   ): Promise<CompleteExerciseResponseDto> {
     const decodedId = decodeURIComponent(exerciseId);
+    const { estudianteId, cohorteId } = this.resolveStudentContext({
+      bodyEstudianteId: completeDto.estudianteId,
+      bodyCohorteId: completeDto.cohorteId,
+      queryEstudianteId: estudianteIdQuery,
+      queryCohorteId: cohorteIdQuery,
+    });
+
+    if (completeDto.datos === undefined || completeDto.datos === null) {
+      throw new BadRequestException(
+        "Los datos del ejercicio son requeridos para completar.",
+      );
+    }
 
     // Get existing progress
     const getProgressQuery = `
@@ -315,8 +279,8 @@ export class ExerciseProgressController {
 
     const progressResult = await this.db.query(getProgressQuery, {
       exerciseId: decodedId,
-      estudianteId: completeDto.estudianteId,
-      cohorteId: completeDto.cohorteId,
+      estudianteId,
+      cohorteId,
     });
 
     let progress: any;
@@ -432,14 +396,11 @@ export class ExerciseProgressController {
     @Query("cohorteId") cohorteId?: string,
   ): Promise<ExerciseProgressResponseDto> {
     const decodedId = decodeURIComponent(exerciseId);
-    const resolvedEstudianteId = estudianteId?.trim();
-    const resolvedCohorteId = cohorteId?.trim();
-
-    if (!resolvedEstudianteId || !resolvedCohorteId) {
-      throw new BadRequestException(
-        "Los parámetros estudianteId y cohorteId son requeridos",
-      );
-    }
+    const { estudianteId: resolvedEstudianteId, cohorteId: resolvedCohorteId } =
+      this.resolveStudentContext({
+        queryEstudianteId: estudianteId,
+        queryCohorteId: cohorteId,
+      });
 
     const query = `
       SELECT * FROM exercise_progress
@@ -490,11 +451,13 @@ export class ExerciseProgressController {
     @Query("estudianteId") estudianteId?: string,
     @Query("cohorteId") cohorteId?: string,
   ): Promise<StudentProgressSummaryDto> {
-    if (!estudianteId || !cohorteId) {
-      throw new BadRequestException(
-        "Los parámetros estudianteId y cohorteId son requeridos",
-      );
-    }
+    const {
+      estudianteId: resolvedEstudianteId,
+      cohorteId: resolvedCohorteId,
+    } = this.resolveStudentContext({
+      queryEstudianteId: estudianteId,
+      queryCohorteId: cohorteId,
+    });
     // Get all progress records for student
     const progressQuery = `
       SELECT
@@ -514,8 +477,8 @@ export class ExerciseProgressController {
     `;
 
     const progressResult = await this.db.query(progressQuery, {
-      estudianteId,
-      cohorteId,
+      estudianteId: resolvedEstudianteId,
+      cohorteId: resolvedCohorteId,
     });
 
     let progressRecords: any[] = [];
@@ -542,7 +505,7 @@ export class ExerciseProgressController {
     }
 
     allExercises = allExercises.filter((exercise) =>
-      this.isExerciseAvailableForCohorte(exercise, cohorteId),
+      this.isExerciseAvailableForCohorte(exercise, resolvedCohorteId),
     );
 
     // Calculate overall statistics
@@ -662,8 +625,8 @@ export class ExerciseProgressController {
     `;
 
     const recentResult = await this.db.query(recentCompletedQuery, {
-      estudianteId,
-      cohorteId,
+      estudianteId: resolvedEstudianteId,
+      cohorteId: resolvedCohorteId,
     });
 
     let recentRecords: any[] = [];
@@ -927,6 +890,145 @@ export class ExerciseProgressController {
       completedAt,
       exercises: exerciseSummaries,
     };
+  }
+
+  /**
+   * Helpers
+   */
+  private resolveStudentContext(params: {
+    bodyEstudianteId?: string | null;
+    bodyCohorteId?: string | null;
+    queryEstudianteId?: string | null;
+    queryCohorteId?: string | null;
+  }) {
+    const estudianteId =
+      params.bodyEstudianteId?.trim() ||
+      params.queryEstudianteId?.trim() ||
+      process.env.DEFAULT_STUDENT_ID ||
+      null;
+
+    const cohorteId =
+      params.bodyCohorteId?.trim() ||
+      params.queryCohorteId?.trim() ||
+      process.env.DEFAULT_COHORTE_ID ||
+      null;
+
+    if (!estudianteId || !cohorteId) {
+      throw new BadRequestException(
+        "Los parámetros estudianteId y cohorteId son requeridos",
+      );
+    }
+
+    return { estudianteId, cohorteId };
+  }
+
+  private async getPublishedExerciseOrThrow(exerciseId: string): Promise<any> {
+    const exerciseQuery = `
+      SELECT * FROM type::thing($id)
+      WHERE estado_contenido = 'publicado'
+    `;
+
+    const exerciseResult = await this.db.query(exerciseQuery, {
+      id: exerciseId,
+    });
+
+    const exercise = this.extractFirstRecord(exerciseResult);
+
+    if (!exercise) {
+      throw new NotFoundException(
+        `Published exercise not found: ${exerciseId}`,
+      );
+    }
+
+    return exercise;
+  }
+
+  private async findProgressRecord(
+    exerciseId: string,
+    estudianteId: string,
+    cohorteId: string,
+  ): Promise<any | null> {
+    const query = `
+      SELECT * FROM exercise_progress
+      WHERE exercise_instance = type::thing($exerciseId)
+        AND estudiante = type::thing($estudianteId)
+        AND cohorte = type::thing($cohorteId)
+      LIMIT 1
+    `;
+
+    const result = await this.db.query(query, {
+      exerciseId,
+      estudianteId,
+      cohorteId,
+    });
+
+    return this.extractFirstRecord(result);
+  }
+
+  private async createProgressRecord(params: {
+    exerciseId: string;
+    estudianteId: string;
+    cohorteId: string;
+    estado?: string;
+    status?: ExerciseProgressStatus | string;
+    porcentajeCompletitud?: number;
+    tiempoInvertidoMinutos?: number;
+    datosGuardados?: Record<string, any> | any[];
+  }): Promise<any | null> {
+    const {
+      exerciseId,
+      estudianteId,
+      cohorteId,
+      estado,
+      status,
+      porcentajeCompletitud,
+      tiempoInvertidoMinutos,
+      datosGuardados,
+    } = params;
+
+    const createProgressQuery = `
+      CREATE exercise_progress CONTENT {
+        exercise_instance: type::thing($exerciseId),
+        estudiante: type::thing($estudianteId),
+        cohorte: type::thing($cohorteId),
+        estado: $estado,
+        status: $status,
+        porcentaje_completitud: $porcentaje,
+        fecha_inicio: time::now(),
+        submitted_at: null,
+        instructor_feedback: {},
+        datos_guardados: $datosGuardados,
+        tiempo_invertido_minutos: $tiempo,
+        numero_intentos: 1,
+        created_at: time::now(),
+        updated_at: time::now()
+      }
+    `;
+
+    const createResult = await this.db.query(createProgressQuery, {
+      exerciseId,
+      estudianteId,
+      cohorteId,
+      estado: estado ?? "en_progreso",
+      status: status ?? "in_progress",
+      porcentaje: Math.max(0, Math.min(100, porcentajeCompletitud ?? 0)),
+      tiempo: Math.max(0, tiempoInvertidoMinutos ?? 0),
+      datosGuardados: datosGuardados ?? {},
+    });
+
+    return this.extractFirstRecord(createResult);
+  }
+
+  private extractFirstRecord(result: any): any | null {
+    if (Array.isArray(result) && result.length > 0) {
+      if (Array.isArray(result[0]) && result[0].length > 0) {
+        return result[0][0];
+      }
+      if (!Array.isArray(result[0])) {
+        return result[0];
+      }
+    }
+    return null;
   }
 
   /**

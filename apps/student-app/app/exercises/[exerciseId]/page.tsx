@@ -34,10 +34,17 @@ export default function ExercisePage() {
   const startedExercisesRef = useRef<Set<string>>(new Set())
 
   // Fetch exercise data and content
+  const swrKey = exerciseId
+    ? ["exercise", exerciseId, estudianteId ?? "no-student", cohorteId ?? "no-cohorte"]
+    : null
+
   const { data: exercise, error, isLoading } = useSWR(
-    exerciseId ? `exercise-${exerciseId}` : null,
+    swrKey,
     async () => {
-      const exerciseData = await exercisesApi.getById(exerciseId)
+      const exerciseData = await exercisesApi.getById(exerciseId, {
+        estudianteId,
+        cohorteId,
+      })
       const contentResponse = await exercisesApi.getContent(exerciseId)
 
       // Extract exercise type from template (format: "template:exercise_type")
@@ -154,6 +161,11 @@ export default function ExercisePage() {
   }
 
   const handleSave = async (data: any) => {
+    if (!estudianteId || !cohorteId) {
+      toast.error("Falta el contexto de estudiante/cohorte para guardar el progreso")
+      return
+    }
+
     try {
       const payload = normalizeSavePayload(data)
       await exercisesApi.saveProgress(exerciseId, payload)
@@ -166,6 +178,11 @@ export default function ExercisePage() {
   }
 
   const handleComplete = async (data: any) => {
+    if (!estudianteId || !cohorteId) {
+      toast.error("Falta el contexto de estudiante/cohorte para completar el ejercicio")
+      return
+    }
+
     try {
       const payload = normalizeCompletePayload(data)
       const result = await exercisesApi.complete(exerciseId, payload)

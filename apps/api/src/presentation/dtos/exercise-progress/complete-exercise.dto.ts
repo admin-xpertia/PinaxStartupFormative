@@ -1,35 +1,30 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import type { ExerciseProgressStatus } from "./exercise-progress-response.dto";
-import {
-  IsString,
-  IsNumber,
-  IsObject,
-  IsOptional,
-  Min,
-  Max,
-} from "class-validator";
+import { Type } from "class-transformer";
+import { IsString, IsNumber, IsOptional, Min, Max } from "class-validator";
 
 export class CompleteExerciseDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: "ID del estudiante",
     example: "estudiante:abc123",
   })
+  @IsOptional()
   @IsString()
-  estudianteId: string;
+  estudianteId?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: "ID de la cohorte",
     example: "cohorte:xyz789",
   })
+  @IsOptional()
   @IsString()
-  cohorteId: string;
+  cohorteId?: string;
 
   @ApiProperty({
     description: "Datos finales del ejercicio (respuestas, trabajo completado)",
     example: { respuestas: [], trabajo_final: {} },
   })
-  @IsObject()
-  datos: Record<string, any>;
+  datos: Record<string, any> | any[];
 
   @ApiPropertyOptional({
     description: "Tiempo total invertido en minutos",
@@ -37,6 +32,7 @@ export class CompleteExerciseDto {
     minimum: 0,
   })
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(0)
   tiempoInvertidoMinutos?: number;
@@ -48,6 +44,7 @@ export class CompleteExerciseDto {
     maximum: 10,
   })
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(0)
   @Max(10)

@@ -87,8 +87,22 @@ Credenciales demo creadas por el seed:
 1. Crear `apps/student-app/.env.local`:
    ```env
    NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
-   NEXT_PUBLIC_DEFAULT_STUDENT_ID=estudiante:demo   # opcional para probar rápido
+   NEXT_PUBLIC_DEFAULT_STUDENT_ID=estudiante:REEMPLAZAR_CON_ID_REAL
+   NEXT_PUBLIC_DEFAULT_COHORTE_ID=cohorte:REEMPLAZAR_CON_ID_REAL
    ```
+
+   **Configuración de IDs**:
+   - Las variables `NEXT_PUBLIC_DEFAULT_STUDENT_ID` y `NEXT_PUBLIC_DEFAULT_COHORTE_ID` son **obligatorias** para desarrollo local sin autenticación
+   - Para obtener IDs válidos:
+     1. Abre SurrealDB Studio en `http://localhost:8000`
+     2. Ejecuta `SELECT * FROM estudiante LIMIT 1;` para obtener un estudiante ID
+     3. Ejecuta `SELECT * FROM cohorte LIMIT 1;` para obtener un cohorte ID
+     4. Reemplaza los valores en el archivo `.env.local`
+
+   **Alternativa**: Autentícate directamente en la app usando:
+   - Email: `estudiante@xpertia.com`
+   - Password: `Estudiante123!`
+
 2. Instalar y correr:
    ```bash
    cd apps/student-app

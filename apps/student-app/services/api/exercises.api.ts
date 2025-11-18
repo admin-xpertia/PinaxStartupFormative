@@ -91,8 +91,23 @@ export const exercisesApi = {
   /**
    * Obtener instancia de ejercicio con su contenido
    */
-  async getById(exerciseId: string): Promise<ExerciseInstance> {
-    return apiClient.get<ExerciseInstance>(`/student/exercises/${encodeURIComponent(exerciseId)}`)
+  async getById(
+    exerciseId: string,
+    context?: { estudianteId?: string | null; cohorteId?: string | null }
+  ): Promise<ExerciseInstance> {
+    const query = new URLSearchParams()
+    if (context?.estudianteId) {
+      query.set("estudianteId", context.estudianteId)
+    }
+    if (context?.cohorteId) {
+      query.set("cohorteId", context.cohorteId)
+    }
+
+    const suffix = query.toString() ? `?${query.toString()}` : ""
+
+    return apiClient.get<ExerciseInstance>(
+      `/student/exercises/${encodeURIComponent(exerciseId)}${suffix}`
+    )
   },
 
   /**

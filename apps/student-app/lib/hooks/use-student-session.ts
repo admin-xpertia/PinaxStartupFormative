@@ -14,8 +14,23 @@ interface StudentSession {
 
 export function useStudentSession(): StudentSession {
   const { enrollment, isAuthenticated, isLoading } = useAuth()
+  const defaultStudentId = process.env.NEXT_PUBLIC_DEFAULT_STUDENT_ID || null
+  const defaultCohorteId =
+    process.env.NEXT_PUBLIC_DEFAULT_COHORTE_ID ||
+    process.env.NEXT_PUBLIC_DEFAULT_COHORT_ID ||
+    null
 
   if (!enrollment) {
+    if (defaultStudentId || defaultCohorteId) {
+      return {
+        estudianteId: defaultStudentId,
+        cohorteId: defaultCohorteId,
+        programId: null,
+        isAuthenticated,
+        isLoading: false,
+      }
+    }
+
     return {
       estudianteId: null,
       cohorteId: null,

@@ -12,6 +12,7 @@ import {
   BadRequestException,
   Logger,
   Inject,
+  Query,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -912,6 +913,8 @@ export class ExerciseInstanceController {
   })
   async getPublishedExercise(
     @Param("id") id: string,
+    @Query("estudianteId") estudianteId?: string,
+    @Query("cohorteId") cohorteId?: string,
   ): Promise<ExerciseInstanceResponseDto> {
     const decodedId = decodeURIComponent(id);
 
@@ -936,6 +939,55 @@ export class ExerciseInstanceController {
       throw new NotFoundException(`Published exercise not found: ${id}`);
     }
 
+    const resolvedEstudianteId =
+      estudianteId?.trim() || process.env.DEFAULT_STUDENT_ID || null;
+    const resolvedCohorteId =
+      cohorteId?.trim() || process.env.DEFAULT_COHORTE_ID || null;
+
+    let savedData: any = undefined;
+    let progressStatus: string | undefined;
+    let progressPercentage: number | undefined;
+
+    if (resolvedEstudianteId && resolvedCohorteId) {
+      try {
+        const progressQuery = `
+          SELECT id, datos_guardados, status, estado, porcentaje_completitud
+          FROM exercise_progress
+          WHERE exercise_instance = type::thing($exerciseId)
+            AND estudiante = type::thing($estudianteId)
+            AND cohorte = type::thing($cohorteId)
+          LIMIT 1
+        `;
+
+        const progressResult = await this.db.query(progressQuery, {
+          exerciseId: decodedId,
+          estudianteId: resolvedEstudianteId,
+          cohorteId: resolvedCohorteId,
+        });
+
+        let progress: any;
+        if (Array.isArray(progressResult) && progressResult.length > 0) {
+          if (Array.isArray(progressResult[0]) && progressResult[0].length > 0) {
+            progress = progressResult[0][0];
+          } else if (!Array.isArray(progressResult[0])) {
+            progress = progressResult[0];
+          }
+        }
+
+        if (progress) {
+          savedData = progress.datos_guardados;
+          progressStatus = progress.status || progress.estado;
+          progressPercentage = progress.porcentaje_completitud;
+        }
+      } catch (error) {
+        this.logger.warn(
+          `No se pudo recuperar progreso previo del ejercicio ${decodedId}: ${
+            error instanceof Error ? error.message : error
+          }`,
+        );
+      }
+    }
+
     return {
       id: exercise.id,
       template: exercise.template,
@@ -951,6 +1003,9 @@ export class ExerciseInstanceController {
       esObligatorio: exercise.es_obligatorio,
       createdAt: exercise.created_at,
       updatedAt: exercise.updated_at,
+      savedData,
+      progressStatus,
+      progressPercentage,
     };
   }
 
