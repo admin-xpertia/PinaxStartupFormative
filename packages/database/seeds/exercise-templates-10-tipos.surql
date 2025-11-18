@@ -185,23 +185,38 @@ CREATE exercise_template:simulacion_interaccion SET
       nivel_dificultad: { type: 'string', enum: ['cooperativo', 'neutral', 'desafiante'] },
       personalidad: { type: 'object', description: 'Rasgos de personalidad del personaje' },
       contexto_situacion: { type: 'string', description: 'Contexto de la interaccion' },
-      duracion_minutos: { type: 'number', default: 10, minimum: 5, maximum: 30 }
+      duracion_minutos: { type: 'number', default: 10, minimum: 5, maximum: 30 },
+      shadow_monitor: {
+        type: 'object',
+        description: 'Configuracion para validacion semantica en segundo plano',
+        properties: {
+          activado: { type: 'boolean', default: true },
+          frecuencia_turnos: { type: 'number', default: 2, description: 'Evaluar cada X mensajes del usuario' },
+          modelo_evaluador: { type: 'string', default: 'gpt-4o-mini', description: 'Modelo para evaluacion (mas rapido/barato)' }
+        }
+      }
     }
   },
   configuracion_default = {
     nivel_dificultad: 'neutral',
-    duracion_minutos: 10
+    duracion_minutos: 10,
+    shadow_monitor: {
+      activado: true,
+      frecuencia_turnos: 2,
+      modelo_evaluador: 'gpt-4o-mini'
+    }
   },
-  prompt_template = 'Crea una simulacion de interaccion con {{rol_simulado}} en contexto: {{contexto_situacion}}. Nivel de dificultad: {{nivel_dificultad}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "descripcion": string, "personaje_ia": { "nombre": string, "rol": string, "personalidad": string, "tono": string, "contexto": string }, "objetivo_estudiante": string, "situacion_inicial": string, "criterios_exito": string[], "nivel_dificultad": "principiante"|"intermedio"|"avanzado", "tiempo_sugerido": number }. El personaje debe tener personalidad coherente{{#if personalidad}} con rasgos: {{personalidad}}{{/if}}.',
+  prompt_template = 'Crea una simulacion de interaccion con {{rol_simulado}} en contexto: {{contexto_situacion}}. Nivel de dificultad: {{nivel_dificultad}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "descripcion": string, "personaje_ia": { "nombre": string, "rol": string, "personalidad": string, "tono": string, "contexto": string, "niveles_resistencia": { "alta": string, "baja": string } }, "objetivo_estudiante": string, "situacion_inicial": string, "criterios_exito": [{ "id": string, "descripcion": string, "rubrica_evaluacion": string }], "nivel_dificultad": "principiante"|"intermedio"|"avanzado", "tiempo_sugerido": number, "instrucciones_personaje": string }. El personaje debe tener personalidad coherente{{#if personalidad}} con rasgos: {{personalidad}}{{/if}}. IMPORTANTE: Define "niveles_resistencia" para el personaje (como se comporta cuando el usuario es cortante vs empatico) e "instrucciones_personaje" que incluyan: "Mantén estrictamente tu personaje. Nunca felicites al usuario ni menciones los criterios de éxito en tu diálogo. Tu cooperación depende de la calidad de la interacción del usuario."',
   output_schema = {
     titulo: 'string',
     descripcion: 'string',
-    personaje_ia: 'object',
+    personaje_ia: 'object (incluye niveles_resistencia)',
     objetivo_estudiante: 'string',
     situacion_inicial: 'string',
-    criterios_exito: 'array',
+    criterios_exito: 'array (cada criterio tiene id, descripcion, rubrica_evaluacion)',
     nivel_dificultad: 'string',
-    tiempo_sugerido: 'number'
+    tiempo_sugerido: 'number',
+    instrucciones_personaje: 'string'
   },
   preview_config = {
     tiempo_respuesta_segundos: 3,
@@ -228,20 +243,32 @@ CREATE exercise_template:mentor_asesor_ia SET
       estilo_mentoria: { type: 'string', enum: ['socratico', 'directivo', 'colaborativo'] },
       es_panel: { type: 'boolean', default: false, description: 'Panel multidisciplinario' },
       expertos_panel: { type: 'array', items: { type: 'string' }, description: 'Si es panel, lista de expertos' },
-      profundidad_tecnica: { type: 'string', enum: ['conceptual', 'aplicada', 'experta'] }
+      profundidad_tecnica: { type: 'string', enum: ['conceptual', 'aplicada', 'experta'] },
+      validacion_semantica: {
+        type: 'object',
+        description: 'Configuracion para validacion de respuestas del estudiante',
+        properties: {
+          activada: { type: 'boolean', default: true },
+          umbral_calidad: { type: 'number', default: 3, minimum: 1, maximum: 5, description: 'Score minimo (1-5) para aprobar paso' }
+        }
+      }
     }
   },
   configuracion_default = {
     estilo_mentoria: 'socratico',
     es_panel: false,
-    profundidad_tecnica: 'aplicada'
+    profundidad_tecnica: 'aplicada',
+    validacion_semantica: {
+      activada: true,
+      umbral_calidad: 3
+    }
   },
-  prompt_template = 'Crea una sesion de mentoria con {{dominio_experto}} usando estilo {{estilo_mentoria}}{{#if es_panel}} como panel con: {{expertos_panel}}{{/if}}. Profundidad: {{profundidad_tecnica}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "objetivo_general": string, "contexto_mentor": { "nombre": string, "especialidad": string, "estilo": string, "enfoque": string }, "pasos": [{ "numero": number, "titulo": string, "descripcion": string, "preguntas_guia": string[], "recursos_recomendados": string[] }], "reflexion_final": string, "metricas_seguimiento": string[] }. Usa preguntas socraticas, identifica trade-offs, evalua con criterios del campo.',
+  prompt_template = 'Crea una sesion de mentoria con {{dominio_experto}} usando estilo {{estilo_mentoria}}{{#if es_panel}} como panel con: {{expertos_panel}}{{/if}}. Profundidad: {{profundidad_tecnica}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "objetivo_general": string, "contexto_mentor": { "nombre": string, "especialidad": string, "estilo": string, "enfoque": string, "personalidad_consultor": string }, "pasos": [{ "numero": number, "titulo": string, "instruccion": string, "pregunta_reflexion": string, "criterio_avance": string, "criterios_ia": [string], "recursos": [{ "titulo": string, "contenido": string, "tipo": "consejo|ejemplo|link" }] }], "reflexion_final": string, "metricas_seguimiento": string[] }. IMPORTANTE: Cada paso debe tener "criterios_ia" (rubrica de evaluacion semantica) para validar la calidad de la respuesta del estudiante. El contexto_mentor debe incluir "personalidad_consultor" (ej: "consultor senior con 20 años de experiencia"). Las instrucciones deben incluir: "MODO ANDAMIAJE: Si notas que el usuario falla dos veces seguidas en responder tu pregunta socrática, deja de preguntar y ofrece un ejemplo concreto o analogía para desbloquearlo."',
   output_schema = {
     titulo: 'string',
     objetivo_general: 'string',
-    contexto_mentor: 'object',
-    pasos: 'array',
+    contexto_mentor: 'object (incluye personalidad_consultor)',
+    pasos: 'array (cada paso incluye criterios_ia para validacion)',
     reflexion_final: 'string',
     metricas_seguimiento: 'array'
   },
@@ -402,7 +429,24 @@ CREATE exercise_template:simulador_entorno SET
       incluir_casos_edge: { type: 'boolean', default: true },
       permitir_multiples_intentos: { type: 'boolean', default: true },
       explicar_causas: { type: 'boolean', default: true },
-      mantener_log_experimentos: { type: 'boolean', default: true }
+      mantener_log_experimentos: { type: 'boolean', default: true },
+      ciclo_prediccion_experimento: {
+        type: 'object',
+        description: 'Configuracion para forzar el ciclo Prediccion->Experimento->Reflexion',
+        properties: {
+          activado: { type: 'boolean', default: true },
+          requiere_hipotesis: { type: 'boolean', default: true, description: 'Bloquear simulacion hasta que usuario escriba hipotesis' },
+          validar_aprendizaje: { type: 'boolean', default: true, description: 'Verificar congruencia entre hipotesis y reflexion' }
+        }
+      },
+      ruido_estocastico: {
+        type: 'object',
+        description: 'Configuracion de variabilidad aleatoria',
+        properties: {
+          activado: { type: 'boolean', default: true },
+          porcentaje_variacion: { type: 'number', default: 5, minimum: 0, maximum: 20, description: 'Variacion +/- en porcentaje' }
+        }
+      }
     }
   },
   configuracion_default = {
@@ -411,9 +455,18 @@ CREATE exercise_template:simulador_entorno SET
     incluir_casos_edge: true,
     permitir_multiples_intentos: true,
     explicar_causas: true,
-    mantener_log_experimentos: true
+    mantener_log_experimentos: true,
+    ciclo_prediccion_experimento: {
+      activado: true,
+      requiere_hipotesis: true,
+      validar_aprendizaje: true
+    },
+    ruido_estocastico: {
+      activado: true,
+      porcentaje_variacion: 5
+    }
   },
-  prompt_template = 'Crea un simulador de {{tipo_entorno}} con fidelidad {{nivel_fidelidad}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "descripcion": string, "tipo_entorno": "sistema_tecnico"|"mercado"|"organizacion"|"ecosistema", "estado_inicial": { "variables": object, "condiciones": string[] }, "acciones_posibles": [{ "nombre": string, "descripcion": string, "parametros": string[], "efectos": string[] }], "reglas_simulacion": string[], "metricas_observables": string[], "escenarios_ejemplo": [{ "nombre": string, "configuracion": object, "resultado_esperado": string }] }{{#if incluir_casos_edge}}. Incluye casos edge{{/if}}{{#if explicar_causas}}. Explica relaciones causales{{/if}}.',
+  prompt_template = 'Crea un simulador de {{tipo_entorno}} con fidelidad {{nivel_fidelidad}}. El contenido debe seguir esta estructura JSON: { "titulo": string, "descripcion": string, "tipo_entorno": "sistema_tecnico"|"mercado"|"organizacion"|"ecosistema", "estado_inicial": { "variables": object, "condiciones": string[] }, "acciones_posibles": [{ "nombre": string, "descripcion": string, "parametros": string[], "efectos": string[] }], "reglas_simulacion": string[], "reglas_ocultas": { "elasticidades": object, "formulas_calculo": string[], "descripcion": string }, "metricas_observables": string[], "eventos_exogenos_posibles": [{ "tipo": string, "descripcion": string, "probabilidad": number, "impacto": object }], "escenarios_ejemplo": [{ "nombre": string, "configuracion": object, "resultado_esperado": string }], "instrucciones_motor_ia": string }{{#if incluir_casos_edge}}. Incluye casos edge{{/if}}{{#if explicar_causas}}. Explica relaciones causales{{/if}}. IMPORTANTE: Define "reglas_ocultas" (elasticidades, formulas) que la IA usara para calcular. Define "eventos_exogenos_posibles" (noticias del mercado, cambios externos). Las "instrucciones_motor_ia" deben decir: "Actúa como un motor de simulación física/económica. Recibe variables INPUT, aplica reglas ocultas, añade ruido aleatorio {{ruido_estocastico.porcentaje_variacion}}%, genera evento exógeno ocasional, y devuelve JSON con: { simulation_data: {...}, news_flash: string, narrative: string }. No des consejos, solo datos."',
   output_schema = {
     titulo: 'string',
     descripcion: 'string',
@@ -421,8 +474,11 @@ CREATE exercise_template:simulador_entorno SET
     estado_inicial: 'object',
     acciones_posibles: 'array',
     reglas_simulacion: 'array',
+    reglas_ocultas: 'object (elasticidades, formulas)',
     metricas_observables: 'array',
-    escenarios_ejemplo: 'array'
+    eventos_exogenos_posibles: 'array',
+    escenarios_ejemplo: 'array',
+    instrucciones_motor_ia: 'string'
   },
   preview_config = {
     visualizacion_3d: false,
@@ -565,18 +621,33 @@ CREATE exercise_template:metacognicion SET
         description: 'Dimensiones metacognitivas que la IA debe explorar.',
         items: { type: 'string' },
         default: ['comprension_conceptual', 'estados_afectivos', 'transferencia']
+      },
+      tracking_insights: {
+        type: 'object',
+        description: 'Configuracion para gamificacion de insights',
+        properties: {
+          activado: { type: 'boolean', default: true },
+          minimo_insights: { type: 'number', default: 3, minimum: 1, maximum: 10, description: 'Insights minimos para poder terminar' },
+          bloquear_finalizacion: { type: 'boolean', default: true, description: 'Deshabilitar boton terminar hasta alcanzar minimo' }
+        }
       }
     },
     required: ['pregunta_anclaje', 'contexto_ia']
   },
   configuracion_default = {
-    dimensiones_explorar: ['comprension_conceptual', 'estados_afectivos', 'transferencia']
+    dimensiones_explorar: ['comprension_conceptual', 'estados_afectivos', 'transferencia'],
+    tracking_insights: {
+      activado: true,
+      minimo_insights: 3,
+      bloquear_finalizacion: true
+    }
   },
-  prompt_template = 'Eres un disenador instruccional experto en aprendizaje auto-regulado. Tu tarea es configurar una sesion de chat de metacognicion.\\n\\nCONFIGURACION DEL INSTRUCTOR:\\n- Pregunta de Anclaje: {{configuracion.pregunta_anclaje}}\\n- Contexto General: {{configuracion.contexto_ia}}\\n- Dimensiones a Explorar: {{configuracion.dimensiones_explorar}}\\n\\nTU TAREA:\\nGenera un JSON que siga el output_schema para inicializar el chat.\\n1. Crea un titulo para la actividad.\\n2. Adapta la pregunta_anclaje del instructor para que sea el mensaje_apertura_ia (el primer mensaje que vera el estudiante).\\n3. Genera el system_prompt_chat. Este es el cerebro de la IA. Debe contener todas las instrucciones detalladas que definen su rol. Usa el siguiente texto como base fundamental para el system_prompt_chat:\\n\\n--- INICIO DEL SYSTEM PROMPT BASE ---\\nEres un facilitador reflexivo no-evaluativo. Tu objetivo es guiar al estudiante en una reflexion profunda sobre su aprendizaje.\\n\\nCONTEXTO DE ESTA SESION: {{configuracion.contexto_ia}}\\n\\nTU PROTOCOLO CONVERSACIONAL ESTRUCTURADO:\\n1. Anclaje: Inicia con la pregunta de anclaje.\\n2. Profundizacion (Follow-ups): Basado en su respuesta, usa preguntas de seguimiento adaptativas para explorar estas dimensiones: {{configuracion.dimensiones_explorar}}.\\n   - Comprension Conceptual: "Que conceptos te resultan claros ahora vs. cuales siguen nebulosos?"\\n   - Estrategias de Aprendizaje: "Cuando te sentiste bloqueado, que hiciste?"\\n   - Estados Afectivos: "Hubo momentos de frustracion? Que los provoco?"\\n   - Transferencia: "Como podrias usar esto en otro contexto?"\\n3. Contexto Longitudinal: Conecta sus reflexiones actuales con las pasadas cuando sea posible.\\n4. Transferencia Prospectiva: "Basandote en esto, que anticipas que sera similar o diferente en el proximo desafio?"\\n5. Tono: Mantente empatico y no-evaluativo. Normaliza la confusion. No evalues respuestas como "correctas" o "incorrectas".\\n6. Sintesis: Al final, ayuda al estudiante a resumir los insights.\\n--- FIN DEL SYSTEM PROMPT BASE ---\\n\\nOUTPUT ESPERADO (JSON):\\n{{output_schema}}\\n\\nIMPORTANTE: Devuelve unicamente JSON valido.',
+  prompt_template = 'Eres un disenador instruccional experto en aprendizaje auto-regulado. Tu tarea es configurar una sesion de chat de metacognicion.\\n\\nCONFIGURACION DEL INSTRUCTOR:\\n- Pregunta de Anclaje: {{configuracion.pregunta_anclaje}}\\n- Contexto General: {{configuracion.contexto_ia}}\\n- Dimensiones a Explorar: {{configuracion.dimensiones_explorar}}\\n- Insights minimos requeridos: {{configuracion.tracking_insights.minimo_insights}}\\n\\nTU TAREA:\\nGenera un JSON que siga el output_schema para inicializar el chat.\\n1. Crea un titulo para la actividad.\\n2. Adapta la pregunta_anclaje del instructor para que sea el mensaje_apertura_ia (el primer mensaje que vera el estudiante).\\n3. Genera el system_prompt_chat. Este es el cerebro de la IA. Debe contener todas las instrucciones detalladas que definen su rol. Usa el siguiente texto como base fundamental para el system_prompt_chat:\\n\\n--- INICIO DEL SYSTEM PROMPT BASE ---\\nEres un facilitador reflexivo no-evaluativo. Tu objetivo es guiar al estudiante en una reflexion profunda sobre su aprendizaje.\\n\\nCONTEXTO DE ESTA SESION: {{configuracion.contexto_ia}}\\n\\nTU PROTOCOLO CONVERSACIONAL ESTRUCTURADO:\\n1. Anclaje: Inicia con la pregunta de anclaje.\\n2. Profundizacion (Follow-ups): Basado en su respuesta, usa preguntas de seguimiento adaptativas para explorar estas dimensiones: {{configuracion.dimensiones_explorar}}.\\n   - Comprension Conceptual: "Que conceptos te resultan claros ahora vs. cuales siguen nebulosos?"\\n   - Estrategias de Aprendizaje: "Cuando te sentiste bloqueado, que hiciste?"\\n   - Estados Afectivos: "Hubo momentos de frustracion? Que los provoco?"\\n   - Transferencia: "Como podrias usar esto en otro contexto?"\\n3. DETECTOR DE VAGUEDAD: Si el usuario responde con generalidades ("fue dificil", "aprendi mucho"), estas OBLIGADO a pedir concrecion ("Que parte especifica fue dificil?"). No aceptes respuestas abstractas.\\n4. EXTRACCION DE INSIGHTS: Mantén un inventario mental de "Insights Detectados". Un insight es una conexion causal clara sobre el aprendizaje (ej: "Me di cuenta que aprendo mejor dibujando"). Cuenta cuantos insights autenticos ha articulado el estudiante.\\n5. En tu respuesta JSON oculta (metadata), incluye: { "insight_count": number, "ultimo_insight_detectado": string | null }\\n6. Solo despidete y cierra cuando hayas recolectado al menos {{configuracion.tracking_insights.minimo_insights}} insights accionables.\\n7. Contexto Longitudinal: Conecta sus reflexiones actuales con las pasadas cuando sea posible.\\n8. Transferencia Prospectiva: "Basandote en esto, que anticipas que sera similar o diferente en el proximo desafio?"\\n9. Tono: Mantente empatico y no-evaluativo. Normaliza la confusion. No evalues respuestas como "correctas" o "incorrectas".\\n10. Sintesis: Al final, ayuda al estudiante a resumir los insights.\\n\\nFORMATO DE RESPUESTA:\\nDevuelve tu respuesta al estudiante como texto natural. Adicionalmente, si la implementacion lo soporta, puedes incluir metadata oculta para tracking.\\n--- FIN DEL SYSTEM PROMPT BASE ---\\n\\nOUTPUT ESPERADO (JSON):\\n{{output_schema}}\\n\\nIMPORTANTE: Devuelve unicamente JSON valido.',
   output_schema = {
     titulo: 'string',
     mensaje_apertura_ia: 'string (El primer mensaje que vera el estudiante)',
-    system_prompt_chat: 'string (Rol completo e instrucciones de la IA para la conversacion en vivo)'
+    system_prompt_chat: 'string (Rol completo e instrucciones de la IA para la conversacion en vivo, incluye tracking de insights)',
+    minimo_insights_requeridos: 'number'
   },
   preview_config = {
     interactivo: true,

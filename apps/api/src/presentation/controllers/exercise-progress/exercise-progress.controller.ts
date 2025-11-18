@@ -22,6 +22,7 @@ import {
 } from "@nestjs/swagger";
 import { SurrealDbService } from "../../../core/database/surrealdb.service";
 import { OpenAIService } from "../../../infrastructure/ai/OpenAIService";
+import { ShadowMonitorService } from "../../../application/exercise-instance/services/ShadowMonitorService";
 import {
   StartExerciseDto,
   SaveProgressDto,
@@ -53,6 +54,7 @@ export class ExerciseProgressController {
   constructor(
     private readonly db: SurrealDbService,
     private readonly openAIService: OpenAIService,
+    private readonly shadowMonitor: ShadowMonitorService,
   ) {}
 
   /**
@@ -1117,14 +1119,86 @@ ${assistantDto.pregunta}
 CONCEPTO FOCAL
 ${assistantDto.conceptoFocal ?? "No especificado"}
 
-Recuerda citar explícitamente las secciones que utilices y mantener el tono socrático.`;
+Recuerda citar explícitamente las secciones que utilises y mantener el tono socrático.`;
 
-    const { content, raw } = await this.openAIService.generateChatResponse({
-      systemPrompt,
-      messages: [...limitedHistory, { role: "user", content: userContent }],
-      maxTokens: 7500,
-    });
+    // Prepare Shadow Monitor tasks (run in parallel with main AI call)
+    const shadowMonitorPromises: Promise<any>[] = [];
+    let shouldRunSimulationEval = false;
+    let shouldRunMentorValidation = false;
+    let shouldRunInsightExtraction = false;
 
+    // 1. Simulación de Interacción - Evaluate success criteria
+    if (
+      assistantDto.criteriosExito &&
+      assistantDto.criteriosExito.length > 0 &&
+      assistantDto.shadowMonitorConfig?.activado !== false
+    ) {
+      const historyLength = limitedHistory.length;
+      const frecuencia =
+        assistantDto.shadowMonitorConfig?.frecuencia_turnos || 2;
+
+      // Only evaluate every N turns (to avoid excessive API calls)
+      if (historyLength > 0 && historyLength % frecuencia === 0) {
+        shouldRunSimulationEval = true;
+        const recentMessages = limitedHistory.slice(-6); // Last 6 messages for context
+        const criteriaToEvaluate = assistantDto.criteriosExito.filter(
+          (c) => !assistantDto.criteriosCumplidos?.includes(c.id),
+        );
+
+        if (criteriaToEvaluate.length > 0) {
+          shadowMonitorPromises.push(
+            this.shadowMonitor.evaluateSimulationCriteria({
+              recentMessages,
+              criteriaToEvaluate,
+              alreadyMetCriteria: assistantDto.criteriosCumplidos || [],
+            }),
+          );
+        }
+      }
+    }
+
+    // 2. Mentor/Asesor IA - Validate step response quality
+    if (
+      assistantDto.criteriosValidacion &&
+      assistantDto.criteriosValidacion.length > 0
+    ) {
+      shouldRunMentorValidation = true;
+      shadowMonitorPromises.push(
+        this.shadowMonitor.validateMentorStepQuality({
+          studentResponse: assistantDto.pregunta,
+          stepTitle: assistantDto.seccionTitulo,
+          evaluationCriteria: assistantDto.criteriosValidacion,
+          qualityThreshold: assistantDto.umbralCalidad || 3,
+        }),
+      );
+    }
+
+    // 3. Metacognición - Extract insights
+    if (
+      assistantDto.perfilComprension?.tipo === "metacognicion" &&
+      limitedHistory.length > 0
+    ) {
+      shouldRunInsightExtraction = true;
+      const recentMessages = limitedHistory.slice(-4);
+      shadowMonitorPromises.push(
+        this.shadowMonitor.extractMetacognitionInsights({
+          recentMessages,
+          currentInsightCount: assistantDto.insightCount || 0,
+        }),
+      );
+    }
+
+    // Execute main AI call and Shadow Monitor in parallel
+    const [aiResponse, ...shadowResults] = await Promise.all([
+      this.openAIService.generateChatResponse({
+        systemPrompt,
+        messages: [...limitedHistory, { role: "user", content: userContent }],
+        maxTokens: 7500,
+      }),
+      ...shadowMonitorPromises,
+    ]);
+
+    const { content, raw } = aiResponse;
     const { references, answer: extractedAnswer } =
       this.extractAssistantAnswer(content);
     let answer = extractedAnswer;
@@ -1133,7 +1207,8 @@ Recuerda citar explícitamente las secciones que utilices y mantener el tono soc
       answer = this.buildAssistantFallback(assistantDto);
     }
 
-    return {
+    // Build response with Shadow Monitor results
+    const response: LessonAssistantResponseDto = {
       respuesta: answer,
       referencias:
         references.length > 0
@@ -1141,6 +1216,23 @@ Recuerda citar explícitamente las secciones que utilices y mantener el tono soc
           : [assistantDto.seccionTitulo].filter(Boolean),
       tokensUsados: raw.usage?.total_tokens,
     };
+
+    // Add Shadow Monitor results to response
+    let resultIndex = 0;
+    if (shouldRunSimulationEval && shadowResults[resultIndex]) {
+      response.shadowMonitorResult = shadowResults[resultIndex];
+      resultIndex++;
+    }
+    if (shouldRunMentorValidation && shadowResults[resultIndex]) {
+      response.validationResult = shadowResults[resultIndex];
+      resultIndex++;
+    }
+    if (shouldRunInsightExtraction && shadowResults[resultIndex]) {
+      response.insightsResult = shadowResults[resultIndex];
+      resultIndex++;
+    }
+
+    return response;
   }
 
   /**
