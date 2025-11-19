@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import useSWR from "swr"
 import { Loader2 } from "lucide-react"
@@ -8,18 +8,23 @@ import {
   ProofPointHeader,
   ProofPointOverviewSection,
 } from "@/components/student/proof-point"
-import { progressApi, proofPointsApi, type PublishedExercise } from "@/services/api"
+import { exercisesApi, progressApi, proofPointsApi, type PublishedExercise } from "@/services/api"
 import type { ExerciseProgressSummary } from "@/types/progress"
 import type { ProofPointExercise, ProofPointOverview } from "@/types/proof-point"
 import { getHighlightExercise } from "@/lib/proof-point"
 import { useStudentSession } from "@/lib/hooks/use-student-session"
 import { Button } from "@/components/ui/button"
+import { SubmissionFeedbackDialog, type SubmissionFeedback } from "@/components/student/shared/SubmissionFeedbackDialog"
+import { useToast } from "@/hooks/use-toast"
 
 export default function ProofPointPage() {
   const params = useParams()
   const router = useRouter()
   const proofPointId = params.id as string
   const { estudianteId, cohortId } = useStudentSession()
+  const { toast } = useToast()
+  const [feedbackLoadingId, setFeedbackLoadingId] = useState<string | null>(null)
+  const [selectedSubmission, setSelectedSubmission] = useState<SubmissionFeedback | null>(null)
 
   // Fetch proof point details
   const { data: proofPointDetails, error: detailsError } = useSWR(
@@ -88,6 +93,8 @@ export default function ProofPointPage() {
         estimatedMinutes: exercise.duracionEstimadaMinutos ?? 20,
         status,
         progress: progressValue,
+        score: summary?.score ?? null,
+        progressStatus: summary?.status,
       }
     })
   }, [publishedExercises, proofPointProgress])
@@ -118,6 +125,36 @@ export default function ProofPointPage() {
   const handleExerciseClick = (exercise: ProofPointExercise) => {
     if (exercise.status === "locked") return
     router.push(`/exercises/${exercise.id}`)
+  }
+
+  const handleShowFeedback = async (exercise: ProofPointExercise) => {
+    if (!estudianteId || !cohortId) return
+    setFeedbackLoadingId(exercise.id)
+    try {
+      const progress = await exercisesApi.getProgress(exercise.id, {
+        estudianteId,
+        cohorteId: cohortId,
+      })
+
+      setSelectedSubmission({
+        exerciseName: exercise.nombre,
+        status: progress.status,
+        score: progress.scoreFinal ?? progress.instructorScore ?? progress.aiScore ?? exercise.score ?? null,
+        aiScore: progress.aiScore,
+        instructorScore: progress.instructorScore,
+        manualFeedback: progress.manualFeedback ?? null,
+        feedbackJson: progress.feedbackJson ?? null,
+      })
+    } catch (error) {
+      console.error("Failed to load submission feedback", error)
+      toast({
+        title: "No pudimos cargar el feedback",
+        description: "Intenta nuevamente en unos segundos.",
+        variant: "destructive",
+      })
+    } finally {
+      setFeedbackLoadingId(null)
+    }
   }
 
   if (!isAuthenticated) {
@@ -199,8 +236,20 @@ export default function ProofPointPage() {
           highlightExercise={highlightExercise}
           objectives={objectives.length > 0 ? objectives : undefined}
           onStartExercise={handleExerciseClick}
+          onShowFeedback={handleShowFeedback}
+          feedbackLoadingId={feedbackLoadingId}
         />
       </main>
+
+      <SubmissionFeedbackDialog
+        open={!!selectedSubmission}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedSubmission(null)
+          }
+        }}
+        submission={selectedSubmission}
+      />
     </div>
   )
 }

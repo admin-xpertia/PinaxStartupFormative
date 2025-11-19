@@ -2,9 +2,10 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react"
 import useSWR from "swr"
-import { BookOpen } from "lucide-react"
+import { BookOpen, Award, CheckCircle2, Clock } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { enrollmentsApi, progressApi } from "@/services/api"
+import type { CompletedExercise } from "@/services/api/progress.api"
 import {
   DashboardHeader,
   NextExerciseCard,
@@ -26,6 +27,7 @@ import {
 } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { useStudentSession } from "@/lib/hooks/use-student-session"
+import { SubmissionFeedbackDialog } from "@/components/student/shared/SubmissionFeedbackDialog"
 
 function DashboardContent() {
   const router = useRouter()
@@ -35,6 +37,7 @@ function DashboardContent() {
   const studentId = studentIdOverride ?? session.estudianteId ?? undefined
   const [activePhaseId, setActivePhaseId] = useState<string | null>(null)
   const [selectedEnrollmentId, setSelectedEnrollmentId] = useState<string | null>(null)
+  const [selectedSubmission, setSelectedSubmission] = useState<CompletedExercise | null>(null)
 
   useEffect(() => {
     // Redirigir al login si no hay autenticación y no hay ID de estudiante
@@ -412,7 +415,103 @@ function DashboardContent() {
           activePhaseId={selectedPhase?.id}
           onPhaseChange={setActivePhaseId}
         />
+
+        {progressSummary?.recentCompletedExercises?.length ? (
+          <section className="w-full max-w-5xl mx-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold">Actividad reciente</h2>
+              <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard/progress")}>
+                Ver todo
+              </Button>
+            </div>
+            <Card className="border-none bg-white shadow-sm">
+              <CardContent className="p-0">
+                <div className="divide-y">
+                  {progressSummary.recentCompletedExercises.slice(0, 4).map((exercise) => {
+                    const isPending =
+                      exercise.status === "pending_review" ||
+                      exercise.status === "submitted_for_review"
+                    const isGraded =
+                      exercise.status === "graded" || exercise.status === "approved"
+                    const hasFeedbackData = Boolean(
+                      exercise.feedbackJson ||
+                      exercise.manualFeedback ||
+                      (exercise.aiScore !== null && exercise.aiScore !== undefined) ||
+                      (exercise.instructorScore !== null && exercise.instructorScore !== undefined) ||
+                      (exercise.score !== null && exercise.score !== undefined)
+                    )
+                    const displayedDate = exercise.completedAt || exercise.submittedAt
+                    return (
+                      <div
+                        key={exercise.exerciseId}
+                        className="p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            {isPending ? (
+                              <Clock className="h-5 w-5 text-amber-500" />
+                            ) : (
+                              <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                            )}
+                            <p className="font-semibold text-foreground">{exercise.exerciseName}</p>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                            <Badge variant="outline" className={isPending ? "text-amber-700" : "text-emerald-700"}>
+                              {isPending ? "En revisión" : "Calificado"}
+                            </Badge>
+                            {displayedDate && <span>
+                              {formatDate(displayedDate)}
+                            </span>}
+                            {isGraded && exercise.score !== null && (
+                              <span className="flex items-center gap-1 text-emerald-700">
+                                <Award className="h-4 w-4" /> {exercise.score}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {(isPending || isGraded) && hasFeedbackData && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className={cn(
+                              "w-full md:w-auto flex items-center gap-1",
+                              isPending
+                                ? "bg-amber-50 text-amber-800 hover:bg-amber-100"
+                                : "bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                            )}
+                            onClick={() => setSelectedSubmission(exercise)}
+                          >
+                            {isPending ? (
+                              <>
+                                <Clock className="h-4 w-4" /> Ver revisión IA
+                              </>
+                            ) : (
+                              <>
+                                <Award className="h-4 w-4" /> Ver feedback
+                              </>
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </section>
+        ) : null}
       </main>
+
+      <SubmissionFeedbackDialog
+        open={!!selectedSubmission}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedSubmission(null)
+          }
+        }}
+        submission={selectedSubmission}
+      />
     </div>
   )
 }

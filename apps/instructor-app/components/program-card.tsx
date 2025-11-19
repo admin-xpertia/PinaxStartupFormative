@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Progress } from "@/components/ui/progress"
 import type { Program } from "@/types/program"
-import { ArrowRight, BarChart3, Edit, Eye, MoreVertical, AlertCircle, Layers, Target, Clock, Users } from "lucide-react"
+import { ArrowRight, Edit, MoreVertical, AlertCircle, Layers, Target, Clock, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 
@@ -30,10 +30,6 @@ export function ProgramCard({ program }: ProgramCardProps) {
 
   const handleContinueEditing = () => {
     router.push(`/programas/${program.id}/estructura`)
-  }
-
-  const handleViewAnalytics = () => {
-    router.push(`/programas/${program.id}/analytics`)
   }
 
   return (
@@ -109,15 +105,10 @@ export function ProgramCard({ program }: ProgramCardProps) {
         </p>
         <div className="flex items-center gap-2">
           {isPublished ? (
-            <>
-              <Button size="sm" onClick={handleOpenProgram}>
-                Abrir Programa
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-              <Button size="sm" variant="outline" onClick={handleViewAnalytics}>
-                <BarChart3 className="h-4 w-4" />
-              </Button>
-            </>
+            <Button size="sm" onClick={handleOpenProgram}>
+              Abrir Programa
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
           ) : (
             <Button size="sm" onClick={handleContinueEditing}>
               <Edit className="mr-2 h-4 w-4" />

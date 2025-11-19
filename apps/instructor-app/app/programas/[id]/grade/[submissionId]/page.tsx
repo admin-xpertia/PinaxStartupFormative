@@ -2,25 +2,28 @@
 
 import { use, useEffect, useMemo, useState } from "react"
 import useSWR from "swr"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { AppHeader } from "@/components/app-header"
 import { Sidebar } from "@/components/sidebar"
 import { Breadcrumbs } from "@/components/shared/breadcrumbs"
 import { PageHeader } from "@/components/shared/page-header"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertTriangle, Bot, Loader2 } from "lucide-react"
 import { fetcher } from "@/lib/fetcher"
 import { useToast } from "@/hooks/use-toast"
+import { SubmissionViewer } from "@/components/grading/SubmissionViewer"
+import { exerciseInstancesApi } from "@/services/api"
+import type { CohortAnalyticsResponse } from "../../types"
+import type { SubmissionItem } from "../../components/SubmissionQueue"
+import { LoadingState } from "@/components/shared/loading-state"
 
 interface SubmissionDetail {
   id: string
@@ -36,6 +39,7 @@ interface SubmissionDetail {
 
 const API_BASE =
   (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "") || "http://localhost:3000/api/v1"
+const PENDING_STATUSES: SubmissionItem["status"][] = ["submitted_for_review", "pending_review"]
 
 export default function GradingWorkspacePage({
   params,
@@ -46,20 +50,38 @@ export default function GradingWorkspacePage({
   const programId = decodeURIComponent(rawProgramId)
   const submissionId = decodeURIComponent(rawSubmissionId)
   const { toast } = useToast()
+  const router = useRouter()
 
   const { data, error, isLoading, mutate } = useSWR<SubmissionDetail>(
     submissionId ? `${API_BASE}/instructor/submissions/${encodeURIComponent(submissionId)}` : null,
     fetcher,
     { revalidateOnFocus: false },
   )
+  const {
+    data: analyticsData,
+    mutate: mutateAnalyticsData,
+  } = useSWR<CohortAnalyticsResponse>(
+    programId ? `/api/cohorts/${encodeURIComponent(programId)}/analytics` : null,
+    fetcher,
+    { revalidateOnFocus: false, refreshInterval: 0, dedupingInterval: 45_000 },
+  )
+  const exerciseInstanceId = data?.exerciseInstance
+  const { data: exerciseInfo } = useSWR(
+    exerciseInstanceId ? `exercise-instance-${exerciseInstanceId}` : null,
+    () => exerciseInstancesApi.getById(exerciseInstanceId!),
+  )
+  const { data: exerciseContent } = useSWR(
+    exerciseInstanceId ? `exercise-content-${exerciseInstanceId}` : null,
+    () => exerciseInstancesApi.getContent(exerciseInstanceId!),
+  )
 
   const [score, setScore] = useState<number | "">("")
   const [feedback, setFeedback] = useState("")
   const [isSaving, setIsSaving] = useState(false)
+  const [showCompletionPrompt, setShowCompletionPrompt] = useState(false)
 
   const aiFeedback = useMemo(() => data?.feedbackJson ?? null, [data])
   const studentWork = useMemo(() => data?.datosGuardados ?? null, [data])
-
   useEffect(() => {
     if (data) {
       setScore(
@@ -71,6 +93,48 @@ export default function GradingWorkspacePage({
       setFeedback(data.manualFeedback ?? "")
     }
   }, [data])
+
+  useEffect(() => {
+    setShowCompletionPrompt(false)
+  }, [submissionId])
+
+  const getNextPendingSubmissionId = (queue: SubmissionItem[]) => {
+    if (!queue.length) {
+      return null
+    }
+    const sorted = [...queue].sort(
+      (a, b) => new Date(a.entregadoEl).getTime() - new Date(b.entregadoEl).getTime(),
+    )
+    const filtered = sorted.filter((item) => item.progressId !== submissionId)
+    if (!filtered.length) {
+      return null
+    }
+    const currentIndex = sorted.findIndex((item) => item.progressId === submissionId)
+    if (currentIndex !== -1 && sorted[currentIndex + 1]) {
+      return sorted[currentIndex + 1].progressId
+    }
+    return filtered[0].progressId
+  }
+
+  const advanceQueueAfterPublish = async () => {
+    const refreshed = await mutateAnalyticsData()
+    const source = refreshed?.submissions ?? analyticsData?.submissions ?? []
+    const pending = source.filter((item) => PENDING_STATUSES.includes(item.status))
+    const nextId = getNextPendingSubmissionId(pending)
+
+    if (nextId) {
+      setShowCompletionPrompt(false)
+      router.replace(
+        `/programas/${encodeURIComponent(programId)}/grade/${encodeURIComponent(nextId)}`,
+      )
+    } else {
+      setShowCompletionPrompt(true)
+      toast({
+        title: "Todo al día",
+        description: "No hay más entregas pendientes en esta cohorte.",
+      })
+    }
+  }
 
   const handleGrade = async (publish: boolean) => {
     if (score === "" || isNaN(Number(score))) {
@@ -111,11 +175,14 @@ export default function GradingWorkspacePage({
       toast({
         title: publish ? "Nota publicada" : "Borrador guardado",
         description: publish
-          ? "La calificación final fue publicada al estudiante."
+          ? "Cargando siguiente estudiante..."
           : "Guardamos tu borrador de calificación.",
       })
 
-      mutate()
+      await mutate()
+      if (publish) {
+        await advanceQueueAfterPublish()
+      }
     } catch (err: any) {
       toast({
         title: "Error al calificar",
@@ -145,13 +212,32 @@ export default function GradingWorkspacePage({
               title="Calificación de entrega"
               description="Revisa la propuesta de la IA y publica la nota final."
               actions={
-                <Button variant="outline" onClick={() => window.history.back()}>
+                <Button variant="outline" onClick={() => router.back()}>
                   Volver
                 </Button>
               }
             />
 
-            {error ? (
+            {showCompletionPrompt && (
+              <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900">
+                <AlertTitle>¡Todo revisado!</AlertTitle>
+                <AlertDescription className="flex flex-col gap-3 pt-1 text-sm">
+                  No hay más entregas pendientes en esta cohorte. Vuelve al dashboard para monitorear los KPIs.
+                  <div className="flex flex-wrap gap-2">
+                    <Button asChild variant="secondary" size="sm">
+                      <Link href={`/programas/${encodeURIComponent(programId)}`}>Volver al programa</Link>
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => router.push("/programas")}>
+                      Ir a Programas
+                    </Button>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {isLoading ? (
+              <LoadingState text="Cargando entrega..." />
+            ) : error ? (
               <Card>
                 <CardHeader>
                   <CardTitle>Error al cargar la entrega</CardTitle>
@@ -159,102 +245,119 @@ export default function GradingWorkspacePage({
                 </CardHeader>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <Card>
+              <div className="grid gap-6 lg:grid-cols-[3fr,2fr]">
+                <Card className="h-full">
                   <CardHeader>
-                    <CardTitle>Trabajo del estudiante</CardTitle>
+                    <CardTitle>{exerciseInfo?.nombre || "Trabajo del estudiante"}</CardTitle>
                     <CardDescription>
-                      Vista de sólo lectura de la entrega para el ejercicio {data?.exerciseInstance || "N/D"}.
+                      {exerciseInfo?.descripcionBreve || `Instancia ${data?.exerciseInstance || "Sin ID"}`}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Badge variant="outline">
-                        Estado: {data?.status || "pending_review"}
-                      </Badge>
-                      {data?.aiScore !== undefined && data?.aiScore !== null && (
-                        <Badge variant="secondary">IA: {data.aiScore}</Badge>
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                      <Badge variant="outline">Estado: {data?.status || "pending_review"}</Badge>
+                      {typeof data?.aiScore === "number" && (
+                        <Badge variant="secondary">IA sugiere: {data.aiScore}</Badge>
                       )}
                     </div>
                     <Separator />
-                    <div className="rounded-md border bg-muted/30 p-3">
-                      <p className="text-xs text-muted-foreground mb-2">Contenido entregado</p>
-                      <pre className="text-xs whitespace-pre-wrap">
-                        {studentWork ? JSON.stringify(studentWork, null, 2) : "Sin datos"}
-                      </pre>
-                    </div>
-                    {aiFeedback && (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm font-semibold">
-                          <Bot className="h-4 w-4" />
-                          Insights de IA
-                        </div>
-                        {aiFeedback.summary && (
-                          <p className="text-sm text-muted-foreground">{aiFeedback.summary}</p>
-                        )}
-                        {strengths.length > 0 && (
-                          <div>
-                            <div className="text-sm font-medium mb-1">Fortalezas</div>
-                            <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                              {strengths.map((item: string, idx: number) => (
-                                <li key={`s-${idx}`}>{item}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        {improvements.length > 0 && (
-                          <div>
-                            <div className="text-sm font-medium mb-1">Áreas de mejora</div>
-                            <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                              {improvements.map((item: string, idx: number) => (
-                                <li key={`i-${idx}`}>{item}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    <SubmissionViewer
+                      template={exerciseInfo?.template}
+                      submission={studentWork}
+                      exerciseContent={exerciseContent}
+                    />
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Calificación</CardTitle>
-                    <CardDescription>
-                      Ajusta el puntaje sugerido, agrega feedback y decide si publicar.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Puntaje final</label>
-                      <Input
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={score}
-                        onChange={(e) => setScore(e.target.value === "" ? "" : Number(e.target.value))}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Prellenado con la sugerencia de IA. Puedes ajustarlo antes de publicar.
-                      </p>
+                <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card shadow-sm">
+                  <div className="border-b p-4">
+                    <p className="text-xs font-medium uppercase text-muted-foreground">Sugerencia de IA</p>
+                    <div className="flex items-end gap-3">
+                      <span className="text-4xl font-semibold">{data?.aiScore ?? "--"}</span>
+                      <span className="text-sm text-muted-foreground">/100</span>
                     </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Feedback del instructor</label>
+                    <p className="text-sm text-muted-foreground">
+                      Ajusta la recomendación o publica directamente.
+                    </p>
+                  </div>
+                  <div className="flex-1 space-y-4 overflow-y-auto p-4">
+                    {aiFeedback ? (
+                      <div className="space-y-3">
+                        {aiFeedback.summary && (
+                          <div className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
+                            {aiFeedback.summary}
+                          </div>
+                        )}
+                        <Accordion type="multiple" className="rounded-lg border">
+                          {strengths.length > 0 && (
+                            <AccordionItem value="strengths">
+                              <AccordionTrigger className="px-4 py-3 text-sm font-medium">
+                                Fortalezas detectadas
+                              </AccordionTrigger>
+                              <AccordionContent className="px-4 pb-4 text-sm text-muted-foreground">
+                                <ul className="list-disc list-inside space-y-1">
+                                  {strengths.map((item: string, idx: number) => (
+                                    <li key={`strength-${idx}`}>{item}</li>
+                                  ))}
+                                </ul>
+                              </AccordionContent>
+                            </AccordionItem>
+                          )}
+                          {improvements.length > 0 && (
+                            <AccordionItem value="improvements">
+                              <AccordionTrigger className="px-4 py-3 text-sm font-medium">
+                                Áreas de mejora sugeridas
+                              </AccordionTrigger>
+                              <AccordionContent className="px-4 pb-4 text-sm text-muted-foreground">
+                                <ul className="list-disc list-inside space-y-1">
+                                  {improvements.map((item: string, idx: number) => (
+                                    <li key={`improvement-${idx}`}>{item}</li>
+                                  ))}
+                                </ul>
+                              </AccordionContent>
+                            </AccordionItem>
+                          )}
+                        </Accordion>
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                        Aún no hay feedback generado para esta entrega.
+                      </div>
+                    )}
+                  </div>
+                  <div className="sticky bottom-0 border-t bg-background/90 p-4 backdrop-blur supports-[backdrop-filter]:backdrop-blur-lg">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Nota final</label>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={score}
+                          onChange={(e) => setScore(e.target.value === "" ? "" : Number(e.target.value))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Estado actual</label>
+                        <div className="rounded-lg border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+                          {data?.status || "pending_review"}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2 pt-3">
+                      <label className="text-sm font-medium">Comentarios al estudiante</label>
                       <Textarea
-                        rows={6}
-                        placeholder="Escribe comentarios personalizados..."
+                        rows={3}
+                        placeholder="Personaliza el feedback que verá el estudiante..."
                         value={feedback}
                         onChange={(e) => setFeedback(e.target.value)}
                       />
                     </div>
-
-                    <AlertTriangle className="h-4 w-4 text-amber-500" />
-                    <p className="text-sm text-muted-foreground">
-                      Al publicar, el estudiante recibirá esta nota como definitiva.
-                    </p>
-
-                    <div className="flex items-center gap-3 pt-2">
+                    <div className="flex items-center gap-2 py-3 text-xs text-muted-foreground">
+                      <AlertTriangle className="h-4 w-4 text-amber-500" />
+                      Al publicar, la nota se envía inmediatamente al estudiante.
+                    </div>
+                    <div className="flex flex-wrap items-center justify-end gap-3">
                       <Button
                         variant="outline"
                         disabled={isSaving || isLoading}
@@ -263,16 +366,13 @@ export default function GradingWorkspacePage({
                         {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                         Guardar borrador
                       </Button>
-                      <Button
-                        disabled={isSaving || isLoading}
-                        onClick={() => handleGrade(true)}
-                      >
+                      <Button disabled={isSaving || isLoading} onClick={() => handleGrade(true)}>
                         {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                         Publicar nota
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </div>
             )}
           </div>

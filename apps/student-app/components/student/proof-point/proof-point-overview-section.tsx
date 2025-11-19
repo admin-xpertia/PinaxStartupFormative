@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { CheckCircle2, Clock, Play, Lock } from "lucide-react"
+import { CheckCircle2, Clock, Play, Lock, Award, Loader2 } from "lucide-react"
 import type { ProofPointExercise, ProofPointOverview } from "@/types/proof-point"
 import { getExerciseTypeLabel } from "@/lib/proof-point"
 import { cn } from "@/lib/utils"
@@ -12,6 +12,8 @@ interface ProofPointOverviewSectionProps {
   highlightExercise: ProofPointExercise | null
   objectives?: string[]
   onStartExercise: (exercise: ProofPointExercise) => void
+  onShowFeedback?: (exercise: ProofPointExercise) => void
+  feedbackLoadingId?: string | null
 }
 
 export function ProofPointOverviewSection({
@@ -19,8 +21,12 @@ export function ProofPointOverviewSection({
   highlightExercise,
   objectives = [],
   onStartExercise,
+  onShowFeedback,
+  feedbackLoadingId,
 }: ProofPointOverviewSectionProps) {
   const hasObjectives = objectives.length > 0
+  const pendingStatuses = new Set(["pending_review", "submitted_for_review"])
+  const gradedStatuses = new Set(["graded", "approved"])
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-8 py-8 px-4">
@@ -84,6 +90,14 @@ export function ProofPointOverviewSection({
           {proofPoint.exercises.map((exercise) => {
             const isLocked = exercise.status === "locked"
             const isCompleted = exercise.status === "completed"
+            const showFeedbackButton =
+              Boolean(onShowFeedback) &&
+              ((exercise.progressStatus && pendingStatuses.has(exercise.progressStatus)) ||
+                (exercise.progressStatus && gradedStatuses.has(exercise.progressStatus)))
+            const isFeedbackLoading = feedbackLoadingId === exercise.id
+            const isPendingFeedback = Boolean(
+              exercise.progressStatus && pendingStatuses.has(exercise.progressStatus)
+            )
 
             return (
               <div
@@ -138,15 +152,47 @@ export function ProofPointOverviewSection({
                   </div>
                 </div>
 
-                {!isLocked && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Play className="h-4 w-4 text-muted-foreground" />
-                  </Button>
-                )}
+                <div className="flex items-center gap-2">
+                  {showFeedbackButton && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        "flex items-center gap-1",
+                        isPendingFeedback
+                          ? "text-amber-700 border-amber-200"
+                          : "text-emerald-700 border-emerald-200"
+                      )}
+                      disabled={isFeedbackLoading}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        event.preventDefault()
+                        onShowFeedback?.(exercise)
+                      }}
+                    >
+                      {isFeedbackLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : isPendingFeedback ? (
+                        <>
+                          <Clock className="h-4 w-4" /> Rev. IA
+                        </>
+                      ) : (
+                        <>
+                          <Award className="h-4 w-4" /> Nota
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  {!isLocked && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Play className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  )}
+                </div>
               </div>
             )
           })}

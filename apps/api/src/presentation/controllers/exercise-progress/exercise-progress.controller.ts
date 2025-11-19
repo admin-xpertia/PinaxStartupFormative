@@ -222,6 +222,11 @@ export class ExerciseProgressController {
     }
 
     const resolvedStatus = this.normalizeStatusFromRecord(progress);
+    if (this.isSubmissionLockedStatus(resolvedStatus)) {
+      throw new BadRequestException(
+        "Esta entrega ya fue enviada o calificada y solo puede visualizarse.",
+      );
+    }
     const instructorFeedback = progress.instructor_feedback ?? null;
 
     // Update progress
@@ -838,10 +843,44 @@ export class ExerciseProgressController {
         : [recentResult[0]];
     }
 
+    const exerciseMap = new Map<string, any>();
+    for (const exercise of allExercises) {
+      exerciseMap.set(exercise.id, exercise);
+    }
+
+    const missingExerciseIds = Array.from(
+      new Set(
+        recentRecords
+          .map((record) => record.exercise_instance)
+          .filter((exerciseId) => exerciseId && !exerciseMap.has(exerciseId)),
+      ),
+    );
+
+    if (missingExerciseIds.length > 0) {
+      const missingExercisesQuery = `
+        SELECT id, nombre, template, proof_point
+        FROM exercise_instance
+        WHERE id IN [${missingExerciseIds
+          .map((id) => `type::thing('${id}')`)
+          .join(", ")}]
+      `;
+
+      const missingExercisesResult = await this.db.query(missingExercisesQuery);
+      const missingExercises = Array.isArray(missingExercisesResult?.[0])
+        ? missingExercisesResult[0]
+        : Array.isArray(missingExercisesResult)
+          ? missingExercisesResult
+          : [];
+
+      for (const exercise of missingExercises) {
+        if (exercise?.id) {
+          exerciseMap.set(exercise.id, exercise);
+        }
+      }
+    }
+
     const recentCompletedExercises = recentRecords.map((record) => {
-      const exercise = allExercises.find(
-        (e) => e.id === record.exercise_instance,
-      );
+      const exercise = exerciseMap.get(record.exercise_instance);
       const status = this.normalizeStatusFromRecord(record);
       return {
         exerciseId: record.exercise_instance,
@@ -1943,6 +1982,12 @@ ${evaluationDto.respuestaEstudiante}`;
       default:
         return "not_started";
     }
+  }
+
+  private isSubmissionLockedStatus(
+    status: ExerciseProgressStatus,
+  ): boolean {
+    return status === "pending_review" || status === "graded";
   }
 
   /**

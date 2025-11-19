@@ -1,3 +1,5 @@
+import type { ExerciseProgressSummary } from "./progress"
+
 export type ExerciseStatus = "completed" | "in_progress" | "available" | "locked"
 
 export interface ProofPointExercise {
@@ -7,6 +9,8 @@ export interface ProofPointExercise {
   estimatedMinutes: number
   status: ExerciseStatus
   progress: number
+  score?: number | null
+  progressStatus?: ExerciseProgressSummary["status"]
 }
 
 export interface ProofPointOverview {

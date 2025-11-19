@@ -52,7 +52,10 @@ export interface ExerciseProgress {
   instructorFeedback?: Record<string, string>
   aiScore?: number | null
   instructorScore?: number | null
-  finalScore?: number | null
+  scoreFinal?: number | null
+  manualFeedback?: string | null
+  feedbackJson?: Record<string, any> | null
+  datosGuardados?: Record<string, any> | null
   data: any // Progreso específico del tipo de ejercicio
 }
 

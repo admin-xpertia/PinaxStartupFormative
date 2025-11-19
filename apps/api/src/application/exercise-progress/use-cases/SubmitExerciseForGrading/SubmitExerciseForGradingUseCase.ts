@@ -4,6 +4,15 @@ import { Result } from "../../../shared/types/Result";
 import { SurrealDbService } from "../../../../core/database/surrealdb.service";
 import { OpenAIService } from "../../../../infrastructure/ai/OpenAIService";
 
+type ExerciseSubmissionStatus =
+  | "not_started"
+  | "in_progress"
+  | "submitted_for_review"
+  | "pending_review"
+  | "requires_iteration"
+  | "approved"
+  | "graded";
+
 export interface SubmitExerciseForGradingRequest {
   exerciseInstanceId: string;
   estudianteId: string;
@@ -51,6 +60,15 @@ export class SubmitExerciseForGradingUseCase
       if (!progress) {
         return Result.fail(
           new Error("No existe un progreso para este ejercicio y estudiante"),
+        );
+      }
+
+      const normalizedStatus = this.normalizeStatusFromRecord(progress);
+      if (this.isSubmissionLockedStatus(normalizedStatus)) {
+        return Result.fail(
+          new Error(
+            "Esta entrega ya fue enviada o calificada y solo puede visualizarse.",
+          ),
         );
       }
 
@@ -183,6 +201,62 @@ export class SubmitExerciseForGradingUseCase
     }
 
     return content;
+  }
+
+  private normalizeStatusFromRecord(progress: any): ExerciseSubmissionStatus {
+    const mapped = this.normalizeStatusFromString(progress?.status);
+    if (mapped) {
+      return mapped;
+    }
+    return this.mapEstadoToStatus(progress?.estado);
+  }
+
+  private normalizeStatusFromString(
+    status?: string | null,
+  ): ExerciseSubmissionStatus | null {
+    switch (status) {
+      case "not_started":
+      case "in_progress":
+      case "pending_review":
+      case "submitted_for_review":
+      case "requires_iteration":
+      case "approved":
+      case "graded":
+        if (status === "submitted_for_review") {
+          return "pending_review";
+        }
+        if (status === "approved") {
+          return "graded";
+        }
+        return status;
+      default:
+        return null;
+    }
+  }
+
+  private mapEstadoToStatus(
+    estado?: string | null,
+  ): ExerciseSubmissionStatus {
+    switch (estado) {
+      case "no_iniciado":
+        return "not_started";
+      case "en_progreso":
+        return "in_progress";
+      case "pendiente_revision":
+        return "pending_review";
+      case "revision_requerida":
+        return "requires_iteration";
+      case "completado":
+        return "graded";
+      default:
+        return "not_started";
+    }
+  }
+
+  private isSubmissionLockedStatus(
+    status: ExerciseSubmissionStatus,
+  ): boolean {
+    return status === "pending_review" || status === "graded";
   }
 
   private extractEvaluationCriteria(contenido: any): string[] {

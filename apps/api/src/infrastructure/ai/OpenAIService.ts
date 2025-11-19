@@ -177,22 +177,19 @@ export class OpenAIService {
   private buildSystemPrompt(request: GenerateContentRequest): string {
     const { template } = request;
 
-    const basePrompt = `Eres un diseñador instruccional experto especializado en crear contenido educativo de alta calidad para programas de emprendimiento e innovación.
+    const templateRole = template.getRolIA()?.trim();
+    const roleDefinition =
+      templateRole && templateRole.length > 0
+        ? templateRole
+        : "Eres un diseñador instruccional experto en crear contenido educativo adaptado al contexto del programa.";
 
-Tu rol específico es: ${template.getRolIA() || "crear contenido educativo efectivo y atractivo"}.
-
-Objetivo pedagógico: ${template.getObjetivoPedagogico() || "facilitar el aprendizaje efectivo del estudiante"}.
-
+    const technicalInstructions = `
 IMPORTANTE:
 - Genera contenido en español
-- Usa un tono profesional pero accesible
-- Incluye ejemplos prácticos y relevantes
-- Estructura el contenido de forma clara y progresiva
-- Adapta la complejidad al nivel del estudiante
 - SIEMPRE devuelve la respuesta en formato JSON válido
 - La respuesta debe seguir exactamente la estructura del schema de salida`;
 
-    return basePrompt;
+    return `${roleDefinition}\n\n${technicalInstructions}`;
   }
 
   /**
@@ -231,7 +228,11 @@ IMPORTANTE:
 
 FORMATO PARA EJEMPLOS PRÁCTICOS:
 - Incluye al menos ${requiredExamples} ejemplos prácticos que conecten el concepto con situaciones reales del proof point.
-- Cuando desarrolles un ejemplo completo encapsúlalo en un bloque \`\`\`example { ... }\`\`\`.
+- Cuando desarrolles un ejemplo completo, encapsúlalo en un bloque de código "example".
+- IMPORTANTE: El contenido JSON debe comenzar en una línea nueva. Ejemplo:
+  \`\`\`example
+  { ... }
+  \`\`\`
 - El JSON del bloque debe contener "titulo" (o "title"), "contexto" (o "context"), "pasos"/"steps" (lista de 3 a 5 bullets) y "resultado"/"result". Puedes agregar "metricas"/"metrics" (pares etiqueta-valor) y "casos"/"cases" con sub-escenarios.
 - Después de cada bloque example continúa con el flujo narrativo del artículo.`;
     }
@@ -264,6 +265,7 @@ FORMATO PARA EJEMPLOS PRÁCTICOS:
         : "{}";
 
     return {
+      ...configuration,
       programa: programaData,
       fase: faseData,
       proof_point: proofPointData,

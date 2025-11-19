@@ -7,17 +7,7 @@ import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   ChevronLeft,
   ChevronRight,
@@ -32,7 +22,6 @@ import {
   Send,
   CheckCircle2,
   Loader2,
-  AlertTriangle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -42,6 +31,7 @@ import {
   type SubmitForGradingResponse,
 } from "@/services/api"
 import { useToast } from "@/hooks/use-toast"
+import { PreliminaryScoreModal } from "@/components/preliminary-score-modal"
 
 export interface Section {
   id: string
@@ -107,17 +97,6 @@ export function ExercisePlayerEnhanced({
 
   const progress = (currentStep / totalSteps) * 100
   const isLastStep = currentStep === totalSteps
-  const aiScoreValue = Math.round(aiResult?.aiScore ?? 0)
-  const aiStrengths = Array.isArray(aiResult?.feedback?.strengths)
-    ? aiResult.feedback.strengths
-    : []
-  const aiImprovements = Array.isArray(aiResult?.feedback?.improvements)
-    ? aiResult.feedback.improvements
-    : []
-  const aiSummary =
-    (aiResult?.feedback as any)?.summary ||
-    (aiResult?.feedback as any)?.suggestion ||
-    ""
 
   // Start exercise on mount
   useEffect(() => {
@@ -271,10 +250,6 @@ export function ExercisePlayerEnhanced({
         title: "Entrega enviada",
         description: "Generamos una calificación preliminar con IA. El instructor la revisará.",
       })
-
-      if (onComplete) {
-        await onComplete(result)
-      }
     } catch (error: any) {
       toast({
         title: "Error al completar",
@@ -328,7 +303,11 @@ export function ExercisePlayerEnhanced({
 
   const handleCloseResults = async () => {
     setShowResultModal(false)
-    router.push("/dashboard")
+    if (onComplete && aiResult) {
+      await onComplete(aiResult)
+    } else {
+      router.push("/dashboard")
+    }
   }
 
   return (
@@ -585,93 +564,11 @@ export function ExercisePlayerEnhanced({
         </div>
       </footer>
 
-      <Dialog
+      <PreliminaryScoreModal
         open={showResultModal}
-        onOpenChange={(open) => {
-          if (!open) {
-            handleCloseResults()
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Calificación preliminar</DialogTitle>
-            <DialogDescription>
-              La IA analizó tu entrega. El instructor revisará y publicará la nota final.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid gap-4">
-            <div className="flex items-center gap-6">
-              <div
-                className="relative h-32 w-32 rounded-full"
-                style={{
-                  background: `conic-gradient(hsl(var(--primary)) ${aiScoreValue * 3.6}deg, hsl(var(--muted)) 0deg)`,
-                }}
-              >
-                <div className="absolute inset-3 rounded-full bg-background flex items-center justify-center border">
-                  <div className="text-center">
-                    <div className="text-3xl font-bold">{aiScoreValue}</div>
-                    <div className="text-xs text-muted-foreground">/100</div>
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">
-                  {aiSummary || "Generamos un puntaje automático basado en la rúbrica del ejercicio."}
-                </p>
-                <div className="flex items-center gap-2 text-sm">
-                  <Badge variant="outline">Estado: pendiente de revisión</Badge>
-                  {aiResult?.submittedAt && (
-                    <span className="text-xs text-muted-foreground">
-                      Enviado {new Date(aiResult.submittedAt).toLocaleString()}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-3">
-              {aiStrengths.length > 0 && (
-                <Card className="p-3">
-                  <div className="text-sm font-semibold mb-1">Fortalezas detectadas</div>
-                  <ul className="list-disc list-inside text-sm space-y-1 text-muted-foreground">
-                    {aiStrengths.map((item, index) => (
-                      <li key={index}>{item}</li>
-                    ))}
-                  </ul>
-                </Card>
-              )}
-
-              {aiImprovements.length > 0 && (
-                <Card className="p-3">
-                  <div className="text-sm font-semibold mb-1">Oportunidades de mejora</div>
-                  <ul className="list-disc list-inside text-sm space-y-1 text-muted-foreground">
-                    {aiImprovements.map((item, index) => (
-                      <li key={index}>{item}</li>
-                    ))}
-                  </ul>
-                </Card>
-              )}
-
-              <Alert variant="default" className="bg-amber-50 text-amber-900 border-amber-200">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Nota preliminar</AlertTitle>
-                <AlertDescription>
-                  Esta es una calificación preliminar basada en el análisis automático. Tu instructor revisará
-                  esta entrega y la nota final podría cambiar.
-                </AlertDescription>
-              </Alert>
-            </div>
-          </div>
-
-          <DialogFooter className="mt-2">
-            <Button onClick={handleCloseResults} className="w-full md:w-auto">
-              Ir al dashboard
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        result={aiResult}
+        onClose={handleCloseResults}
+      />
     </div>
   )
 }

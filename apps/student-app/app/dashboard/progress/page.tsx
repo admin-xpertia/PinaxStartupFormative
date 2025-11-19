@@ -23,13 +23,7 @@ import { progressApi } from "@/services/api"
 import type { CompletedExercise } from "@/services/api/progress.api"
 import { cn } from "@/lib/utils"
 import { useStudentSession } from "@/lib/hooks/use-student-session"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { SubmissionFeedbackDialog } from "@/components/student/shared/SubmissionFeedbackDialog"
 
 export default function ProgressDashboardPage() {
   const { estudianteId, cohortId } = useStudentSession()
@@ -288,6 +282,13 @@ export default function ProgressDashboardPage() {
                         const isGraded =
                           exercise.status === "graded" ||
                           exercise.status === "approved"
+                        const hasFeedbackData = Boolean(
+                          exercise.feedbackJson ||
+                          exercise.manualFeedback ||
+                          (exercise.aiScore !== null && exercise.aiScore !== undefined) ||
+                          (exercise.instructorScore !== null && exercise.instructorScore !== undefined) ||
+                          (exercise.score !== null && exercise.score !== undefined)
+                        )
                         const displayedDate = exercise.completedAt || exercise.submittedAt
                         return (
                           <div className="flex items-start justify-between gap-4">
@@ -332,16 +333,29 @@ export default function ProgressDashboardPage() {
                                   </span>
                                 </div>
                               ) : null}
-                              {isGraded &&
-                                (exercise.feedbackJson || exercise.manualFeedback) && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => setSelectedExercise(exercise)}
-                                  >
-                                    Ver feedback
-                                  </Button>
-                                )}
+                              {(isPending || isGraded) && hasFeedbackData && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setSelectedExercise(exercise)}
+                                  className={cn(
+                                    "flex items-center gap-1",
+                                    isPending
+                                      ? "border-amber-200 text-amber-700"
+                                      : "border-emerald-200 text-emerald-700"
+                                  )}
+                                >
+                                  {isPending ? (
+                                    <>
+                                      <Clock className="h-4 w-4" /> Rev. IA
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Award className="h-4 w-4" /> Ver feedback
+                                    </>
+                                  )}
+                                </Button>
+                              )}
                             </div>
                           </div>
                         )
@@ -405,91 +419,15 @@ export default function ProgressDashboardPage() {
           </Card>
         )}
       </main>
-
-      <Dialog
+      <SubmissionFeedbackDialog
         open={!!selectedExercise}
         onOpenChange={(open) => {
           if (!open) {
             setSelectedExercise(null)
           }
         }}
-      >
-        <DialogContent className="sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle>{selectedExercise?.exerciseName || "Feedback de entrega"}</DialogTitle>
-            <DialogDescription>
-              Vista combinada del feedback automático y los comentarios del instructor.
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedExercise && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge variant="secondary">
-                  Nota final: {selectedExercise.score ?? "N/D"}
-                </Badge>
-                {selectedExercise.aiScore !== null && selectedExercise.aiScore !== undefined && (
-                  <Badge variant="outline">Sugerencia IA: {selectedExercise.aiScore}</Badge>
-                )}
-                {selectedExercise.instructorScore !== null &&
-                  selectedExercise.instructorScore !== undefined && (
-                    <Badge variant="outline">
-                      Instructor: {selectedExercise.instructorScore}
-                    </Badge>
-                  )}
-              </div>
-
-              {selectedExercise.manualFeedback && (
-                <Card className="p-3">
-                  <div className="text-sm font-semibold mb-1">Comentario del instructor</div>
-                  <p className="text-sm text-muted-foreground whitespace-pre-line">
-                    {selectedExercise.manualFeedback}
-                  </p>
-                </Card>
-              )}
-
-              {selectedExercise.feedbackJson ? (
-                <div className="grid gap-3">
-                  <div className="text-sm font-semibold">Resumen IA</div>
-                  {(selectedExercise.feedbackJson.summary ||
-                    selectedExercise.feedbackJson.suggestion) && (
-                    <p className="text-sm text-muted-foreground">
-                      {selectedExercise.feedbackJson.summary ||
-                        selectedExercise.feedbackJson.suggestion}
-                    </p>
-                  )}
-                  {Array.isArray(selectedExercise.feedbackJson.strengths) &&
-                    selectedExercise.feedbackJson.strengths.length > 0 && (
-                      <Card className="p-3">
-                        <div className="text-sm font-semibold mb-1">Fortalezas</div>
-                        <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                          {selectedExercise.feedbackJson.strengths.map((item: string, idx: number) => (
-                            <li key={`strength-${idx}`}>{item}</li>
-                          ))}
-                        </ul>
-                      </Card>
-                    )}
-                  {Array.isArray(selectedExercise.feedbackJson.improvements) &&
-                    selectedExercise.feedbackJson.improvements.length > 0 && (
-                      <Card className="p-3">
-                        <div className="text-sm font-semibold mb-1">Mejoras sugeridas</div>
-                        <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                          {selectedExercise.feedbackJson.improvements.map((item: string, idx: number) => (
-                            <li key={`improvement-${idx}`}>{item}</li>
-                          ))}
-                        </ul>
-                      </Card>
-                    )}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Aún no hay feedback detallado disponible para esta entrega.
-                </p>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+        submission={selectedExercise}
+      />
     </div>
   )
 }
