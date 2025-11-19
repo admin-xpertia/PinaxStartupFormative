@@ -103,44 +103,55 @@ export class ExerciseProgressController {
     @Query("estudianteId") estudianteIdQuery?: string,
     @Query("cohorteId") cohorteIdQuery?: string,
   ): Promise<ExerciseProgressResponseDto> {
-    const decodedId = decodeURIComponent(exerciseId);
+    try {
+      // Handle double URL encoding
+      let decodedId = decodeURIComponent(exerciseId);
+      // Check if still encoded (contains %)
+      if (decodedId.includes('%')) {
+        decodedId = decodeURIComponent(decodedId);
+      }
+      this.logger.debug(`[startExercise] Original: ${exerciseId}, Decoded: ${decodedId}`);
 
-    const { estudianteId, cohorteId } = this.resolveStudentContext({
-      bodyEstudianteId: startDto.estudianteId,
-      bodyCohorteId: startDto.cohorteId,
-      queryEstudianteId: estudianteIdQuery,
-      queryCohorteId: cohorteIdQuery,
-    });
+      const { estudianteId, cohorteId } = this.resolveStudentContext({
+        bodyEstudianteId: startDto.estudianteId,
+        bodyCohorteId: startDto.cohorteId,
+        queryEstudianteId: estudianteIdQuery,
+        queryCohorteId: cohorteIdQuery,
+      });
 
-    await this.getPublishedExerciseOrThrow(decodedId);
+      await this.getPublishedExerciseOrThrow(decodedId);
 
-    const existingProgress = await this.findProgressRecord(
-      decodedId,
-      estudianteId,
-      cohorteId,
-    );
+      const existingProgress = await this.findProgressRecord(
+        decodedId,
+        estudianteId,
+        cohorteId,
+      );
 
-    // If progress exists, return it
-    if (existingProgress) {
-      return this.mapProgressToDto(existingProgress);
+      // If progress exists, return it
+      if (existingProgress) {
+        return this.mapProgressToDto(existingProgress);
+      }
+
+      const newProgress = await this.createProgressRecord({
+        exerciseId: decodedId,
+        estudianteId,
+        cohorteId,
+        estado: "en_progreso",
+        status: "in_progress",
+        porcentajeCompletitud: 0,
+        tiempoInvertidoMinutos: 0,
+        datosGuardados: {},
+      });
+
+      if (!newProgress) {
+        throw new BadRequestException("Failed to create progress record");
+      }
+
+      return this.mapProgressToDto(newProgress);
+    } catch (error) {
+      this.logger.error(`[startExercise] Error: ${error.message}`, error.stack);
+      throw error;
     }
-
-    const newProgress = await this.createProgressRecord({
-      exerciseId: decodedId,
-      estudianteId,
-      cohorteId,
-      estado: "en_progreso",
-      status: "in_progress",
-      porcentajeCompletitud: 0,
-      tiempoInvertidoMinutos: 0,
-      datosGuardados: {},
-    });
-
-    if (!newProgress) {
-      throw new BadRequestException("Failed to create progress record");
-    }
-
-    return this.mapProgressToDto(newProgress);
   }
 
   /**
@@ -168,7 +179,10 @@ export class ExerciseProgressController {
     @Query("estudianteId") estudianteIdQuery?: string,
     @Query("cohorteId") cohorteIdQuery?: string,
   ): Promise<ExerciseProgressResponseDto> {
-    const decodedId = decodeURIComponent(exerciseId);
+    this.logger.debug(`[DEBUG] saveProgress - Received DTO: ${JSON.stringify(saveDto)}`);
+    this.logger.debug(`[DEBUG] saveProgress - datos field: ${JSON.stringify(saveDto.datos)}`);
+
+    const decodedId = this.decodeExerciseId(exerciseId);
     const { estudianteId, cohorteId } = this.resolveStudentContext({
       bodyEstudianteId: saveDto.estudianteId,
       bodyCohorteId: saveDto.cohorteId,
@@ -182,6 +196,11 @@ export class ExerciseProgressController {
       cohorteId,
     );
 
+    const normalizedDatos = this.normalizeDatosForStorage(
+      saveDto.datos ?? progress?.datos_guardados ?? progress?.datos,
+      progress?.datos_guardados ?? progress?.datos ?? {},
+    );
+
     if (!progress) {
       await this.getPublishedExerciseOrThrow(decodedId);
       progress = await this.createProgressRecord({
@@ -192,7 +211,7 @@ export class ExerciseProgressController {
         status: "in_progress",
         porcentajeCompletitud: saveDto.porcentajeCompletitud ?? 0,
         tiempoInvertidoMinutos: saveDto.tiempoInvertidoMinutos ?? 0,
-        datosGuardados: saveDto.datos ?? {},
+        datosGuardados: normalizedDatos,
       });
     }
 
@@ -204,7 +223,6 @@ export class ExerciseProgressController {
 
     const resolvedStatus = this.normalizeStatusFromRecord(progress);
     const instructorFeedback = progress.instructor_feedback ?? null;
-    const submittedAt = progress.submitted_at ?? null;
 
     // Update progress
     const updateQuery = `
@@ -213,8 +231,8 @@ export class ExerciseProgressController {
         porcentaje_completitud = $porcentaje,
         tiempo_invertido_minutos = $tiempo,
         datos_guardados = $datos,
+        datos = $datos,
         instructor_feedback = $instructorFeedback,
-        submitted_at = $submittedAt,
         updated_at = time::now()
       RETURN AFTER
     `;
@@ -226,9 +244,8 @@ export class ExerciseProgressController {
         saveDto.porcentajeCompletitud ?? progress.porcentaje_completitud,
       tiempo:
         saveDto.tiempoInvertidoMinutos ?? progress.tiempo_invertido_minutos,
-      datos: saveDto.datos ?? progress.datos_guardados ?? {},
+      datos: normalizedDatos,
       instructorFeedback,
-      submittedAt,
     });
 
     let updatedProgress: any;
@@ -274,7 +291,7 @@ export class ExerciseProgressController {
     @Query("estudianteId") estudianteIdQuery?: string,
     @Query("cohorteId") cohorteIdQuery?: string,
   ): Promise<SubmitExerciseForGradingResponseDto> {
-    const decodedId = decodeURIComponent(exerciseId);
+    const decodedId = this.decodeExerciseId(exerciseId);
     const { estudianteId, cohorteId } = this.resolveStudentContext({
       bodyEstudianteId: submitDto.estudianteId,
       bodyCohorteId: submitDto.cohorteId,
@@ -290,7 +307,7 @@ export class ExerciseProgressController {
       tiempoInvertidoMinutos: submitDto.tiempoInvertidoMinutos,
     });
 
-    if (result.isFailure) {
+    if (result.isFail()) {
       throw new BadRequestException(result.getError());
     }
 
@@ -327,7 +344,7 @@ export class ExerciseProgressController {
     @Query("estudianteId") estudianteIdQuery?: string,
     @Query("cohorteId") cohorteIdQuery?: string,
   ): Promise<CompleteExerciseResponseDto> {
-    const decodedId = decodeURIComponent(exerciseId);
+    const decodedId = this.decodeExerciseId(exerciseId);
     const { estudianteId, cohorteId } = this.resolveStudentContext({
       bodyEstudianteId: completeDto.estudianteId,
       bodyCohorteId: completeDto.cohorteId,
@@ -470,7 +487,7 @@ export class ExerciseProgressController {
     @Body() gradeDto: ReviewAndGradeSubmissionDto,
     @User() user?: any,
   ): Promise<ReviewAndGradeSubmissionResponseDto> {
-    const decodedId = decodeURIComponent(submissionId);
+    const decodedId = this.decodeExerciseId(submissionId);
 
     const result = await this.reviewAndGradeSubmission.execute({
       submissionId: decodedId,
@@ -480,7 +497,7 @@ export class ExerciseProgressController {
       publish: gradeDto.publish,
     });
 
-    if (result.isFailure) {
+    if (result.isFail()) {
       const error = result.getError();
       if (error.message.includes("No se encontró")) {
         throw new NotFoundException(error.message);
@@ -520,7 +537,7 @@ export class ExerciseProgressController {
     @Query("estudianteId") estudianteId?: string,
     @Query("cohorteId") cohorteId?: string,
   ): Promise<ExerciseProgressResponseDto> {
-    const decodedId = decodeURIComponent(exerciseId);
+    const decodedId = this.decodeExerciseId(exerciseId);
     const { estudianteId: resolvedEstudianteId, cohorteId: resolvedCohorteId } =
       this.resolveStudentContext({
         queryEstudianteId: estudianteId,
@@ -1230,6 +1247,14 @@ export class ExerciseProgressController {
       null;
 
     if (!estudianteId || !cohorteId) {
+      this.logger.error(`[resolveStudentContext] Missing required parameters:`, {
+        bodyEstudianteId: params.bodyEstudianteId,
+        bodyCohorteId: params.bodyCohorteId,
+        queryEstudianteId: params.queryEstudianteId,
+        queryCohorteId: params.queryCohorteId,
+        env_DEFAULT_STUDENT_ID: process.env.DEFAULT_STUDENT_ID,
+        env_DEFAULT_COHORTE_ID: process.env.DEFAULT_COHORTE_ID,
+      });
       throw new BadRequestException(
         "Los parámetros estudianteId y cohorteId son requeridos",
       );
@@ -1302,6 +1327,11 @@ export class ExerciseProgressController {
       datosGuardados,
     } = params;
 
+    const sanitizedDatos = this.normalizeDatosForStorage(
+      datosGuardados,
+      datosGuardados ?? {},
+    );
+
     const createProgressQuery = `
       CREATE exercise_progress CONTENT {
         exercise_instance: type::thing($exerciseId),
@@ -1311,9 +1341,11 @@ export class ExerciseProgressController {
         status: $status,
         porcentaje_completitud: $porcentaje,
         fecha_inicio: time::now(),
-        submitted_at: null,
+        -- optional fields must be set to NONE instead of null to satisfy Surreal schema
+        submitted_at: none,
         instructor_feedback: {},
         datos_guardados: $datosGuardados,
+        datos: $datosGuardados,
         tiempo_invertido_minutos: $tiempo,
         numero_intentos: 1,
         created_at: time::now(),
@@ -1329,10 +1361,33 @@ export class ExerciseProgressController {
       status: status ?? "in_progress",
       porcentaje: Math.max(0, Math.min(100, porcentajeCompletitud ?? 0)),
       tiempo: Math.max(0, tiempoInvertidoMinutos ?? 0),
-      datosGuardados: datosGuardados ?? {},
+      datosGuardados: sanitizedDatos,
     });
 
     return this.extractFirstRecord(createResult);
+  }
+
+  private normalizeDatosForStorage(
+    raw: any,
+    fallback: any = {},
+  ): Record<string, any> | any[] {
+    if (raw === undefined || raw === null) {
+      return fallback ?? {};
+    }
+
+    try {
+      const cloned = JSON.parse(JSON.stringify(raw));
+      if (cloned && typeof cloned === "object") {
+        return cloned;
+      }
+      return { value: cloned };
+    } catch (error) {
+      this.logger.warn(
+        `[normalizeDatosForStorage] No se pudo serializar datos, usando fallback`,
+        error instanceof Error ? error.message : error,
+      );
+      return fallback ?? {};
+    }
   }
 
   private extractFirstRecord(result: any): any | null {
@@ -1345,6 +1400,14 @@ export class ExerciseProgressController {
       }
     }
     return null;
+  }
+
+  private decodeExerciseId(id: string): string {
+    let decoded = decodeURIComponent(id);
+    if (decoded.includes("%")) {
+      decoded = decodeURIComponent(decoded);
+    }
+    return decoded;
   }
 
   /**
@@ -1887,6 +1950,10 @@ ${evaluationDto.respuestaEstudiante}`;
    */
   private mapProgressToDto(progress: any): ExerciseProgressResponseDto {
     const status = this.normalizeStatusFromRecord(progress);
+    const datosGuardados =
+      progress?.datos_guardados ??
+      progress?.datos ??
+      {};
 
     return {
       id: progress.id,
@@ -1908,7 +1975,7 @@ ${evaluationDto.respuestaEstudiante}`;
       manualFeedback: progress.manual_feedback ?? null,
       feedbackJson: progress.feedback_json ?? null,
       instructorFeedback: progress.instructor_feedback,
-      datosGuardados: progress.datos_guardados,
+      datosGuardados,
       createdAt: progress.created_at,
       updatedAt: progress.updated_at,
     };

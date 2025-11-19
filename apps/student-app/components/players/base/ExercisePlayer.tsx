@@ -100,8 +100,10 @@ export function ExercisePlayer({
     if (!onSave) return
     setIsSaving(true)
     try {
-      // The parent component should pass the exercise data
-      await onSave({})
+      // Call onSave - the parent player component (e.g., CuadernoTrabajoPlayer)
+      // wraps this with handleSaveWithData which includes the actual exercise data
+      // The argument here is ignored by the wrapper function
+      await onSave(undefined as any)
 
       // Show success toast
       toast({
@@ -125,7 +127,9 @@ export function ExercisePlayer({
     if (!onComplete) return
     setIsCompleting(true)
     try {
-      await onComplete({})
+      // Call onComplete - the parent player component wraps this with
+      // handleCompleteWithData which includes the actual exercise data
+      await onComplete(undefined as any)
 
       // Show celebration toast
       toast({

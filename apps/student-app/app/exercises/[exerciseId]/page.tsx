@@ -4,7 +4,12 @@ import { useEffect, useMemo, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import useSWR from "swr"
 import { exercisesApi } from "@/services/api"
-import type { CompleteExerciseParams, SaveProgressParams } from "@/services/api"
+import type {
+  CompleteExerciseParams,
+  SaveProgressParams,
+  SubmitForGradingParams,
+  SubmitForGradingResponse,
+} from "@/services/api"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
 import { useStudentSession } from "@/lib/hooks/use-student-session"
@@ -120,6 +125,8 @@ export default function ExercisePage() {
   }
 
   const normalizeSavePayload = (rawData: any): SaveProgressParams => {
+    console.log('[DEBUG] normalizeSavePayload - Input rawData:', rawData)
+
     if (rawData && typeof rawData === "object") {
       const {
         datos,
@@ -130,6 +137,10 @@ export default function ExercisePage() {
         ...rest
       } = rawData as Record<string, any>
 
+      console.log('[DEBUG] normalizeSavePayload - Extracted datos:', datos)
+      console.log('[DEBUG] normalizeSavePayload - Rest:', rest)
+      console.log('[DEBUG] normalizeSavePayload - Will use:', datos ?? rest)
+
       return {
         estudianteId: (payloadEstudianteId as string) ?? estudianteId,
         cohorteId: (payloadCohorteId as string) ?? cohortId,
@@ -139,6 +150,7 @@ export default function ExercisePage() {
       }
     }
 
+    console.log('[DEBUG] normalizeSavePayload - Using rawData directly')
     return {
       estudianteId: estudianteId!,
       cohorteId: cohortId!,
@@ -180,7 +192,10 @@ export default function ExercisePage() {
     }
 
     try {
+      console.log('[DEBUG] handleSave - Raw data received:', data)
       const payload = normalizeSavePayload(data)
+      console.log('[DEBUG] handleSave - Normalized payload:', payload)
+      console.log('[DEBUG] handleSave - Payload.datos:', payload.datos)
       await exercisesApi.saveProgress(exerciseId, payload)
       toast.success("Progreso guardado exitosamente")
     } catch (error) {
@@ -197,24 +212,26 @@ export default function ExercisePage() {
     }
 
     try {
-      const payload = normalizeCompletePayload(data)
-      const result = await exercisesApi.complete(exerciseId, payload)
-      toast.success("¡Ejercicio completado! 🎉")
+      const payload = normalizeCompletePayload(data) as SubmitForGradingParams
+      const result: SubmitForGradingResponse = await exercisesApi.submitForGrading(
+        exerciseId,
+        payload,
+      )
+
+      toast.success(
+        `Entrega enviada. Calificación preliminar IA: ${Math.round(result.aiScore)} / 100`,
+      )
 
       // Navigate based on completion result
-      if (result.nextExerciseId) {
-        router.push(`/exercises/${result.nextExerciseId}`)
-      } else if (result.proofPointCompleted && proofPointId) {
-        toast.success("¡Proof Point completado! 🌟")
-        router.push("/dashboard")
-      } else if (proofPointId) {
+      if (proofPointId) {
         router.push(`/proof-points/${proofPointId}`)
-      } else {
-        router.push("/dashboard")
+        return
       }
+
+      router.push("/dashboard")
     } catch (error) {
       console.error("Error completing exercise:", error)
-      toast.error("Error al completar el ejercicio")
+      toast.error("Error al enviar la entrega")
       throw error
     }
   }
@@ -290,22 +307,52 @@ export default function ExercisePage() {
       return <LeccionInteractivaPlayer {...baseProps} content={exercise.content as any} />
 
     case "cuaderno_trabajo":
-      return <CuadernoTrabajoPlayer {...baseProps} content={exercise.content as any} />
+      return (
+        <CuadernoTrabajoPlayer
+          {...baseProps}
+          content={exercise.content as any}
+          initialResponses={(exercise as any).savedData || {}}
+        />
+      )
 
     case "simulacion_interaccion":
-      return <SimulacionInteraccionPlayer {...baseProps} content={exercise.content as any} />
+      return (
+        <SimulacionInteraccionPlayer
+          {...baseProps}
+          content={exercise.content as any}
+          savedData={(exercise as any).savedData}
+        />
+      )
 
     case "mentor_ia":
-      return <MentorIAPlayer {...baseProps} content={exercise.content as any} />
+      return (
+        <MentorIAPlayer
+          {...baseProps}
+          content={exercise.content as any}
+          initialResponses={(exercise as any).savedData || {}}
+        />
+      )
 
     case "herramienta_analisis":
       return <HerramientaAnalisisPlayer {...baseProps} content={exercise.content as any} />
 
     case "herramienta_creacion":
-      return <HerramientaCreacionPlayer {...baseProps} content={exercise.content as any} />
+      return (
+        <HerramientaCreacionPlayer
+          {...baseProps}
+          content={exercise.content as any}
+          savedData={(exercise as any).savedData}
+        />
+      )
 
     case "sistema_tracking":
-      return <SistemaTrackingPlayer {...baseProps} content={exercise.content as any} />
+      return (
+        <SistemaTrackingPlayer
+          {...baseProps}
+          content={exercise.content as any}
+          savedData={(exercise as any).savedData}
+        />
+      )
 
     case "herramienta_revision":
       return <HerramientaRevisionPlayer {...baseProps} content={exercise.content as any} />

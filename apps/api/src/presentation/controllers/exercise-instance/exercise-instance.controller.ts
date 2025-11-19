@@ -975,7 +975,10 @@ export class ExerciseInstanceController {
         }
 
         if (progress) {
-          savedData = progress.datos_guardados;
+          savedData =
+            progress.datos_guardados ??
+            progress.datos ??
+            undefined;
           progressStatus = progress.status || progress.estado;
           progressPercentage = progress.porcentaje_completitud;
         }

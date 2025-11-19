@@ -81,24 +81,40 @@ export class SubmitExerciseForGradingUseCase
         submissionData,
       });
 
+      const feedbackValue = this.normalizeFeedbackForStorage(
+        aiJudgement.feedback,
+        aiJudgement.score,
+      );
+
+      const finalScoreForRecord =
+        typeof progress.final_score === "number"
+          ? progress.final_score
+          : typeof progress.score_final === "number"
+            ? progress.score_final
+            : aiJudgement.score ?? 0;
+
       const updateResult = await this.db.query(
         `
-        UPDATE type::thing($progressId) SET
-          estado = 'pendiente_revision',
-          status = 'pending_review',
-          porcentaje_completitud = 100,
-          submitted_at = time::now(),
-          ai_score = $aiScore,
-          feedback_json = $feedback,
-          datos_guardados = $datos,
-          tiempo_invertido_minutos = $tiempoInvertido,
-          updated_at = time::now()
-        RETURN AFTER
+        UPDATE type::thing($progressId) MERGE {
+          estado: 'pendiente_revision',
+          status: 'pending_review',
+          porcentaje_completitud: 100,
+          submitted_at: time::now(),
+          ai_score: $aiScore,
+          final_score: $finalScore,
+          graded_at: time::now(),
+          feedback_json: $feedback,
+          feedback_data: $feedback,
+          datos_guardados: $datos,
+          tiempo_invertido_minutos: $tiempoInvertido,
+          updated_at: time::now()
+        } RETURN AFTER
       `,
         {
           progressId: progress.id,
           aiScore: aiJudgement.score,
-          feedback: aiJudgement.feedback,
+          finalScore: finalScoreForRecord,
+          feedback: feedbackValue,
           datos: submissionData,
           tiempoInvertido: Math.max(request.tiempoInvertidoMinutos ?? 0, 0),
         },
@@ -112,7 +128,7 @@ export class SubmitExerciseForGradingUseCase
       return Result.ok({
         id: updated.id,
         aiScore: aiJudgement.score,
-        feedback: aiJudgement.feedback,
+        feedback: feedbackValue,
         status: updated.status ?? "pending_review",
         submittedAt: updated.submitted_at,
       });
@@ -154,7 +170,7 @@ export class SubmitExerciseForGradingUseCase
       LIMIT 1
     `;
 
-    const [contentResult] = await this.db.query(query, {
+    const contentResult = await this.db.query(query, {
       exerciseId: exerciseInstanceId,
     });
 
@@ -265,7 +281,7 @@ Devuelve SIEMPRE un JSON válido con la estructura:
     const aiResponse = await this.openAIService.generateChatResponse({
       systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
-      maxTokens: 4000,
+      maxTokens: 7500,
       responseFormat: { type: "json_object" },
     });
 
@@ -276,13 +292,21 @@ Devuelve SIEMPRE un JSON válido con la estructura:
         Math.min(100, Number(parsed.score) || Number(parsed.rubricAlignment) || 0),
       );
 
+      const summaryString =
+        parsed.summary ||
+        parsed.suggestion ||
+        parsed.ai_analysis ||
+        "Análisis automático generado para tu entrega.";
+
+      const aiAnalysisString =
+        typeof parsed.ai_analysis === "string"
+          ? parsed.ai_analysis
+          : summaryString;
+
       return {
         score,
         feedback: {
-          summary:
-            parsed.summary ||
-            parsed.suggestion ||
-            "Análisis automático generado para tu entrega.",
+          summary: summaryString,
           strengths: parsed.strengths || [],
           improvements: parsed.improvements || [],
           rubricAlignment: Math.max(
@@ -290,6 +314,7 @@ Devuelve SIEMPRE un JSON válido con la estructura:
             Math.min(100, Number(parsed.rubricAlignment) || score),
           ),
           notes: parsed.notes || "",
+          ai_analysis: aiAnalysisString,
           raw: parsed,
         },
       };
@@ -303,10 +328,98 @@ Devuelve SIEMPRE un JSON válido con la estructura:
           improvements: [],
           rubricAlignment: 50,
           notes: "",
+          ai_analysis: aiResponse.content || "Análisis automático no disponible.",
           raw: aiResponse.content,
         },
       };
     }
+  }
+
+  private normalizeFeedbackForStorage(
+    feedback: Record<string, any> | null | undefined,
+    score: number,
+  ): Record<string, any> {
+    const summary =
+      typeof feedback?.summary === "string" && feedback.summary.trim().length > 0
+        ? feedback.summary
+        : typeof (feedback as any)?.ai_summary === "string" &&
+            (feedback as any).ai_summary.trim().length > 0
+          ? (feedback as any).ai_summary
+          : typeof (feedback as any)?.suggestion === "string" &&
+              (feedback as any).suggestion.trim().length > 0
+            ? (feedback as any).suggestion
+            : "Análisis automático generado para tu entrega.";
+
+    const strengthsRaw =
+      feedback?.strengths ??
+      (feedback as any)?.ai_strengths ??
+      (typeof (feedback as any)?.strengths === "string"
+        ? [(feedback as any).strengths]
+        : []);
+    const strengths = Array.isArray(strengthsRaw)
+      ? strengthsRaw
+          .filter((s) => typeof s === "string")
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0)
+      : [];
+
+    const improvementsRaw =
+      feedback?.improvements ??
+      (feedback as any)?.ai_improvements ??
+      (typeof (feedback as any)?.improvements === "string"
+        ? [(feedback as any).improvements]
+        : []);
+    const improvements = Array.isArray(improvementsRaw)
+      ? improvementsRaw
+          .filter((s) => typeof s === "string")
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0)
+      : [];
+
+    const rubricRaw =
+      feedback?.rubricAlignment ??
+      (feedback as any)?.ai_rubric_alignment ??
+      (feedback as any)?.score ??
+      score ??
+      0;
+    const rubricAlignment = Math.max(
+      0,
+      Math.min(100, Number(rubricRaw) || 0),
+    );
+
+    const notes =
+      typeof feedback?.notes === "string"
+        ? feedback.notes
+        : typeof (feedback as any)?.ai_notes === "string"
+          ? (feedback as any).ai_notes
+          : "";
+
+    const aiAnalysis =
+      typeof (feedback as any)?.ai_analysis === "string"
+        ? (feedback as any).ai_analysis
+        : summary;
+
+    const instructorComments =
+      typeof (feedback as any)?.instructor_comments === "string"
+        ? (feedback as any).instructor_comments
+        : "";
+
+    return {
+      summary,
+      strengths,
+      improvements,
+      rubricAlignment,
+      notes,
+      ai_analysis: aiAnalysis,
+      ai_summary: summary,
+      ai_strengths: strengths,
+      ai_improvements: improvements,
+      ai_rubric_alignment: rubricAlignment,
+      ai_notes: notes,
+      instructor_comments: instructorComments,
+      ai_instructor_comments: instructorComments,
+      raw: feedback ?? {},
+    };
   }
 
   private extractFirstRecord(result: any): any | null {

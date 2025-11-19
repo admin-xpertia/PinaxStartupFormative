@@ -19,9 +19,11 @@ export interface ExerciseProgressSummary {
   status:
     | "not_started"
     | "in_progress"
+    | "pending_review"
     | "submitted_for_review"
     | "requires_iteration"
     | "approved"
+    | "graded"
   progress: number
   score?: number
   lastAccessed?: Date

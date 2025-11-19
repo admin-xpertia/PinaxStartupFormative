@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { ExercisePlayer } from "../base/ExercisePlayer"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -38,6 +38,7 @@ interface HerramientaCreacionPlayerProps {
   exerciseName: string
   proofPointName: string
   content: CreationToolContent
+  savedData?: any
   onSave: (data: any) => Promise<void>
   onComplete: (data: any) => Promise<void>
   onExit: () => void
@@ -48,16 +49,55 @@ export function HerramientaCreacionPlayer({
   exerciseName,
   proofPointName,
   content,
+  savedData,
   onSave,
   onComplete,
   onExit,
 }: HerramientaCreacionPlayerProps) {
   const prompts = useMemo(() => normalizePrompts(content.promptsIniciales), [content.promptsIniciales])
   const variants = Array.isArray(content.variantes) ? content.variantes : []
-  const [answers, setAnswers] = useState<Record<string, string>>({})
-  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0)
+  const [answers, setAnswers] = useState<Record<string, string>>(
+    () =>
+      (savedData?.respuestas as Record<string, string>) ||
+      (savedData?.answers as Record<string, string>) ||
+      {}
+  )
+  const [selectedVariantIndex, setSelectedVariantIndex] = useState(() => {
+    if (variants.length === 0) return 0
+    const savedVariant = savedData?.varianteSeleccionada as any
+    if (!savedVariant) return 0
+    const matchedIndex = variants.findIndex(
+      (variant: any) =>
+        (savedVariant.id && variant.id && variant.id === savedVariant.id) ||
+        (savedVariant.titulo && variant.titulo && variant.titulo === savedVariant.titulo)
+    )
+    return matchedIndex >= 0 ? matchedIndex : 0
+  })
 
   const selectedVariant = variants[selectedVariantIndex]
+
+  // Rehydrate saved answers/variant when data is available
+  useEffect(() => {
+    if (savedData && typeof savedData === "object") {
+      setAnswers(
+        (savedData.respuestas as Record<string, string>) ||
+        (savedData.answers as Record<string, string>) ||
+        {}
+      )
+
+      const savedVariant = savedData.varianteSeleccionada as any
+      if (savedVariant && variants.length > 0) {
+        const matchedIndex = variants.findIndex(
+          (variant: any) =>
+            (savedVariant.id && variant.id && variant.id === savedVariant.id) ||
+            (savedVariant.titulo && variant.titulo && variant.titulo === savedVariant.titulo)
+        )
+        if (matchedIndex >= 0) {
+          setSelectedVariantIndex(matchedIndex)
+        }
+      }
+    }
+  }, [savedData, variants])
 
   const handleSaveWithData = async () => {
     await onSave({

@@ -64,10 +64,18 @@ export default function ProofPointPage() {
       if (proofPointLocked) {
         status = "locked"
       } else if (summary) {
-        if (summary.status === "approved" || summary.status === "submitted_for_review") {
+        if (
+          summary.status === "approved" ||
+          summary.status === "graded" ||
+          summary.status === "pending_review" ||
+          summary.status === "submitted_for_review"
+        ) {
           status = "completed"
           progressValue = 100
-        } else if (summary.status === "in_progress" || summary.status === "requires_iteration") {
+        } else if (
+          summary.status === "in_progress" ||
+          summary.status === "requires_iteration"
+        ) {
           status = "in_progress"
           progressValue = Math.max(0, Math.min(100, summary.progress ?? 0))
         }

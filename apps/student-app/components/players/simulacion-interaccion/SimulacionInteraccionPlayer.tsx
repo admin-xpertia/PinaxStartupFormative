@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { ExercisePlayer } from "../base/ExercisePlayer"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -16,6 +16,7 @@ interface SimulacionInteraccionPlayerProps {
   exerciseName: string
   proofPointName: string
   content: SimulationScenario
+  savedData?: any
   onSave: (data: any) => Promise<void>
   onComplete: (data: any) => Promise<void>
   onExit: () => void
@@ -26,11 +27,24 @@ export function SimulacionInteraccionPlayer({
   exerciseName,
   proofPointName,
   content,
+  savedData,
   onSave,
   onComplete,
   onExit,
 }: SimulacionInteraccionPlayerProps) {
   const [showObjectives, setShowObjectives] = useState(true)
+  const initialState = useMemo(() => {
+    if (!savedData || typeof savedData !== "object") return undefined
+    const savedMessages = Array.isArray(savedData.messages) ? savedData.messages : undefined
+    const savedCriteria = Array.isArray(savedData.successCriteriaMet)
+      ? (savedData.successCriteriaMet as Array<number | string>).map((value) => Number(value)).filter((value) => !Number.isNaN(value))
+      : undefined
+
+    return {
+      messages: savedMessages,
+      successCriteriaMet: savedCriteria,
+    }
+  }, [savedData])
   const {
     messages,
     successCriteriaMet,
@@ -40,7 +54,7 @@ export function SimulacionInteraccionPlayer({
     toggleSuccessCriteria,
     resetConversation,
     sendMessage,
-  } = useSimulationChat({ content, exerciseId })
+  } = useSimulationChat({ content, exerciseId, initialState })
 
   const handleSaveWithData = async () => {
     await onSave({

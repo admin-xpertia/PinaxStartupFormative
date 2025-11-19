@@ -59,6 +59,7 @@ interface CuadernoTrabajoPlayerProps {
   proofPointName: string
   content: WorkbookContent
   initialResponses?: Record<string, any>
+  savedData?: any
   onSave: (data: any) => Promise<void>
   onComplete: (data: any) => Promise<void>
   onExit: () => void
@@ -70,16 +71,52 @@ export function CuadernoTrabajoPlayer({
   proofPointName,
   content,
   initialResponses = {},
+  savedData,
   onSave,
   onComplete,
   onExit,
 }: CuadernoTrabajoPlayerProps) {
-  const [currentSection, setCurrentSection] = useState(0)
-  const [responses, setResponses] = useState<Record<string, any>>(initialResponses)
-  const [completedSections, setCompletedSections] = useState<Set<number>>(new Set())
+  const [currentSection, setCurrentSection] = useState(() => {
+    // Try to restore the last section the student was working on
+    if (savedData?.currentSection !== undefined && typeof savedData.currentSection === 'number') {
+      return savedData.currentSection
+    }
+    return 0
+  })
+  const [responses, setResponses] = useState<Record<string, any>>(
+    () => (savedData?.responses as Record<string, any>) || (savedData as Record<string, any>) || initialResponses || {}
+  )
+  const [completedSections, setCompletedSections] = useState<Set<number>>(() => {
+    // Restore completed sections
+    if (Array.isArray(savedData?.completedSections)) {
+      return new Set(savedData.completedSections)
+    }
+    return new Set()
+  })
   const [proactiveFeedback, setProactiveFeedback] = useState<Record<string, string | null>>({})
   const [isAnalyzing, setIsAnalyzing] = useState<Record<string, boolean>>({})
   const { toast } = useToast()
+
+  // Rehydrate responses if saved data arrives later
+  useEffect(() => {
+    if (savedData && typeof savedData === "object") {
+      // Try nested structure first (new format), fallback to flat object (old format for backward compatibility)
+      const loadedResponses = (savedData.responses as Record<string, any>) || (savedData as Record<string, any>)
+      setResponses(loadedResponses || {})
+
+      // Restore completed sections
+      if (Array.isArray(savedData.completedSections)) {
+        setCompletedSections(new Set(savedData.completedSections))
+      }
+
+      // Restore current section
+      if (savedData.currentSection !== undefined && typeof savedData.currentSection === 'number') {
+        setCurrentSection(savedData.currentSection)
+      }
+    } else if (initialResponses) {
+      setResponses(initialResponses)
+    }
+  }, [initialResponses, savedData])
 
   const totalSections = content.secciones.length
   const currentSectionData = content.secciones[currentSection]
@@ -499,14 +536,22 @@ export function CuadernoTrabajoPlayer({
   }
 
   const handleSaveWithData = async () => {
-    await onSave(responses)
+    await onSave({
+      responses,
+      completedSections: Array.from(completedSections),
+      currentSection,
+    })
   }
 
   const handleCompleteWithData = async () => {
     if (isSectionComplete(currentSection)) {
       setCompletedSections(prev => new Set([...prev, currentSection]))
     }
-    await onComplete(responses)
+    await onComplete({
+      responses,
+      completedSections: Array.from(completedSections),
+      currentSection,
+    })
   }
 
   // Verificar si todas las secciones están completas (incluyendo la actual)

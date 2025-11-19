@@ -6,11 +6,48 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { LineChart, TrendingUp } from "lucide-react"
 
-export function SistemaTrackingPlayer({ exerciseId, exerciseName, proofPointName, content, onSave, onComplete, onExit }: any) {
-  const [metrics, setMetrics] = useState<Record<string, number>>({})
+interface SistemaTrackingPlayerProps {
+  exerciseId: string
+  exerciseName: string
+  proofPointName: string
+  content: any
+  savedData?: any
+  onSave: (data: any) => Promise<void>
+  onComplete: (data: any) => Promise<void>
+  onExit: () => void
+}
+
+export function SistemaTrackingPlayer({
+  exerciseId,
+  exerciseName,
+  proofPointName,
+  content,
+  savedData,
+  onSave,
+  onComplete,
+  onExit,
+}: SistemaTrackingPlayerProps) {
+  const [metrics, setMetrics] = useState<Record<string, number>>(
+    () => (savedData?.metrics as Record<string, number>) || savedData || {}
+  )
+
+  const handleSaveWithData = async () => {
+    await onSave({ metrics })
+  }
+
+  const handleCompleteWithData = async () => {
+    await onComplete({ metrics })
+  }
 
   return (
-    <ExercisePlayer exerciseId={exerciseId} exerciseName={exerciseName} proofPointName={proofPointName} onSave={onSave} onComplete={onComplete} onExit={onExit}>
+    <ExercisePlayer
+      exerciseId={exerciseId}
+      exerciseName={exerciseName}
+      proofPointName={proofPointName}
+      onSave={handleSaveWithData}
+      onComplete={handleCompleteWithData}
+      onExit={onExit}
+    >
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

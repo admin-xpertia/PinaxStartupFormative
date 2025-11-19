@@ -15,13 +15,22 @@ const createMessage = (role: SimulationMessage["role"], content: string): Simula
 interface UseSimulationChatParams {
   content: SimulationScenario
   exerciseId: string
+  initialState?: {
+    messages?: SimulationMessage[]
+    successCriteriaMet?: number[]
+  }
 }
 
-export function useSimulationChat({ content, exerciseId }: UseSimulationChatParams) {
-  const [messages, setMessages] = useState<SimulationMessage[]>([
-    createMessage("system", content.situacion_inicial),
-  ])
-  const [successCriteriaMet, setSuccessCriteriaMet] = useState<Set<number>>(new Set())
+export function useSimulationChat({ content, exerciseId, initialState }: UseSimulationChatParams) {
+  const [messages, setMessages] = useState<SimulationMessage[]>(() => {
+    if (initialState?.messages && Array.isArray(initialState.messages)) {
+      return initialState.messages
+    }
+    return [createMessage("system", content.situacion_inicial)]
+  })
+  const [successCriteriaMet, setSuccessCriteriaMet] = useState<Set<number>>(
+    () => new Set(initialState?.successCriteriaMet ?? [])
+  )
   const [isThinking, setIsThinking] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

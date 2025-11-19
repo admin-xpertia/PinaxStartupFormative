@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { ExercisePlayer } from "../base/ExercisePlayer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -60,6 +60,7 @@ interface MentorIAPlayerProps {
   proofPointName: string
   content: MentorContent
   initialResponses?: Record<number, StepResponse>
+  savedData?: any
   onSave: (data: any) => Promise<void>
   onComplete: (data: any) => Promise<void>
   onExit: () => void
@@ -71,12 +72,15 @@ export function MentorIAPlayer({
   proofPointName,
   content,
   initialResponses = {},
+  savedData,
   onSave,
   onComplete,
   onExit,
 }: MentorIAPlayerProps) {
   const [currentStep, setCurrentStep] = useState(0)
-  const [responses, setResponses] = useState<Record<number, StepResponse>>(initialResponses)
+  const [responses, setResponses] = useState<Record<number, StepResponse>>(
+    () => (savedData as Record<number, StepResponse>) || initialResponses || {}
+  )
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set())
   const [showMentorAdvice, setShowMentorAdvice] = useState(false)
   const [mentorMessage, setMentorMessage] = useState("")
@@ -90,6 +94,15 @@ export function MentorIAPlayer({
 
   const currentStepData = content.pasos[currentStep]
   const totalSteps = content.pasos.length
+
+  // Restore saved answers when available
+  useEffect(() => {
+    if (savedData && typeof savedData === "object") {
+      setResponses((savedData as Record<number, StepResponse>) || {})
+    } else if (initialResponses) {
+      setResponses(initialResponses)
+    }
+  }, [initialResponses, savedData])
 
   const updateResponse = (field: keyof StepResponse, value: any) => {
     setResponses(prev => ({
