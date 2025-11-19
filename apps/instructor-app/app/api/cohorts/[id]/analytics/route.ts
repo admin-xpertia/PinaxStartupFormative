@@ -206,10 +206,48 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
   try {
     const cohorts = (await fetchApi<any[]>(`/cohortes`, req)) ?? []
+
+    // FIX: Debug logging para identificar problemas de matching de cohorts
+    console.log('[Analytics Debug] Program lookup:', {
+      requestedProgramId: programId,
+      requestedProgramIdNormalized: normalizeId(programId),
+      totalCohorts: cohorts.length,
+      cohortDetails: cohorts.map(c => ({
+        id: c.id,
+        programaRaw: c.programa,
+        programaExtracted: typeof c.programa === 'string' ? c.programa : c.programa?.id,
+        programaNormalized: normalizeId(
+          typeof c.programa === 'string' ? c.programa : c.programa?.id
+        )
+      }))
+    })
+
+    // FIX: Normalizar IDs antes de comparar para evitar problemas con <> y ⟨⟩
     const cohortsForProgram = cohorts.filter((cohort) => {
       const cohortProgramId =
         typeof cohort.programa === "string" ? cohort.programa : cohort.programa?.id
-      return cohortProgramId === programId
+
+      // Normalizar ambos IDs para comparación robusta
+      const normalizedCohortProgram = normalizeId(cohortProgramId)
+      const normalizedRequestProgram = normalizeId(programId)
+
+      const matches = normalizedCohortProgram === normalizedRequestProgram
+
+      if (!matches) {
+        console.log('[Analytics Debug] Cohort filtered out:', {
+          cohortId: cohort.id,
+          cohortProgram: cohortProgramId,
+          cohortProgramNormalized: normalizedCohortProgram,
+          requestProgramNormalized: normalizedRequestProgram
+        })
+      }
+
+      return matches
+    })
+
+    console.log('[Analytics Debug] Matched cohorts:', {
+      count: cohortsForProgram.length,
+      cohortIds: cohortsForProgram.map(c => c.id)
     })
 
     response.totalStudents = cohortsForProgram.reduce(
@@ -224,11 +262,27 @@ export async function GET(req: NextRequest, context: RouteContext) {
         : cohortsForProgram[0]
 
     if (cohortId) {
+      console.log('[Analytics Debug] Fetching submissions for cohort:', {
+        cohortId,
+        endpoint: `/instructor/cohortes/${encodeURIComponent(cohortId)}/submissions?limit=50`
+      })
+
       const instructorSubmissions =
         (await fetchApi<InstructorSubmissionListItem[]>(
           `/instructor/cohortes/${encodeURIComponent(cohortId)}/submissions?limit=50`,
           req,
         )) ?? []
+
+      console.log('[Analytics Debug] Submissions fetched:', {
+        count: instructorSubmissions.length,
+        submissions: instructorSubmissions.map(s => ({
+          progressId: s.progressId,
+          estudiante: s.estudianteNombre,
+          ejercicio: s.ejercicioNombre,
+          status: s.status,
+          aiScore: s.aiScore
+        }))
+      })
 
       response.submissions = instructorSubmissions.map((submission) => ({
         progressId: submission.progressId,
