@@ -44,6 +44,7 @@ interface HerramientaAnalisisPlayerProps {
   onSave: (data: any) => Promise<void>
   onComplete: (data: any) => Promise<void>
   onExit: () => void
+  readOnly?: boolean
 }
 
 export function HerramientaAnalisisPlayer({
@@ -54,6 +55,7 @@ export function HerramientaAnalisisPlayer({
   onSave,
   onComplete,
   onExit,
+  readOnly = false,
 }: HerramientaAnalisisPlayerProps) {
   const instructions = normalizeStringArray(content.instrucciones)
   const datasets = Array.isArray(content.datasets) ? content.datasets : []
@@ -73,11 +75,12 @@ export function HerramientaAnalisisPlayer({
       proofPointName={proofPointName}
       totalSteps={1}
       currentStep={1}
-      onSave={onSave}
-      onComplete={onComplete}
+      onSave={!readOnly ? onSave : undefined}
+      onComplete={!readOnly ? onComplete : undefined}
       onExit={onExit}
       showAIAssistant={false}
       contentMaxWidthClassName="max-w-5xl"
+      canComplete={!readOnly}
     >
       <div className="space-y-6">
         <Card>

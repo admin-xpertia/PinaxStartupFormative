@@ -5,6 +5,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { getPhaseProgress } from "@/lib/dashboard"
 import { cn } from "@/lib/utils"
@@ -16,6 +17,8 @@ interface PhaseRoadmapAccordionProps {
   onOpenProofPoint: (proofPointId: string) => void
   activePhaseId?: string
   onPhaseChange?: (phaseId: string) => void
+  pendingReviewMap?: Record<string, { exerciseName: string; status: string }>
+  onViewPendingFeedback?: (proofPointId: string) => void
 }
 
 export function PhaseRoadmapAccordion({
@@ -23,6 +26,8 @@ export function PhaseRoadmapAccordion({
   onOpenProofPoint,
   activePhaseId,
   onPhaseChange,
+  pendingReviewMap,
+  onViewPendingFeedback,
 }: PhaseRoadmapAccordionProps) {
   const openValue = activePhaseId ?? phases[0]?.id
 
@@ -108,6 +113,24 @@ export function PhaseRoadmapAccordion({
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
                           {pp.preguntaCentral || "Acceder al contenido"}
                         </p>
+                        {pendingReviewMap?.[pp.id] ? (
+                          <div className="mt-2 flex items-center gap-2 text-xs text-amber-700">
+                            <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
+                              Revisión pendiente
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="xs"
+                              className="h-7 px-2 text-amber-700 hover:text-amber-800"
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                onViewPendingFeedback?.(pp.id)
+                              }}
+                            >
+                              Ver feedback IA
+                            </Button>
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   ))}

@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import { MessageCircle, Bot, User, Send, RotateCcw, Sparkles, Lightbulb, CheckCircle2, AlertCircle } from "lucide-react"
 import { exercisesApi } from "@/services/api"
+import { useAutoSave } from "@/hooks/useAutoSave"
 
 type ChatRole = "user" | "assistant"
 
@@ -37,6 +38,7 @@ interface MetacognicionPlayerProps {
   onSave: (data: any) => Promise<void>
   onComplete: (data: any) => Promise<void>
   onExit: () => void
+  readOnly?: boolean
 }
 
 const createMessage = (role: ChatRole, content: string): ChatMessage => ({
@@ -80,6 +82,7 @@ export function MetacognicionPlayer({
   onSave,
   onComplete,
   onExit,
+  readOnly = false,
 }: MetacognicionPlayerProps) {
   const sessionTitle = content?.titulo || exerciseName
   const normalizedSavedMessages = useMemo(() => normalizeSavedMessages(savedData), [savedData])
@@ -97,6 +100,22 @@ export function MetacognicionPlayer({
   const [latestInsight, setLatestInsight] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
 
+  const chatPayload = useMemo(
+    () => ({
+      messages,
+      insightCount,
+      detectedInsights,
+    }),
+    [messages, insightCount, detectedInsights],
+  )
+
+  useAutoSave({
+    exerciseId,
+    data: chatPayload,
+    enabled: !readOnly,
+    interval: 12000,
+  })
+
   const minimoInsights = content?.minimo_insights_requeridos || 3
   const canComplete = insightCount >= minimoInsights
 
@@ -105,6 +124,7 @@ export function MetacognicionPlayer({
   }, [messages])
 
   const handleResetConversation = () => {
+    if (readOnly) return
     const opening = content?.mensaje_apertura_ia
     setMessages(opening ? [createMessage("assistant", opening)] : [])
     setInput("")
@@ -135,6 +155,7 @@ ${recentThoughts || "Aun no hay mensajes previos."}`
 
   const sendMessage = useCallback(
     async (text: string) => {
+      if (readOnly) return
       const trimmed = text.trim()
       if (!trimmed) return
 
@@ -195,27 +216,24 @@ ${recentThoughts || "Aun no hay mensajes previos."}`
         setIsSending(false)
       }
     },
-    [buildSectionContext, content?.system_prompt_chat, exerciseId, historyPayload, insightCount, messages.length, sessionTitle]
+    [buildSectionContext, content?.system_prompt_chat, exerciseId, historyPayload, insightCount, messages.length, readOnly, sessionTitle]
   )
 
   const handleSaveWithData = async () => {
+    if (readOnly) return
     await onSave({
-      messages,
-      insightCount,
-      detectedInsights,
+      ...chatPayload,
       lastInteraction: messages[messages.length - 1]?.timestamp,
     })
   }
 
   const handleCompleteWithData = async () => {
-    if (!canComplete) {
+    if (readOnly || !canComplete) {
       return // Block completion if minimum insights not reached
     }
 
     await onComplete({
-      messages,
-      insightCount,
-      detectedInsights,
+      ...chatPayload,
       completedAt: new Date().toISOString(),
       turns: messages.length,
     })
@@ -230,11 +248,12 @@ ${recentThoughts || "Aun no hay mensajes previos."}`
       totalSteps={1}
       currentStep={1}
       estimatedMinutes={20}
-      onSave={handleSaveWithData}
-      onComplete={handleCompleteWithData}
+      onSave={!readOnly ? handleSaveWithData : undefined}
+      onComplete={!readOnly ? handleCompleteWithData : undefined}
       onExit={onExit}
       showAIAssistant={false}
       contentMaxWidthClassName="max-w-5xl"
+      canComplete={!readOnly && canComplete}
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,0.5fr)_minmax(0,1fr)]">
         <div className="space-y-4">
@@ -353,7 +372,7 @@ ${recentThoughts || "Aun no hay mensajes previos."}`
                 <span className="font-semibold">Diálogo en vivo</span>
                 <Badge variant="outline">{messages.length} turnos</Badge>
               </div>
-              <Button variant="outline" size="sm" onClick={handleResetConversation}>
+              <Button variant="outline" size="sm" onClick={handleResetConversation} disabled={readOnly}>
                 <RotateCcw className="h-4 w-4 mr-2" />
                 Reiniciar
               </Button>
@@ -423,23 +442,30 @@ ${recentThoughts || "Aun no hay mensajes previos."}`
             <div className="mt-4 border-t pt-4">
               <Textarea
                 value={input}
-                onChange={(event) => setInput(event.target.value)}
+                onChange={(event) => {
+                  if (readOnly) return
+                  setInput(event.target.value)
+                }}
                 onKeyDown={(event) => {
+                  if (readOnly) return
                   if (event.key === "Enter" && !event.shiftKey) {
                     event.preventDefault()
                     void sendMessage(input)
                   }
                 }}
                 placeholder="Comparte lo que aprendiste, lo que te confundió o las decisiones que tomarás después de esta sesión..."
-                className="min-h-[110px] resize-none"
-                disabled={isSending}
+                className={cn(
+                  "min-h-[110px] resize-none",
+                  readOnly && "bg-muted text-muted-foreground"
+                )}
+                disabled={isSending || readOnly}
               />
               <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                 <span>Enter para enviar · Shift + Enter para nueva línea</span>
                 <Button
                   size="sm"
                   onClick={() => sendMessage(input)}
-                  disabled={!input.trim() || isSending}
+                  disabled={readOnly || !input.trim() || isSending}
                 >
                   <Send className="h-4 w-4 mr-2" />
                   Enviar

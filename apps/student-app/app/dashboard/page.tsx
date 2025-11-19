@@ -126,6 +126,63 @@ function DashboardContent() {
     }))
   }, [structure, progressSummary])
 
+  const pendingFeedbackByProofPoint = useMemo(() => {
+    const map = new Map<string, CompletedExercise>()
+    if (!structure?.phases?.length || !progressSummary?.recentCompletedExercises?.length) {
+      return map
+    }
+
+    const exerciseToProofPoint = new Map<string, string>()
+    for (const phase of structure.phases) {
+      for (const proofPoint of phase.proofPoints) {
+        for (const exercise of proofPoint.exercises ?? []) {
+          if (exercise?.id) {
+            exerciseToProofPoint.set(exercise.id, proofPoint.id)
+          }
+        }
+      }
+    }
+
+    for (const exercise of progressSummary.recentCompletedExercises) {
+      if (
+        !exercise.exerciseId ||
+        !exercise.status ||
+        (exercise.status !== "pending_review" && exercise.status !== "submitted_for_review")
+      ) {
+        continue
+      }
+      const proofPointId = exerciseToProofPoint.get(exercise.exerciseId)
+      if (!proofPointId) {
+        continue
+      }
+      const existing = map.get(proofPointId)
+      const existingTimestamp = existing?.submittedAt || existing?.completedAt
+      const candidateTimestamp = exercise.submittedAt || exercise.completedAt
+
+      if (!existingTimestamp || !candidateTimestamp) {
+        map.set(proofPointId, exercise)
+        continue
+      }
+
+      if (new Date(candidateTimestamp).getTime() >= new Date(existingTimestamp).getTime()) {
+        map.set(proofPointId, exercise)
+      }
+    }
+
+    return map
+  }, [structure, progressSummary])
+
+  const pendingReviewLookup = useMemo(() => {
+    const lookup: Record<string, { exerciseName: string; status: string }> = {}
+    pendingFeedbackByProofPoint.forEach((exercise, proofPointId) => {
+      lookup[proofPointId] = {
+        exerciseName: exercise.exerciseName,
+        status: exercise.status,
+      }
+    })
+    return lookup
+  }, [pendingFeedbackByProofPoint])
+
   const selectedPhase: Phase | undefined = useMemo(() => {
     if (!phases.length) return undefined
     if (activePhaseId) {
@@ -191,6 +248,15 @@ function DashboardContent() {
 
   const handleOpenProofPoint = (proofPointId: string) =>
     router.push(`/proof-points/${proofPointId}`)
+
+  const handleViewPendingFeedback = (proofPointId: string) => {
+    const pendingExercise = pendingFeedbackByProofPoint.get(proofPointId)
+    if (pendingExercise) {
+      setSelectedSubmission(pendingExercise)
+      return
+    }
+    handleOpenProofPoint(proofPointId)
+  }
 
   if (!studentId) {
     if (session.isLoading) {
@@ -414,6 +480,8 @@ function DashboardContent() {
           onOpenProofPoint={handleOpenProofPoint}
           activePhaseId={selectedPhase?.id}
           onPhaseChange={setActivePhaseId}
+          pendingReviewMap={pendingReviewLookup}
+          onViewPendingFeedback={handleViewPendingFeedback}
         />
 
         {progressSummary?.recentCompletedExercises?.length ? (

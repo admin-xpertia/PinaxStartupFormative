@@ -10,6 +10,7 @@ import { SuccessCriteriaCard } from "./components/SuccessCriteriaCard"
 import { ConversationPanel } from "./components/ConversationPanel"
 import { useSimulationChat } from "./useSimulationChat"
 import type { SimulationScenario } from "./types"
+import { useAutoSave } from "@/hooks/useAutoSave"
 
 interface SimulacionInteraccionPlayerProps {
   exerciseId: string
@@ -20,6 +21,7 @@ interface SimulacionInteraccionPlayerProps {
   onSave: (data: any) => Promise<void>
   onComplete: (data: any) => Promise<void>
   onExit: () => void
+  readOnly?: boolean
 }
 
 export function SimulacionInteraccionPlayer({
@@ -31,6 +33,7 @@ export function SimulacionInteraccionPlayer({
   onSave,
   onComplete,
   onExit,
+  readOnly = false,
 }: SimulacionInteraccionPlayerProps) {
   const [showObjectives, setShowObjectives] = useState(true)
   const initialState = useMemo(() => {
@@ -56,20 +59,33 @@ export function SimulacionInteraccionPlayer({
     sendMessage,
   } = useSimulationChat({ content, exerciseId, initialState })
 
-  const handleSaveWithData = async () => {
-    await onSave({
+  const simulationPayload = useMemo(
+    () => ({
       messages,
       successCriteriaMet: Array.from(successCriteriaMet),
       conversationComplete,
-    })
+    }),
+    [messages, successCriteriaMet, conversationComplete]
+  )
+
+  useAutoSave({
+    exerciseId,
+    data: simulationPayload,
+    enabled: !readOnly && !conversationComplete,
+    interval: 5000,
+    onSave: () => {
+      console.log("Simulación auto-guardada")
+    },
+  })
+
+  const handleSaveWithData = async () => {
+    if (readOnly) return
+    await onSave(simulationPayload)
   }
 
   const handleCompleteWithData = async () => {
-    await onComplete({
-      messages,
-      successCriteriaMet: Array.from(successCriteriaMet),
-      conversationComplete,
-    })
+    if (readOnly) return
+    await onComplete(simulationPayload)
   }
 
   return (
@@ -81,10 +97,11 @@ export function SimulacionInteraccionPlayer({
       totalSteps={1}
       currentStep={1}
       estimatedMinutes={content.tiempo_sugerido}
-      onSave={handleSaveWithData}
-      onComplete={conversationComplete ? handleCompleteWithData : undefined}
+      onSave={!readOnly ? handleSaveWithData : undefined}
+      onComplete={!readOnly && conversationComplete ? handleCompleteWithData : undefined}
       onExit={onExit}
       showAIAssistant={false} // Simulation IS the AI interaction
+      canComplete={!readOnly && conversationComplete}
     >
       <div className="space-y-6">
         <ScenarioSummary content={content} />
@@ -93,7 +110,7 @@ export function SimulacionInteraccionPlayer({
           <SuccessCriteriaCard
             criterios={content.criterios_exito}
             met={successCriteriaMet}
-            onToggle={toggleSuccessCriteria}
+            onToggle={readOnly ? () => {} : toggleSuccessCriteria}
             onHide={() => setShowObjectives(false)}
           />
         ) : (
@@ -106,10 +123,10 @@ export function SimulacionInteraccionPlayer({
           messages={messages}
           personaName={content.personaje_ia.nombre}
           isThinking={isThinking}
-          disabled={conversationComplete}
+          disabled={readOnly || conversationComplete}
           error={error}
-          onSend={sendMessage}
-          onReset={resetConversation}
+          onSend={readOnly ? () => {} : sendMessage}
+          onReset={readOnly ? () => {} : resetConversation}
         />
 
         {conversationComplete && (

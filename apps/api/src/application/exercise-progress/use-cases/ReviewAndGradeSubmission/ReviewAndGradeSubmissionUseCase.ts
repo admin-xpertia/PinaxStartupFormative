@@ -71,37 +71,53 @@ export class ReviewAndGradeSubmissionUseCase
         return Result.fail(new Error("No se encontró la entrega"));
       }
 
-      const finalScore =
-        request.publish === true
-          ? request.instructorScore ?? progress.ai_score ?? 0
-          : progress.final_score ?? null;
-
       const status = request.publish ? "graded" : "pending_review";
       const gradedAt =
-        request.publish && finalScore !== null
+        request.publish &&
+        (request.instructorScore !== undefined || progress.graded_at === null)
           ? new Date().toISOString()
           : progress.graded_at ?? null;
 
+      const finalScore =
+        request.publish === true
+          ? request.instructorScore ?? progress.final_score ?? progress.ai_score ?? 0
+          : progress.final_score ?? null;
+
+      const manualFeedbackValue =
+        request.instructorFeedback ?? progress.manual_feedback ?? null;
+
+      const feedbackJson = this.cloneFeedback(
+        progress.feedback_json ?? progress.feedback_data ?? {},
+      );
+
+      if (request.instructorFeedback) {
+        feedbackJson.instructor_comments = request.instructorFeedback;
+        feedbackJson.manual_feedback_text = request.instructorFeedback;
+      }
+
       const updateResult = await this.db.query(
         `
-        UPDATE type::thing($progressId) SET
-          status = $status,
-          estado = $estado,
-          instructor_score = $instructorScore,
-          manual_feedback = $instructorFeedback,
-          final_score = $finalScore,
-          graded_at = $gradedAt,
-          updated_at = time::now()
-        RETURN AFTER
+        UPDATE type::thing($progressId) MERGE {
+          status: $status,
+          estado: $estado,
+          instructor_score: $instructorScore,
+          manual_feedback: $manualFeedback,
+          final_score: $finalScore,
+          graded_at: $gradedAt,
+          feedback_json: $feedbackJson,
+          feedback_data: $feedbackJson,
+          updated_at: time::now()
+        } RETURN AFTER
       `,
         {
           progressId: progress.id,
           status,
           estado: status === "graded" ? "completado" : "pendiente_revision",
           instructorScore: request.instructorScore,
-          instructorFeedback: request.instructorFeedback ?? null,
+          manualFeedback: manualFeedbackValue,
           finalScore,
           gradedAt,
+          feedbackJson,
         },
       );
 
@@ -127,13 +143,35 @@ export class ReviewAndGradeSubmissionUseCase
         status,
         finalScore: finalScore ?? updated.final_score ?? request.instructorScore,
         aiScore: updated.ai_score ?? progress.ai_score ?? null,
-        manualFeedback: updated.manual_feedback ?? request.instructorFeedback,
+        manualFeedback: updated.manual_feedback ?? manualFeedbackValue,
         gradedAt: updated.graded_at || new Date().toISOString(),
       });
     } catch (error) {
       this.logger.error("Error al calificar la entrega", error);
       return Result.fail(error as Error);
     }
+  }
+
+  private cloneFeedback(source: any): Record<string, any> {
+    if (!source) {
+      return {};
+    }
+
+    try {
+      if (typeof source === "string") {
+        return JSON.parse(source);
+      }
+      if (typeof source === "object") {
+        return JSON.parse(JSON.stringify(source));
+      }
+    } catch (error) {
+      this.logger.warn(
+        "[ReviewAndGradeSubmission] No se pudo clonar feedback_json",
+        error instanceof Error ? error.message : error,
+      );
+    }
+
+    return {};
   }
 
   private async loadProgress(id: string): Promise<any | null> {

@@ -25,6 +25,7 @@ type SubmissionStatus =
   | "approved"
   | "graded"
   | "in_progress"
+  | "not_started"
 type InstructorSubmissionListItem = {
   progressId: string
   estudianteNombre: string
@@ -34,13 +35,106 @@ type InstructorSubmissionListItem = {
   aiScore?: number | null
 }
 
+type CohortProgressRecord = {
+  progressId: string
+  estudianteId: string
+  estudianteNombre?: string
+  exerciseInstanceId: string
+  status: SubmissionStatus
+  porcentajeCompletitud?: number | null
+  aiScore?: number | null
+  instructorScore?: number | null
+  finalScore?: number | null
+  submittedAt?: string | null
+  gradedAt?: string | null
+  updatedAt?: string | null
+}
+
+type CohortProgressOverviewResponse = {
+  cohorteId: string
+  submissions: CohortProgressRecord[]
+}
+
+type PhaseExerciseMeta = {
+  phaseId: string
+  phaseNombre: string
+  proofPointId?: string
+  proofPointNombre?: string
+  exerciseNombre?: string
+}
+
+function resolveExerciseId(source: any): string {
+  if (!source) return ""
+  if (typeof source === "string") return source
+  if (typeof source === "object") {
+    if (typeof source.id === "string") return source.id
+    if (typeof source.exerciseId === "string") return source.exerciseId
+    if (typeof source.exercise_instance === "string") return source.exercise_instance
+    if (typeof source["@id"] === "string") return source["@id"]
+  }
+  return ""
+}
+
 function normalizeExercise(ex: any): ExerciseShape {
   return {
-    id: ex.id,
+    id: resolveExerciseId(ex),
     nombre: ex.nombre ?? "Ejercicio",
     estadoContenido: ex.estadoContenido ?? ex.estado_contenido,
     esObligatorio: ex.esObligatorio ?? ex.es_obligatorio,
   }
+}
+
+function clampPercentage(value: number | null | undefined): number {
+  if (typeof value !== "number" || Number.isNaN(value)) return 0
+  return Math.max(0, Math.min(100, value))
+}
+
+function parseTimestamp(value?: string | null): number {
+  if (!value) return 0
+  const parsed = Date.parse(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function resolvePhaseId(phase: any, fallbackIndex: number): string {
+  if (phase?.id) return String(phase.id)
+  if (phase?.slug) return String(phase.slug)
+  if (phase?.nombre) return String(phase.nombre)
+  return `phase-${fallbackIndex}`
+}
+
+function buildPhaseExerciseMaps(
+  proofPoints: ProofPointShape[],
+  proofPointPhaseLookup: Map<string, { phaseId: string; phaseNombre: string }>
+): {
+  phaseExercisesMap: Map<string, Set<string>>
+  phaseExerciseLookup: Map<string, PhaseExerciseMeta>
+} {
+  const phaseExercisesMap = new Map<string, Set<string>>()
+  const phaseExerciseLookup = new Map<string, PhaseExerciseMeta>()
+
+  proofPoints.forEach((pp) => {
+    if (!pp?.id) return
+    const phaseInfo = proofPointPhaseLookup.get(pp.id)
+    if (!phaseInfo) return
+    const exercises = Array.isArray(pp.ejercicios) ? pp.ejercicios : []
+    exercises.forEach((exercise) => {
+      const exerciseId = resolveExerciseId(exercise)
+      if (!exerciseId) return
+      if (!phaseExercisesMap.has(phaseInfo.phaseId)) {
+        phaseExercisesMap.set(phaseInfo.phaseId, new Set<string>())
+      }
+      phaseExercisesMap.get(phaseInfo.phaseId)!.add(exerciseId)
+      phaseExerciseLookup.set(exerciseId, {
+        phaseId: phaseInfo.phaseId,
+        phaseNombre: phaseInfo.phaseNombre,
+        proofPointId: pp.id,
+        proofPointNombre: pp.nombre,
+        exerciseNombre: exercise.nombre ?? "Ejercicio",
+      })
+    })
+  })
+
+  return { phaseExercisesMap, phaseExerciseLookup }
 }
 
 async function fetchApi<T>(path: string, req: NextRequest): Promise<T | null> {
@@ -91,6 +185,10 @@ export async function GET(req: NextRequest, context: RouteContext) {
   const programId = extractProgramId(req, { params })
 
   const response = buildEmptyResponse()
+  let cohortProgressRecords: CohortProgressRecord[] = []
+  const proofPointPhaseLookup = new Map<string, { phaseId: string; phaseNombre: string }>()
+  let phaseExercisesMap = new Map<string, Set<string>>()
+  let phaseExerciseLookup = new Map<string, PhaseExerciseMeta>()
 
   try {
     const cohorts = (await fetchApi<any[]>(`/cohortes`, req)) ?? []
@@ -129,6 +227,14 @@ export async function GET(req: NextRequest, context: RouteContext) {
             ? Math.round(submission.aiScore)
             : null,
       }))
+
+      const overview =
+        (await fetchApi<CohortProgressOverviewResponse>(
+          `/instructor/cohortes/${encodeURIComponent(cohortId)}/progress-overview`,
+          req,
+        )) ?? null
+
+      cohortProgressRecords = overview?.submissions ?? []
     }
 
     const structure = cohortDetails?.structure
@@ -139,49 +245,54 @@ export async function GET(req: NextRequest, context: RouteContext) {
     let publishedExercisesCount = 0
 
     if (structure?.phases?.length) {
-      response.phases = structure.phases.map((phase: any) => ({
-        id: phase.id ?? phase.slug ?? phase.nombre,
-        nombre: phase.nombre ?? "Fase",
-        progreso: 0,
-      }))
-
-      structure.phases.forEach((phase: any) => {
+      response.phases = structure.phases.map((phase: any, index: number) => {
+        const phaseId = resolvePhaseId(phase, index)
+        const phaseNombre = phase.nombre ?? `Fase ${index + 1}`
         const proofPoints = phase.proofPoints ?? phase.proof_points ?? []
         proofPoints.forEach((pp: any) => {
           if (!pp?.id) return
+          const proofPointId = pp.id
+          proofPointPhaseLookup.set(proofPointId, { phaseId, phaseNombre })
           const baseProofPoint = {
-            id: pp.id,
+            id: proofPointId,
             nombre: pp.nombre ?? "Proof Point",
-            faseNombre: phase.nombre,
+            faseNombre: phaseNombre,
           }
           const exercises = pp.exercises ?? pp.ejercicios ?? []
           if (exercises.length === 0) {
-            proofPointsNeedingExercises.set(pp.id, baseProofPoint)
+            proofPointsNeedingExercises.set(proofPointId, baseProofPoint)
             response.proofPoints.push({ ...baseProofPoint, ejercicios: [] })
             return
           }
+          const normalizedExercises = exercises.map(normalizeExercise)
           response.proofPoints.push({
             ...baseProofPoint,
-            ejercicios: exercises.map(normalizeExercise),
+            ejercicios: normalizedExercises,
           })
-          publishedExercisesCount += exercises.filter((ex: any) => {
+          publishedExercisesCount += normalizedExercises.filter((ex: any) => {
             const status = (ex.estadoContenido ?? ex.estado_contenido ?? "").toLowerCase()
             return status === "publicado"
           }).length
         })
+        return {
+          id: phaseId,
+          nombre: phaseNombre,
+          progreso: 0,
+        }
       })
     }
 
     if (response.phases.length === 0) {
       const fases = (await fetchApi<any[]>(`/programs/${encodeURIComponent(programId)}/fases`, req)) ?? []
-      response.phases = fases.map((fase) => ({
-        id: fase.id,
+      response.phases = fases.map((fase, index) => ({
+        id: resolvePhaseId(fase, index),
         nombre: fase.nombre,
         progreso: 0,
       }))
 
       // If we couldn't use the snapshot, collect proof points to later count exercises
-      for (const fase of fases) {
+      for (const [index, fase] of fases.entries()) {
+        const phaseId = resolvePhaseId(fase, index)
         const proofPoints =
           (await fetchApi<any[]>(
             `/fases/${encodeURIComponent(fase.id)}/proof-points`,
@@ -194,6 +305,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
             nombre: pp.nombre ?? "Proof Point",
             faseNombre: fase.nombre,
           }
+          proofPointPhaseLookup.set(pp.id, { phaseId, phaseNombre: fase.nombre })
           proofPointsNeedingExercises.set(pp.id, baseProofPoint)
           response.proofPoints.push({ ...baseProofPoint, ejercicios: [] })
         })
@@ -266,8 +378,149 @@ export async function GET(req: NextRequest, context: RouteContext) {
       })
     }
 
-    response.publishedExercisesCount = publishedExercisesCount
-    response.hasPublishedExercises = publishedExercisesCount > 0
+    const maps = buildPhaseExerciseMaps(response.proofPoints, proofPointPhaseLookup)
+    phaseExercisesMap = maps.phaseExercisesMap
+    phaseExerciseLookup = maps.phaseExerciseLookup
+
+    const discoveredExercises = phaseExerciseLookup.size
+    response.publishedExercisesCount =
+      discoveredExercises > 0 ? discoveredExercises : publishedExercisesCount
+    const uniqueStudentCount = cohortProgressRecords.length
+      ? Array.from(
+          new Set(
+            cohortProgressRecords
+              .map((record) => record.estudianteId)
+              .filter((value): value is string => Boolean(value)),
+          ),
+        ).length
+      : 0
+    const effectiveStudentCount =
+      response.totalStudents > 0 ? response.totalStudents : Math.max(uniqueStudentCount, 1)
+
+    if (response.phases.length > 0) {
+      response.phases = response.phases.map((phase) => {
+        const exerciseIds = Array.from(phaseExercisesMap.get(phase.id) ?? [])
+        if (exerciseIds.length === 0) {
+          return { ...phase, progreso: 0, promedioScore: undefined }
+        }
+
+        const relatedProgress = cohortProgressRecords.filter((record) =>
+          exerciseIds.includes(record.exerciseInstanceId),
+        )
+
+        if (relatedProgress.length === 0) {
+          return { ...phase, progreso: 0, promedioScore: undefined }
+        }
+
+        const progressSum = relatedProgress.reduce(
+          (sum, record) => sum + clampPercentage(record.porcentajeCompletitud ?? 0),
+          0,
+        )
+        const denominator = exerciseIds.length * effectiveStudentCount
+        const progreso =
+          denominator > 0 ? Math.min(100, Math.round(progressSum / denominator)) : 0
+
+        const gradedScores = relatedProgress
+          .filter((record) => record.status === "graded" || record.status === "approved")
+          .map((record) => {
+            if (typeof record.finalScore === "number") return record.finalScore
+            if (typeof record.instructorScore === "number") return record.instructorScore
+            if (typeof record.aiScore === "number") return record.aiScore
+            return null
+          })
+          .filter((value): value is number => value !== null)
+
+        const promedioScore =
+          gradedScores.length > 0
+            ? Math.round(
+                gradedScores.reduce((acc, value) => acc + value, 0) / gradedScores.length,
+              )
+            : undefined
+
+        return { ...phase, progreso, promedioScore }
+      })
+    }
+
+    if (cohortProgressRecords.length > 0) {
+      const exercisesInProgram =
+        phaseExerciseLookup.size ||
+        response.proofPoints.reduce(
+          (acc, proofPoint) => acc + (proofPoint.ejercicios?.length ?? 0),
+          0,
+        )
+
+      const recordsByStudent = new Map<string, CohortProgressRecord[]>()
+      cohortProgressRecords.forEach((record) => {
+        if (!record.estudianteId) return
+        if (!recordsByStudent.has(record.estudianteId)) {
+          recordsByStudent.set(record.estudianteId, [])
+        }
+        recordsByStudent.get(record.estudianteId)!.push(record)
+      })
+
+      const now = Date.now()
+      const riskEntries = Array.from(recordsByStudent.entries()).map(([studentId, records]) => {
+        const studentName =
+          records.find((record) => record.estudianteNombre)?.estudianteNombre ?? "Estudiante"
+        const progressSum = records.reduce(
+          (sum, record) => sum + clampPercentage(record.porcentajeCompletitud ?? 0),
+          0,
+        )
+        const denominator =
+          exercisesInProgram > 0 ? exercisesInProgram : Math.max(records.length, 1)
+        const progreso =
+          denominator > 0 ? Math.min(100, Math.round(progressSum / denominator)) : 0
+        const lastActivity = records.reduce((latest, record) => {
+          const candidate =
+            parseTimestamp(record.updatedAt) ||
+            parseTimestamp(record.gradedAt) ||
+            parseTimestamp(record.submittedAt)
+          return Math.max(latest, candidate)
+        }, 0)
+        const diasInactivo = lastActivity
+          ? Math.max(0, Math.floor((now - lastActivity) / (1000 * 60 * 60 * 24)))
+          : 99
+        const attentionRecord = records
+          .filter((record) =>
+            ["pending_review", "submitted_for_review", "requires_iteration", "in_progress"].includes(
+              record.status,
+            ),
+          )
+          .sort((a, b) => {
+            const bDate =
+              parseTimestamp(b.updatedAt) ||
+              parseTimestamp(b.submittedAt) ||
+              parseTimestamp(b.gradedAt)
+            const aDate =
+              parseTimestamp(a.updatedAt) ||
+              parseTimestamp(a.submittedAt) ||
+              parseTimestamp(a.gradedAt)
+            return bDate - aDate
+          })[0]
+        const exerciseMeta = attentionRecord
+          ? phaseExerciseLookup.get(attentionRecord.exerciseInstanceId)
+          : null
+
+        return {
+          id: studentId,
+          nombre: studentName,
+          progreso: Math.max(0, Math.min(100, progreso)),
+          diasInactivo,
+          ejercicioActual: exerciseMeta?.exerciseNombre,
+        }
+      })
+
+      riskEntries.sort((a, b) => {
+        if (a.progreso === b.progreso) {
+          return b.diasInactivo - a.diasInactivo
+        }
+        return a.progreso - b.progreso
+      })
+
+      response.atRiskStudents = riskEntries.slice(0, 12)
+    } else {
+      response.atRiskStudents = []
+    }
   } catch (error) {
     console.error("[cohorts/analytics] Failed to assemble analytics", error)
   }

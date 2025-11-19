@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { ExercisePlayer } from "../base/ExercisePlayer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { LineChart, TrendingUp } from "lucide-react"
+import { useAutoSave } from "@/hooks/useAutoSave"
 
 interface SistemaTrackingPlayerProps {
   exerciseId: string
@@ -15,6 +16,7 @@ interface SistemaTrackingPlayerProps {
   onSave: (data: any) => Promise<void>
   onComplete: (data: any) => Promise<void>
   onExit: () => void
+  readOnly?: boolean
 }
 
 export function SistemaTrackingPlayer({
@@ -26,17 +28,34 @@ export function SistemaTrackingPlayer({
   onSave,
   onComplete,
   onExit,
+  readOnly = false,
 }: SistemaTrackingPlayerProps) {
   const [metrics, setMetrics] = useState<Record<string, number>>(
     () => (savedData?.metrics as Record<string, number>) || savedData || {}
   )
 
+  const trackingPayload = useMemo(() => ({ metrics }), [metrics])
+
+  useAutoSave({
+    exerciseId,
+    data: trackingPayload,
+    enabled: !readOnly,
+    interval: 8000,
+  })
+
+  const updateMetric = (key: string, value: number) => {
+    if (readOnly) return
+    setMetrics((prev) => ({ ...prev, [key]: value }))
+  }
+
   const handleSaveWithData = async () => {
-    await onSave({ metrics })
+    if (readOnly) return
+    await onSave(trackingPayload)
   }
 
   const handleCompleteWithData = async () => {
-    await onComplete({ metrics })
+    if (readOnly) return
+    await onComplete(trackingPayload)
   }
 
   return (
@@ -44,9 +63,10 @@ export function SistemaTrackingPlayer({
       exerciseId={exerciseId}
       exerciseName={exerciseName}
       proofPointName={proofPointName}
-      onSave={handleSaveWithData}
-      onComplete={handleCompleteWithData}
+      onSave={!readOnly ? handleSaveWithData : undefined}
+      onComplete={!readOnly ? handleCompleteWithData : undefined}
       onExit={onExit}
+      canComplete={!readOnly}
     >
       <Card>
         <CardHeader>
@@ -59,11 +79,23 @@ export function SistemaTrackingPlayer({
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium">Métrica 1</label>
-              <Input type="number" value={metrics.m1 || ""} onChange={(e) => setMetrics({ ...metrics, m1: Number(e.target.value) })} />
+              <Input
+                type="number"
+                value={metrics.m1 || ""}
+                onChange={(e) => updateMetric("m1", Number(e.target.value))}
+                disabled={readOnly}
+                className={readOnly ? "bg-muted text-muted-foreground" : undefined}
+              />
             </div>
             <div>
               <label className="text-sm font-medium">Métrica 2</label>
-              <Input type="number" value={metrics.m2 || ""} onChange={(e) => setMetrics({ ...metrics, m2: Number(e.target.value) })} />
+              <Input
+                type="number"
+                value={metrics.m2 || ""}
+                onChange={(e) => updateMetric("m2", Number(e.target.value))}
+                disabled={readOnly}
+                className={readOnly ? "bg-muted text-muted-foreground" : undefined}
+              />
             </div>
           </div>
           <p className="text-sm text-muted-foreground">Sistema de tracking de métricas con gráficas (implementación completa pendiente)</p>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { ExercisePlayer } from "../base/ExercisePlayer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -21,6 +21,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { exercisesApi } from "@/services/api"
+import { useAutoSave } from "@/hooks/useAutoSave"
 
 // Types for Mentor/Asesor IA
 interface MentorStep {
@@ -64,6 +65,7 @@ interface MentorIAPlayerProps {
   onSave: (data: any) => Promise<void>
   onComplete: (data: any) => Promise<void>
   onExit: () => void
+  readOnly?: boolean
 }
 
 export function MentorIAPlayer({
@@ -76,6 +78,7 @@ export function MentorIAPlayer({
   onSave,
   onComplete,
   onExit,
+  readOnly = false,
 }: MentorIAPlayerProps) {
   const [currentStep, setCurrentStep] = useState(0)
   const [responses, setResponses] = useState<Record<number, StepResponse>>(
@@ -95,6 +98,22 @@ export function MentorIAPlayer({
   const currentStepData = content.pasos[currentStep]
   const totalSteps = content.pasos.length
 
+  const mentorPayload = useMemo(
+    () => ({
+      responses,
+      completedSteps: Array.from(completedSteps),
+      currentStep,
+    }),
+    [responses, completedSteps, currentStep],
+  )
+
+  useAutoSave({
+    exerciseId,
+    data: mentorPayload,
+    enabled: !readOnly,
+    interval: 12000,
+  })
+
   // Restore saved answers when available
   useEffect(() => {
     if (savedData && typeof savedData === "object") {
@@ -105,6 +124,7 @@ export function MentorIAPlayer({
   }, [initialResponses, savedData])
 
   const updateResponse = (field: keyof StepResponse, value: any) => {
+    if (readOnly) return
     setResponses(prev => ({
       ...prev,
       [currentStep]: {
@@ -176,7 +196,7 @@ ${reflections || "No hay reflexiones previas todavía."}`
   }
 
   const handleStepComplete = async () => {
-    if (!isStepComplete(currentStep)) return
+    if (readOnly || !isStepComplete(currentStep)) return
 
     // Clear previous validation error
     setValidationError(null)
@@ -252,6 +272,7 @@ ${reflections || "No hay reflexiones previas todavía."}`
   }
 
   const requestMentorAdvice = async () => {
+    if (readOnly) return
     const prompt =
       (getResponse("reflexion") as string) || currentStepData.pregunta_reflexion
     if (!prompt) return
@@ -287,22 +308,16 @@ ${reflections || "No hay reflexiones previas todavía."}`
   }
 
   const handleSaveWithData = async () => {
-    await onSave({
-      responses,
-      completedSteps: Array.from(completedSteps),
-      currentStep,
-    })
+    if (readOnly) return
+    await onSave(mentorPayload)
   }
 
   const handleCompleteWithData = async () => {
+    if (readOnly) return
     if (isStepComplete(currentStep)) {
       setCompletedSteps(prev => new Set([...prev, currentStep]))
     }
-    await onComplete({
-      responses,
-      completedSteps: Array.from(completedSteps),
-      currentStep,
-    })
+    await onComplete(mentorPayload)
   }
 
   const overallProgress = (completedSteps.size / totalSteps) * 100
@@ -315,8 +330,8 @@ ${reflections || "No hay reflexiones previas todavía."}`
       proofPointName={proofPointName}
       totalSteps={totalSteps}
       currentStep={currentStep + 1}
-      onSave={handleSaveWithData}
-      onComplete={handleCompleteWithData}
+      onSave={!readOnly ? handleSaveWithData : undefined}
+      onComplete={!readOnly ? handleCompleteWithData : undefined}
       onPrevious={currentStep > 0 ? handlePrevious : undefined}
       onNext={
         currentStep < totalSteps - 1 && completedSteps.has(currentStep)
@@ -325,6 +340,7 @@ ${reflections || "No hay reflexiones previas todavía."}`
       }
       onExit={onExit}
       showAIAssistant={false} // Has its own mentor interaction
+      canComplete={!readOnly && completedSteps.size === totalSteps}
     >
       <div className="space-y-6">
         {/* Mentor Info */}
@@ -424,7 +440,11 @@ ${reflections || "No hay reflexiones previas todavía."}`
                 placeholder="Escribe tu reflexión aquí... (mínimo 100 palabras)"
                 value={getResponse("reflexion") as string}
                 onChange={(e) => updateResponse("reflexion", e.target.value)}
-                className="min-h-[200px]"
+                disabled={readOnly}
+                className={cn(
+                  "min-h-[200px]",
+                  readOnly && "bg-muted text-muted-foreground resize-none"
+                )}
               />
               <div className="flex items-center justify-between text-sm">
                 <span className={cn(
@@ -438,7 +458,7 @@ ${reflections || "No hay reflexiones previas todavía."}`
                   variant="outline"
                   size="sm"
                   onClick={requestMentorAdvice}
-                  disabled={isRequestingAdvice}
+                  disabled={isRequestingAdvice || readOnly}
                 >
                   <Lightbulb className="h-4 w-4 mr-2" />
                   {isRequestingAdvice ? "Consultando..." : "Pedir consejo al mentor"}
@@ -486,7 +506,11 @@ ${reflections || "No hay reflexiones previas todavía."}`
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setValidationError(null)}
+                        onClick={() => {
+                          if (readOnly) return
+                          setValidationError(null)
+                        }}
+                        disabled={readOnly}
                         className="mt-4"
                       >
                         Entendido, voy a mejorar mi respuesta
@@ -559,10 +583,15 @@ ${reflections || "No hay reflexiones previas todavía."}`
                   placeholder="¿Qué acciones has tomado o planeas tomar basándote en este paso?"
                   value={(getResponse("acciones_tomadas") as string[])?.join("\n") || ""}
                   onChange={(e) => {
+                    if (readOnly) return
                     const lines = e.target.value.split("\n").filter(l => l.trim())
                     updateResponse("acciones_tomadas", lines)
                   }}
-                  className="min-h-[120px]"
+                  disabled={readOnly}
+                  className={cn(
+                    "min-h-[120px]",
+                    readOnly && "bg-muted text-muted-foreground resize-none"
+                  )}
                 />
               </CardContent>
             </Card>
@@ -579,10 +608,15 @@ ${reflections || "No hay reflexiones previas todavía."}`
                   placeholder="¿Qué has aprendido en este paso?"
                   value={(getResponse("aprendizajes") as string[])?.join("\n") || ""}
                   onChange={(e) => {
+                    if (readOnly) return
                     const lines = e.target.value.split("\n").filter(l => l.trim())
                     updateResponse("aprendizajes", lines)
                   }}
-                  className="min-h-[120px]"
+                  disabled={readOnly}
+                  className={cn(
+                    "min-h-[120px]",
+                    readOnly && "bg-muted text-muted-foreground resize-none"
+                  )}
                 />
               </CardContent>
             </Card>
@@ -609,10 +643,10 @@ ${reflections || "No hay reflexiones previas todavía."}`
           </Card>
 
           {/* Complete Step Button */}
-          {!completedSteps.has(currentStep) && (
+          {!readOnly && !completedSteps.has(currentStep) && (
             <Button
               onClick={handleStepComplete}
-              disabled={!isStepComplete(currentStep) || isValidating}
+              disabled={!isStepComplete(currentStep) || isValidating || readOnly}
               size="lg"
               className="w-full"
             >

@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Progress } from "@/components/ui/progress"
 import { exercisesApi } from "@/services/api"
 import { cn } from "@/lib/utils"
+import { useAutoSave } from "@/hooks/useAutoSave"
 import {
   CheckCircle2,
   Circle,
@@ -66,6 +67,7 @@ interface InstruccionesPlayerProps {
   onSave: (data: any) => Promise<void>
   onComplete: (data: any) => Promise<void>
   onExit: () => void
+  readOnly?: boolean
 }
 
 const getChecklistItemKey = (listIdx: number, itemIdx: number, item: ChecklistItem) => {
@@ -154,6 +156,7 @@ export function InstruccionesPlayer({
   onSave,
   onComplete,
   onExit,
+  readOnly = false,
 }: InstruccionesPlayerProps) {
   const steps = Array.isArray(content.pasos_ejecucion) ? content.pasos_ejecucion : []
   const checklists = Array.isArray(content.checklists) ? content.checklists : []
@@ -198,6 +201,7 @@ export function InstruccionesPlayer({
   }, [completedChecklistItems, completedSteps, steps.length, totalChecklistItems])
 
   const handleNotesChange = (stepId: string, value: string) => {
+    if (readOnly) return
     setFocusedStepId(stepId)
     setStepState((prev) => ({
       ...prev,
@@ -210,6 +214,7 @@ export function InstruccionesPlayer({
   }
 
   const toggleStepCompletion = (stepId: string) => {
+    if (readOnly) return
     setStepState((prev) => ({
       ...prev,
       [stepId]: {
@@ -221,6 +226,7 @@ export function InstruccionesPlayer({
   }
 
   const toggleChecklistItem = (listIdx: number, itemIdx: number, item: ChecklistItem, checked: boolean) => {
+    if (readOnly) return
     const key = getChecklistItemKey(listIdx, itemIdx, item)
     setChecklistState((prev) => ({
       ...prev,
@@ -261,6 +267,7 @@ export function InstruccionesPlayer({
 
   const sendAssistantPrompt = useCallback(
     async (preset?: string) => {
+      if (readOnly) return
       const prompt = (preset ?? assistantInput).trim()
       if (!prompt) return
 
@@ -312,23 +319,40 @@ export function InstruccionesPlayer({
       focusedStepId,
       steps,
       totalChecklistItems,
+      readOnly,
     ],
   )
 
-  const buildPayload = () => ({
-    stepState,
-    checklistState,
-    assistantMessages,
-    focusedStepId,
+  const progressPayload = useMemo(
+    () => ({
+      stepState,
+      checklistState,
+      assistantMessages,
+      focusedStepId,
+    }),
+    [assistantMessages, checklistState, focusedStepId, stepState],
+  )
+
+  useAutoSave({
+    exerciseId,
+    data: progressPayload,
+    enabled: !readOnly,
+    interval: 12000,
+  })
+
+  const buildPersistedPayload = () => ({
+    ...progressPayload,
     updatedAt: new Date().toISOString(),
   })
 
   const handleSaveWithData = async () => {
-    await onSave(buildPayload())
+    if (readOnly) return
+    await onSave(buildPersistedPayload())
   }
 
   const handleCompleteWithData = async () => {
-    await onComplete(buildPayload())
+    if (readOnly) return
+    await onComplete(buildPersistedPayload())
   }
 
   return (
@@ -339,11 +363,12 @@ export function InstruccionesPlayer({
       proofPointName={proofPointName}
       totalSteps={1}
       currentStep={1}
-      onSave={handleSaveWithData}
-      onComplete={handleCompleteWithData}
+      onSave={!readOnly ? handleSaveWithData : undefined}
+      onComplete={!readOnly ? handleCompleteWithData : undefined}
       onExit={onExit}
       showAIAssistant={false}
       contentMaxWidthClassName="max-w-[1400px]"
+      canComplete={!readOnly}
     >
       <div className="space-y-6">
         <Card className="bg-gradient-to-r from-orange-50 to-white">
@@ -414,6 +439,7 @@ export function InstruccionesPlayer({
                             event.stopPropagation()
                             toggleStepCompletion(step.id)
                           }}
+                          disabled={readOnly}
                         >
                           {progress?.completado ? (
                             <CheckCircle2 className="h-5 w-5 text-green-600" />
@@ -428,7 +454,11 @@ export function InstruccionesPlayer({
                         onChange={(event) => handleNotesChange(step.id, event.target.value)}
                         onFocus={() => setFocusedStepId(step.id)}
                         placeholder="Captura decisiones, hallazgos o dudas..."
-                        className="mt-4 min-h-[140px]"
+                        disabled={readOnly}
+                        className={cn(
+                          "mt-4 min-h-[140px]",
+                          readOnly && "bg-muted text-muted-foreground resize-none",
+                        )}
                       />
                     </div>
                   )
@@ -477,6 +507,7 @@ export function InstruccionesPlayer({
                                   onCheckedChange={(checked) =>
                                     toggleChecklistItem(listIdx, itemIdx, item, checked === true)
                                   }
+                                  disabled={readOnly}
                                 />
                                 <span>{item.texto}</span>
                               </label>
@@ -504,7 +535,13 @@ export function InstruccionesPlayer({
                 {content.preguntas_asistencia_sugeridas && content.preguntas_asistencia_sugeridas.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {content.preguntas_asistencia_sugeridas.map((prompt) => (
-                      <Button key={prompt} variant="outline" size="sm" onClick={() => sendAssistantPrompt(prompt)}>
+                      <Button
+                        key={prompt}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => sendAssistantPrompt(prompt)}
+                        disabled={readOnly}
+                      >
                         {prompt}
                       </Button>
                     ))}
@@ -545,14 +582,21 @@ export function InstruccionesPlayer({
                 <div className="space-y-2">
                   <Textarea
                     value={assistantInput}
-                    onChange={(event) => setAssistantInput(event.target.value)}
+                    onChange={(event) => {
+                      if (readOnly) return
+                      setAssistantInput(event.target.value)
+                    }}
                     placeholder="Ej: Necesito reformular mi guion de entrevistas..."
-                    className="min-h-[100px]"
+                    className={cn(
+                      "min-h-[100px]",
+                      readOnly && "bg-muted text-muted-foreground resize-none",
+                    )}
+                    disabled={readOnly}
                   />
                   <div className="flex justify-end">
                     <Button
                       onClick={() => sendAssistantPrompt()}
-                      disabled={!assistantInput.trim() || assistantLoading}
+                      disabled={readOnly || !assistantInput.trim() || assistantLoading}
                     >
                       {assistantLoading ? (
                         <>

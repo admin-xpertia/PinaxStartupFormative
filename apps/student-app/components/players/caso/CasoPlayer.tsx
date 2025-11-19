@@ -20,6 +20,7 @@ import rehypeKatex from "rehype-katex"
 import { visit } from "unist-util-visit"
 import "katex/dist/katex.min.css"
 import { BookOpen, ClipboardList, CheckCircle2, Circle } from "lucide-react"
+import { useAutoSave } from "@/hooks/useAutoSave"
 
 interface CasoMetadata {
   conceptosClave?: string[]
@@ -52,6 +53,7 @@ interface CasoPlayerProps {
   onSave: (data: any) => Promise<void>
   onComplete: (data: any) => Promise<void>
   onExit: () => void
+  readOnly?: boolean
 }
 
 type AssistantMessage = { role: "user" | "assistant"; content: string }
@@ -148,6 +150,7 @@ export function CasoPlayer({
   onSave,
   onComplete,
   onExit,
+  readOnly = false,
 }: CasoPlayerProps) {
   const sections = Array.isArray(content.secciones_analisis) ? content.secciones_analisis : []
   const initialResponses = normalizeResponseRecord(
@@ -173,6 +176,13 @@ export function CasoPlayer({
 
   const progress = sections.length > 0 ? Math.round((answeredCount / sections.length) * 100) : 0
   const activeSection = sections[activeSectionIndex]
+  const canCompleteExercise = useMemo(
+    () =>
+      sections.length === 0
+        ? true
+        : sections.every((section) => Boolean(responses[section.id]?.trim().length)),
+    [responses, sections],
+  )
 
   const conceptos = content.metadata?.conceptosClave || []
   const estimatedMinutes = content.metadata?.tiempoEstimadoMinutos
@@ -230,6 +240,7 @@ export function CasoPlayer({
 
   const handleResponseChange = useCallback(
     (sectionId: string, value: string) => {
+      if (readOnly) return
       setResponses((prev) => ({
         ...prev,
         [sectionId]: value,
@@ -285,21 +296,33 @@ export function CasoPlayer({
     [activeSection, answeredCount, buildSectionContext, content.titulo, exerciseId, progress, sections.length],
   )
 
-  const buildPayload = () => ({
-    responses,
-    activeSectionIndex,
-    activeSectionId: activeSection?.id,
-    answeredCount,
-    totalSections: sections.length,
-    updatedAt: new Date().toISOString(),
+  const currentPayload = useMemo(
+    () => ({
+      responses,
+      activeSectionIndex,
+      activeSectionId: activeSection?.id,
+      answeredCount,
+      totalSections: sections.length,
+      updatedAt: new Date().toISOString(),
+    }),
+    [responses, activeSectionIndex, activeSection?.id, answeredCount, sections.length],
+  )
+
+  useAutoSave({
+    exerciseId,
+    data: currentPayload,
+    enabled: !readOnly,
+    interval: 15000,
   })
 
   const handleSaveWithData = async () => {
-    await onSave(buildPayload())
+    if (readOnly) return
+    await onSave(currentPayload)
   }
 
   const handleCompleteWithData = async () => {
-    await onComplete(buildPayload())
+    if (readOnly) return
+    await onComplete(currentPayload)
   }
 
   const sectionButtons = (
@@ -338,8 +361,8 @@ export function CasoPlayer({
       totalSteps={Math.max(1, sections.length)}
       currentStep={sections.length > 0 ? activeSectionIndex + 1 : 1}
       estimatedMinutes={estimatedMinutes}
-      onSave={handleSaveWithData}
-      onComplete={handleCompleteWithData}
+      onSave={!readOnly ? handleSaveWithData : undefined}
+      onComplete={!readOnly ? handleCompleteWithData : undefined}
       onPrevious={activeSectionIndex > 0 ? () => setActiveSectionIndex((prev) => prev - 1) : undefined}
       onNext={
         sections.length > 0 && activeSectionIndex < sections.length - 1
@@ -351,6 +374,7 @@ export function CasoPlayer({
       aiContext={activeSection?.titulo || content.titulo}
       onAskAssistant={handleAskAssistant}
       contentMaxWidthClassName="max-w-[1400px]"
+      canComplete={!readOnly && canCompleteExercise}
     >
       <div className="space-y-6">
         <Card className="border-dashed">
@@ -437,13 +461,19 @@ export function CasoPlayer({
                         value={responses[activeSection.id] || ""}
                         onChange={(event) => handleResponseChange(activeSection.id, event.target.value)}
                         placeholder={activeSection.placeholder || "Escribe tu análisis fundamentado aquí..."}
-                        className="min-h-[220px]"
+                        disabled={readOnly}
+                        className={cn(
+                          "min-h-[220px]",
+                          readOnly && "bg-muted text-muted-foreground resize-none",
+                        )}
                       />
                       <div className="mt-4 mb-2">
-                        <ProactiveSuggestionCard
-                          isAnalyzing={isAnalyzing[activeSection.id]}
-                          suggestion={proactiveFeedback[activeSection.id]}
-                        />
+                        {!readOnly && (
+                          <ProactiveSuggestionCard
+                            isAnalyzing={isAnalyzing[activeSection.id]}
+                            suggestion={proactiveFeedback[activeSection.id]}
+                          />
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground">
                         Referencia siempre evidencia concreta del caso y anticipa contraargumentos.

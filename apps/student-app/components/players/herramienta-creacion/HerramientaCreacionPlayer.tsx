@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Sparkles, Eye } from "lucide-react"
+import { useAutoSave } from "@/hooks/useAutoSave"
 
 interface CreationPrompt {
   id?: string
@@ -42,6 +43,7 @@ interface HerramientaCreacionPlayerProps {
   onSave: (data: any) => Promise<void>
   onComplete: (data: any) => Promise<void>
   onExit: () => void
+  readOnly?: boolean
 }
 
 export function HerramientaCreacionPlayer({
@@ -53,6 +55,7 @@ export function HerramientaCreacionPlayer({
   onSave,
   onComplete,
   onExit,
+  readOnly = false,
 }: HerramientaCreacionPlayerProps) {
   const prompts = useMemo(() => normalizePrompts(content.promptsIniciales), [content.promptsIniciales])
   const variants = Array.isArray(content.variantes) ? content.variantes : []
@@ -75,6 +78,21 @@ export function HerramientaCreacionPlayer({
   })
 
   const selectedVariant = variants[selectedVariantIndex]
+
+  const creationPayload = useMemo(
+    () => ({
+      respuestas: answers,
+      varianteSeleccionada: selectedVariant,
+    }),
+    [answers, selectedVariant],
+  )
+
+  useAutoSave({
+    exerciseId,
+    data: creationPayload,
+    enabled: !readOnly,
+    interval: 12000,
+  })
 
   // Rehydrate saved answers/variant when data is available
   useEffect(() => {
@@ -100,17 +118,13 @@ export function HerramientaCreacionPlayer({
   }, [savedData, variants])
 
   const handleSaveWithData = async () => {
-    await onSave({
-      respuestas: answers,
-      varianteSeleccionada: selectedVariant,
-    })
+    if (readOnly) return
+    await onSave(creationPayload)
   }
 
   const handleCompleteWithData = async () => {
-    await onComplete({
-      respuestas: answers,
-      varianteSeleccionada: selectedVariant,
-    })
+    if (readOnly) return
+    await onComplete(creationPayload)
   }
 
   return (
@@ -119,9 +133,10 @@ export function HerramientaCreacionPlayer({
       exerciseName={exerciseName}
       proofPointName={proofPointName}
       exerciseDescription={content.descripcion || content.objetivo}
-      onSave={handleSaveWithData}
-      onComplete={handleCompleteWithData}
+      onSave={!readOnly ? handleSaveWithData : undefined}
+      onComplete={!readOnly ? handleCompleteWithData : undefined}
       onExit={onExit}
+      canComplete={!readOnly}
     >
       <div className="space-y-6">
         <Card>
@@ -151,6 +166,7 @@ export function HerramientaCreacionPlayer({
                 <Textarea
                   value={prompt.id ? (answers[prompt.id] || "") : ""}
                   onChange={(event) => {
+                    if (readOnly) return
                     const promptId = prompt.id
                     if (promptId) {
                       setAnswers((prev) => ({
@@ -160,10 +176,17 @@ export function HerramientaCreacionPlayer({
                     }
                   }}
                   placeholder={prompt.placeholder || "Escribe aquí..."}
+                  disabled={readOnly}
+                  className={readOnly ? "bg-muted text-muted-foreground resize-none" : undefined}
                 />
               </div>
             ))}
-            <Button variant="secondary" className="w-full" onClick={handleSaveWithData}>
+            <Button
+              variant="secondary"
+              className="w-full"
+              onClick={handleSaveWithData}
+              disabled={readOnly}
+            >
               <Sparkles className="h-4 w-4 mr-2" />
               Guardar brief personalizado
             </Button>
@@ -185,13 +208,18 @@ export function HerramientaCreacionPlayer({
                   className={`h-full cursor-pointer transition-shadow ${selectedVariantIndex === index ? "ring-2 ring-primary" : ""}`}
                   role="button"
                   tabIndex={0}
-                  onClick={() => setSelectedVariantIndex(index)}
+                  onClick={() => {
+                    if (readOnly) return
+                    setSelectedVariantIndex(index)
+                  }}
                   onKeyDown={(event) => {
+                    if (readOnly) return
                     if (event.key === "Enter" || event.key === " ") {
                       event.preventDefault()
                       setSelectedVariantIndex(index)
                     }
                   }}
+                  aria-disabled={readOnly}
                 >
                     <CardHeader>
                       <div className="flex items-center justify-between">
@@ -209,7 +237,12 @@ export function HerramientaCreacionPlayer({
                           Enfoque: {variant.enfoque}
                         </p>
                       )}
-                      <Button variant="outline" size="sm" className="w-full mt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-2"
+                        disabled={readOnly}
+                      >
                         <Eye className="h-4 w-4 mr-2" />
                         Visualizar
                       </Button>

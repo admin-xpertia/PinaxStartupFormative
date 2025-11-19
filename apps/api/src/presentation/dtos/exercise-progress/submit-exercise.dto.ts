@@ -180,3 +180,108 @@ export class InstructorSubmissionListItemDto {
   })
   aiScore?: number | null;
 }
+
+export class CohortProgressOverviewRecordDto {
+  @ApiProperty({
+    description: "ID del registro de progreso",
+    example: "exercise_progress:abc123",
+  })
+  progressId: string;
+
+  @ApiProperty({
+    description: "ID del estudiante",
+    example: "estudiante:abc123",
+  })
+  estudianteId: string;
+
+  @ApiPropertyOptional({
+    description: "Nombre resuelto del estudiante",
+    example: "Ana Ruiz",
+  })
+  estudianteNombre?: string;
+
+  @ApiProperty({
+    description: "ID de la instancia del ejercicio",
+    example: "exercise_instance:xyz789",
+  })
+  exerciseInstanceId: string;
+
+  @ApiProperty({
+    description: "Estado normalizado del progreso",
+    example: "pending_review",
+  })
+  status: ExerciseProgressStatus;
+
+  @ApiPropertyOptional({
+    description: "Porcentaje de completitud registrado (0-100)",
+    example: 80,
+  })
+  porcentajeCompletitud?: number | null;
+
+  @ApiPropertyOptional({
+    description: "Puntaje sugerido por IA",
+    example: 75,
+  })
+  aiScore?: number | null;
+
+  @ApiPropertyOptional({
+    description: "Puntaje asignado por el instructor",
+    example: 90,
+  })
+  instructorScore?: number | null;
+
+  @ApiPropertyOptional({
+    description: "Puntaje final publicado",
+    example: 88,
+  })
+  finalScore?: number | null;
+
+  @ApiPropertyOptional({
+    description: "Fecha de envío",
+    example: "2024-05-04T10:00:00Z",
+  })
+  submittedAt?: string | null;
+
+  @ApiPropertyOptional({
+    description: "Fecha de calificación",
+    example: "2024-05-05T10:00:00Z",
+  })
+  gradedAt?: string | null;
+
+  @ApiPropertyOptional({
+    description: "Última actualización registrada",
+    example: "2024-05-05T09:00:00Z",
+  })
+  updatedAt?: string | null;
+
+  @ApiPropertyOptional({
+    description: "Minutos invertidos reportados",
+    example: 45,
+  })
+  tiempoInvertidoMinutos?: number | null;
+
+  @ApiPropertyOptional({
+    description: "Feedback plano del instructor",
+    example: "Buen trabajo, refuerza la conclusión.",
+  })
+  manualFeedback?: string | null;
+
+  @ApiPropertyOptional({
+    description: "Feedback estructurado combinado",
+    type: () => Object,
+  })
+  feedbackJson?: Record<string, any> | null;
+}
+
+export class CohortProgressOverviewResponseDto {
+  @ApiProperty({
+    description: "ID de la cohorte consultada",
+    example: "cohorte:primavera_2025",
+  })
+  cohorteId: string;
+
+  @ApiProperty({
+    type: [CohortProgressOverviewRecordDto],
+  })
+  submissions: CohortProgressOverviewRecordDto[];
+}

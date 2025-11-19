@@ -11,9 +11,16 @@ import { proofPointStatusThemes } from "@/lib/dashboard"
 interface PhaseProofPointsProps {
   phase?: Phase | null
   onOpenProofPoint: (proofPointId: string) => void
+  pendingReviewMap?: Record<string, { exerciseName: string; status: string }>
+  onViewPendingFeedback?: (proofPointId: string) => void
 }
 
-export function PhaseProofPoints({ phase, onOpenProofPoint }: PhaseProofPointsProps) {
+export function PhaseProofPoints({
+  phase,
+  onOpenProofPoint,
+  pendingReviewMap,
+  onViewPendingFeedback,
+}: PhaseProofPointsProps) {
   return (
     <Card className="border-none bg-white shadow-lg">
       <CardHeader className="flex flex-col gap-1 pb-4">
@@ -72,6 +79,21 @@ export function PhaseProofPoints({ phase, onOpenProofPoint }: PhaseProofPointsPr
                   <p className="mt-1 text-sm text-muted-foreground">
                     {proofPoint.preguntaCentral || proofPoint.descripcion}
                   </p>
+                  {pendingReviewMap?.[proofPoint.id] ? (
+                    <div className="mt-2 flex items-center gap-2 text-xs text-amber-700">
+                      <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
+                        Revisión pendiente
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="xs"
+                        className="h-7 px-2 text-amber-700 hover:text-amber-800"
+                        onClick={() => onViewPendingFeedback?.(proofPoint.id)}
+                      >
+                        Ver feedback IA
+                      </Button>
+                    </div>
+                  ) : null}
                   <div className="mt-4 flex items-center gap-2">
                     <Progress value={proofPoint.progress} className="h-2 flex-1" />
                     <span className="text-sm font-semibold">{Math.round(proofPoint.progress)}%</span>

@@ -54,6 +54,8 @@ import {
   SubmitExerciseForGradingResponseDto,
   ReviewAndGradeSubmissionResponseDto,
   InstructorSubmissionListItemDto,
+  CohortProgressOverviewResponseDto,
+  CohortProgressOverviewRecordDto,
 } from "../../dtos/exercise-progress/submit-exercise.dto";
 import { RolesGuard } from "../../../core/guards/roles.guard";
 
@@ -747,6 +749,92 @@ export class ExerciseProgressController {
   }
 
   /**
+   * Get full cohort progress overview for instructor analytics
+   */
+  @Get("instructor/cohortes/:cohorteId/progress-overview")
+  @UseGuards(RolesGuard)
+  @Roles("instructor")
+  @ApiOperation({
+    summary: "Obtener todas las entregas de una cohorte",
+    description:
+      "Devuelve todas las entregas registradas (independientemente del estado) para construir analíticos del programa.",
+  })
+  @ApiParam({
+    name: "cohorteId",
+    description: "ID de la cohorte a consultar",
+    example: "cohorte:⟨1763575780115_0⟩",
+  })
+  @ApiResponse({
+    status: 200,
+    type: CohortProgressOverviewResponseDto,
+  })
+  async getCohortProgressOverview(
+    @Param("cohorteId") cohorteId: string,
+  ): Promise<CohortProgressOverviewResponseDto> {
+    const decodedCohorteId = this.decodeExerciseId(cohorteId);
+
+    const query = `
+      SELECT
+        id,
+        estudiante,
+        exercise_instance,
+        status,
+        estado,
+        porcentaje_completitud,
+        final_score,
+        score_final,
+        ai_score,
+        instructor_score,
+        manual_feedback,
+        instructor_feedback,
+        feedback_json,
+        feedback_data,
+        submitted_at,
+        graded_at,
+        updated_at,
+        fecha_completado,
+        tiempo_invertido_minutos
+      FROM exercise_progress
+      WHERE cohorte = type::thing($cohorteId)
+    `;
+
+    const result = await this.db.query(query, {
+      cohorteId: decodedCohorteId,
+    });
+
+    const records = Array.isArray(result?.[0])
+      ? result[0]
+      : Array.isArray(result)
+        ? result
+        : [];
+
+    if (!records.length) {
+      return {
+        cohorteId: decodedCohorteId,
+        submissions: [],
+      };
+    }
+
+    const studentIds = Array.from(
+      new Set(
+        records
+          .map((record) => this.extractRecordId(record.estudiante))
+          .filter((value): value is string => Boolean(value)),
+      ),
+    );
+
+    const studentNames = await this.fetchStudentNames(studentIds);
+    const submissions = records.map((record) =>
+      this.mapCohortProgressRecord(record, studentNames),
+    );
+
+    return {
+      cohorteId: decodedCohorteId,
+      submissions,
+    };
+  }
+
+  /**
    * Get student progress summary
    */
   @Public()
@@ -785,6 +873,7 @@ export class ExerciseProgressController {
         instructor_score,
         manual_feedback,
         feedback_json,
+        feedback_data,
         tiempo_invertido_minutos,
         fecha_completado,
         submitted_at,
@@ -953,6 +1042,7 @@ export class ExerciseProgressController {
         instructor_score,
         manual_feedback,
         feedback_json,
+        feedback_data,
         submitted_at,
         tiempo_invertido_minutos
       FROM exercise_progress
@@ -1025,7 +1115,7 @@ export class ExerciseProgressController {
         aiScore: record.ai_score ?? null,
         instructorScore: record.instructor_score ?? null,
         manualFeedback: record.manual_feedback ?? null,
-        feedbackJson: record.feedback_json ?? null,
+        feedbackJson: record.feedback_json ?? record.feedback_data ?? null,
         score: record.final_score ?? record.score_final ?? null,
         timeInvestedMinutes: record.tiempo_invertido_minutos || 0,
       };
@@ -2244,11 +2334,79 @@ ${evaluationDto.respuestaEstudiante}`;
       instructorScore: progress.instructor_score ?? null,
       scoreFinal: progress.final_score ?? progress.score_final ?? null,
       manualFeedback: progress.manual_feedback ?? null,
-      feedbackJson: progress.feedback_json ?? null,
+      feedbackJson: progress.feedback_json ?? progress.feedback_data ?? null,
       instructorFeedback: progress.instructor_feedback,
       datosGuardados,
       createdAt: progress.created_at,
       updatedAt: progress.updated_at,
     };
+  }
+
+  private mapCohortProgressRecord(
+    record: any,
+    studentNameMap: Map<string, string>,
+  ): CohortProgressOverviewRecordDto {
+    const estudianteId = this.extractRecordId(record.estudiante) ?? "";
+    const exerciseInstanceId =
+      this.extractRecordId(record.exercise_instance) ?? "";
+    const status = this.normalizeStatusFromRecord(record);
+    const porcentajeCompletitud = this.resolveProgressPercentageValue(
+      record,
+      status,
+    );
+
+    return {
+      progressId: record.id,
+      estudianteId,
+      estudianteNombre: estudianteId
+        ? studentNameMap.get(estudianteId)
+        : undefined,
+      exerciseInstanceId,
+      status,
+      porcentajeCompletitud,
+      aiScore: this.normalizeScoreValue(record.ai_score),
+      instructorScore: this.normalizeScoreValue(record.instructor_score),
+      finalScore: this.normalizeScoreValue(
+        record.final_score ?? record.score_final,
+      ),
+      submittedAt: record.submitted_at ?? null,
+      gradedAt: record.graded_at ?? record.fecha_completado ?? null,
+      updatedAt: record.updated_at ?? null,
+      tiempoInvertidoMinutos:
+        typeof record.tiempo_invertido_minutos === "number"
+          ? record.tiempo_invertido_minutos
+          : null,
+      manualFeedback:
+        record.manual_feedback ??
+        record.instructor_feedback ??
+        null,
+      feedbackJson:
+        record.feedback_json ??
+        record.feedback_data ??
+        null,
+    };
+  }
+
+  private resolveProgressPercentageValue(
+    record: any,
+    status: ExerciseProgressStatus,
+  ): number {
+    if (typeof record?.porcentaje_completitud === "number") {
+      return Math.max(0, Math.min(100, record.porcentaje_completitud));
+    }
+    if (status === "graded" || status === "approved" || status === "pending_review") {
+      return 100;
+    }
+    return 0;
+  }
+
+  private normalizeScoreValue(value: any): number | null {
+    if (typeof value !== "number" || Number.isNaN(value)) {
+      return null;
+    }
+    if (!Number.isFinite(value)) {
+      return null;
+    }
+    return Math.max(0, Math.min(100, Number(value)));
   }
 }

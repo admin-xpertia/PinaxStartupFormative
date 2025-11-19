@@ -14,12 +14,12 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertTriangle, Bot, Loader2 } from "lucide-react"
+import { AlertTriangle, Loader2 } from "lucide-react"
 import { fetcher } from "@/lib/fetcher"
 import { useToast } from "@/hooks/use-toast"
 import { SubmissionViewer } from "@/components/grading/SubmissionViewer"
+import { AiAssessmentCard } from "@/components/grading/AiAssessmentCard"
 import { exerciseInstancesApi } from "@/services/api"
 import type { CohortAnalyticsResponse } from "../../types"
 import type { SubmissionItem } from "../../components/SubmissionQueue"
@@ -194,11 +194,6 @@ export default function GradingWorkspacePage({
     }
   }
 
-  const strengths = Array.isArray(aiFeedback?.strengths) ? aiFeedback?.strengths : []
-  const improvements = Array.isArray(aiFeedback?.improvements)
-    ? aiFeedback?.improvements
-    : []
-
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar />
@@ -269,107 +264,63 @@ export default function GradingWorkspacePage({
                   </CardContent>
                 </Card>
 
-                <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card shadow-sm">
-                  <div className="border-b p-4">
-                    <p className="text-xs font-medium uppercase text-muted-foreground">Sugerencia de IA</p>
-                    <div className="flex items-end gap-3">
-                      <span className="text-4xl font-semibold">{data?.aiScore ?? "--"}</span>
-                      <span className="text-sm text-muted-foreground">/100</span>
+                <div className="flex flex-col gap-4">
+                  <AiAssessmentCard aiScore={data?.aiScore ?? null} feedback={aiFeedback} />
+                  <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card shadow-sm">
+                    <div className="border-b p-4">
+                      <p className="text-xs font-medium uppercase text-muted-foreground">Calificación final</p>
+                      <p className="text-sm text-muted-foreground">
+                        Ajusta la recomendación automática o publica la nota final directamente.
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Ajusta la recomendación o publica directamente.
-                    </p>
-                  </div>
-                  <div className="flex-1 space-y-4 overflow-y-auto p-4">
-                    {aiFeedback ? (
-                      <div className="space-y-3">
-                        {aiFeedback.summary && (
-                          <div className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
-                            {aiFeedback.summary}
+                    <div className="flex-1 space-y-4 overflow-y-auto p-4">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Nota final</label>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={score}
+                            onChange={(e) => setScore(e.target.value === "" ? "" : Number(e.target.value))}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Estado actual</label>
+                          <div className="rounded-lg border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+                            {data?.status || "pending_review"}
                           </div>
-                        )}
-                        <Accordion type="multiple" className="rounded-lg border">
-                          {strengths.length > 0 && (
-                            <AccordionItem value="strengths">
-                              <AccordionTrigger className="px-4 py-3 text-sm font-medium">
-                                Fortalezas detectadas
-                              </AccordionTrigger>
-                              <AccordionContent className="px-4 pb-4 text-sm text-muted-foreground">
-                                <ul className="list-disc list-inside space-y-1">
-                                  {strengths.map((item: string, idx: number) => (
-                                    <li key={`strength-${idx}`}>{item}</li>
-                                  ))}
-                                </ul>
-                              </AccordionContent>
-                            </AccordionItem>
-                          )}
-                          {improvements.length > 0 && (
-                            <AccordionItem value="improvements">
-                              <AccordionTrigger className="px-4 py-3 text-sm font-medium">
-                                Áreas de mejora sugeridas
-                              </AccordionTrigger>
-                              <AccordionContent className="px-4 pb-4 text-sm text-muted-foreground">
-                                <ul className="list-disc list-inside space-y-1">
-                                  {improvements.map((item: string, idx: number) => (
-                                    <li key={`improvement-${idx}`}>{item}</li>
-                                  ))}
-                                </ul>
-                              </AccordionContent>
-                            </AccordionItem>
-                          )}
-                        </Accordion>
-                      </div>
-                    ) : (
-                      <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                        Aún no hay feedback generado para esta entrega.
-                      </div>
-                    )}
-                  </div>
-                  <div className="sticky bottom-0 border-t bg-background/90 p-4 backdrop-blur supports-[backdrop-filter]:backdrop-blur-lg">
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Nota final</label>
-                        <Input
-                          type="number"
-                          min={0}
-                          max={100}
-                          value={score}
-                          onChange={(e) => setScore(e.target.value === "" ? "" : Number(e.target.value))}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Estado actual</label>
-                        <div className="rounded-lg border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
-                          {data?.status || "pending_review"}
                         </div>
                       </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Comentarios al estudiante</label>
+                        <Textarea
+                          rows={4}
+                          placeholder="Personaliza el feedback que verá el estudiante..."
+                          value={feedback}
+                          onChange={(e) => setFeedback(e.target.value)}
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-2 pt-3">
-                      <label className="text-sm font-medium">Comentarios al estudiante</label>
-                      <Textarea
-                        rows={3}
-                        placeholder="Personaliza el feedback que verá el estudiante..."
-                        value={feedback}
-                        onChange={(e) => setFeedback(e.target.value)}
-                      />
-                    </div>
-                    <div className="flex items-center gap-2 py-3 text-xs text-muted-foreground">
-                      <AlertTriangle className="h-4 w-4 text-amber-500" />
-                      Al publicar, la nota se envía inmediatamente al estudiante.
-                    </div>
-                    <div className="flex flex-wrap items-center justify-end gap-3">
-                      <Button
-                        variant="outline"
-                        disabled={isSaving || isLoading}
-                        onClick={() => handleGrade(false)}
-                      >
-                        {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                        Guardar borrador
-                      </Button>
-                      <Button disabled={isSaving || isLoading} onClick={() => handleGrade(true)}>
-                        {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                        Publicar nota
-                      </Button>
+                    <div className="sticky bottom-0 border-t bg-background/90 p-4 backdrop-blur supports-[backdrop-filter]:backdrop-blur-lg">
+                      <div className="flex items-center gap-2 py-3 text-xs text-muted-foreground">
+                        <AlertTriangle className="h-4 w-4 text-amber-500" />
+                        Al publicar, la nota se envía inmediatamente al estudiante.
+                      </div>
+                      <div className="flex flex-wrap items-center justify-end gap-3">
+                        <Button
+                          variant="outline"
+                          disabled={isSaving || isLoading}
+                          onClick={() => handleGrade(false)}
+                        >
+                          {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                          Guardar borrador
+                        </Button>
+                        <Button disabled={isSaving || isLoading} onClick={() => handleGrade(true)}>
+                          {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                          Publicar nota
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>

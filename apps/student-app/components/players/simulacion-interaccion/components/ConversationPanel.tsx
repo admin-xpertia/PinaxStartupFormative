@@ -52,7 +52,7 @@ export function ConversationPanel({
             <span className="font-semibold">Conversación</span>
             <Badge variant="outline">{messages.filter((m) => m.role !== "system").length} mensajes</Badge>
           </div>
-          <Button variant="outline" size="sm" onClick={onReset}>
+          <Button variant="outline" size="sm" onClick={onReset} disabled={disabled}>
             <RotateCcw className="mr-2 h-4 w-4" />
             Reiniciar
           </Button>
