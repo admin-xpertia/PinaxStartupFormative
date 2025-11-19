@@ -2389,6 +2389,11 @@ ${evaluationDto.respuestaEstudiante}`;
       progress?.datos ??
       {};
 
+    // CORRECCIÓN: Mapear explícitamente feedback_json a feedbackJson
+    const feedbackJson = this.normalizeFeedbackPayload(
+      progress.feedback_json ?? progress.feedback_data ?? null,
+    );
+
     return {
       id: progress.id,
       exerciseInstance: progress.exercise_instance,
@@ -2407,10 +2412,11 @@ ${evaluationDto.respuestaEstudiante}`;
       instructorScore: progress.instructor_score ?? null,
       scoreFinal: progress.final_score ?? progress.score_final ?? null,
       manualFeedback: progress.manual_feedback ?? null,
-      feedbackJson: this.normalizeFeedbackPayload(
-        progress.feedback_json ?? progress.feedback_data ?? null,
-      ),
-      instructorFeedback: progress.instructor_feedback,
+      feedbackJson,
+      // CORRECCIÓN: Mapear instructor_feedback correctamente, priorizando datos del feedback estructurado
+      instructorFeedback: feedbackJson?.instructor_comments
+        ? { comments: feedbackJson.instructor_comments }
+        : (progress.instructor_feedback ?? {}),
       datosGuardados,
       createdAt: progress.created_at,
       updatedAt: progress.updated_at,

@@ -71,7 +71,8 @@ function normalizeId(id: string | undefined | null): string {
     .replace(/^['"`](.*)['"`]$/, "$1")
   const colonIndex = stringValue.indexOf(":")
   const sliced = colonIndex >= 0 ? stringValue.slice(colonIndex + 1) : stringValue
-  return sliced.replace(/[<>]/g, "").trim()
+  // CORRECCIÓN: Agregamos ⟨ y ⟩ al regex para soportar Mathematical Angle Brackets Unicode
+  return sliced.replace(/[<>⟨⟩]/g, "").trim()
 }
 
 function resolveExerciseId(source: any): string {

@@ -120,7 +120,7 @@ export function PhaseRoadmapAccordion({
                             </Badge>
                             <Button
                               variant="ghost"
-                              size="xs"
+                              size="sm"
                               className="h-7 px-2 text-amber-700 hover:text-amber-800"
                               onClick={(event) => {
                                 event.stopPropagation()

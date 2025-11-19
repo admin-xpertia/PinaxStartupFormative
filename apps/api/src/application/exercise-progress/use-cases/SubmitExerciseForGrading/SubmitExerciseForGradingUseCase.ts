@@ -444,101 +444,33 @@ Devuelve SIEMPRE un JSON válido con la estructura:
     feedback: Record<string, any> | null | undefined,
     score: number,
   ): Record<string, any> {
-    const normalizedScore = Math.max(
-      0,
-      Math.min(100, Number(score) || 0),
-    );
+    // 1. Asegurar un objeto base válido
+    const rawData = feedback || {};
 
-    if (!feedback || typeof feedback !== "object") {
-      return {
-        summary: "Sin análisis generado.",
-        strengths: [],
-        improvements: [],
-        rubricAlignment: normalizedScore,
-        raw: feedback ?? {},
-        generated_at: new Date().toISOString(),
-        ai_version: "v1",
-      };
-    }
+    // 2. Valores por defecto garantizados (evita undefined)
+    const summary = rawData.summary || rawData.ai_analysis || rawData.suggestion || "Análisis completado.";
+    const strengths = Array.isArray(rawData.strengths) ? rawData.strengths : [];
+    const improvements = Array.isArray(rawData.improvements) ? rawData.improvements : [];
+    const rubricAlignment = Number(rawData.rubricAlignment ?? rawData.score ?? score) || 0;
 
-    const summary =
-      typeof feedback.summary === "string" && feedback.summary.trim().length > 0
-        ? feedback.summary.trim()
-        : typeof (feedback as any).ai_analysis === "string" &&
-            (feedback as any).ai_analysis.trim().length > 0
-          ? (feedback as any).ai_analysis.trim()
-          : typeof (feedback as any).suggestion === "string" &&
-              (feedback as any).suggestion.trim().length > 0
-            ? (feedback as any).suggestion.trim()
-            : "Análisis completado.";
-
-    const strengthsSource = Array.isArray(feedback.strengths)
-      ? feedback.strengths
-      : Array.isArray((feedback as any).ai_strengths)
-        ? (feedback as any).ai_strengths
-        : [];
-    const strengths = strengthsSource
-      .filter((value) => typeof value === "string")
-      .map((value) => value.trim())
-      .filter((value) => value.length > 0);
-
-    const improvementsSource = Array.isArray(feedback.improvements)
-      ? feedback.improvements
-      : Array.isArray((feedback as any).ai_improvements)
-        ? (feedback as any).ai_improvements
-        : [];
-    const improvements = improvementsSource
-      .filter((value) => typeof value === "string")
-      .map((value) => value.trim())
-      .filter((value) => value.length > 0);
-
-    const rubricAlignment = Math.max(
-      0,
-      Math.min(
-        100,
-        Number(
-          feedback.rubricAlignment ??
-            (feedback as any).ai_rubric_alignment ??
-            (feedback as any).score ??
-            normalizedScore,
-        ) || 0,
-      ),
-    );
-
-    const notes =
-      typeof feedback.notes === "string" && feedback.notes.trim().length > 0
-        ? feedback.notes.trim()
-        : typeof (feedback as any).ai_notes === "string"
-          ? (feedback as any).ai_notes
-          : "";
-
-    const instructorComments =
-      typeof (feedback as any).instructor_comments === "string"
-        ? (feedback as any).instructor_comments
-        : "";
-
-    const rawData = (feedback as any).raw ?? feedback;
-
+    // 3. Retornar objeto plano y completo
     return {
-      summary,
-      strengths,
-      improvements,
-      rubricAlignment,
-      notes,
-      ai_analysis:
-        typeof (feedback as any).ai_analysis === "string"
-          ? (feedback as any).ai_analysis
-          : summary,
-      ai_summary: summary,
+      summary: String(summary),
+      strengths: strengths.map(String), // Asegurar que sean strings
+      improvements: improvements.map(String),
+      rubricAlignment: Math.max(0, Math.min(100, rubricAlignment)),
+
+      // Campos para compatibilidad futura
+      ai_analysis: String(summary),
       ai_strengths: strengths,
       ai_improvements: improvements,
-      ai_rubric_alignment: rubricAlignment,
-      ai_notes: notes,
-      instructor_comments: instructorComments,
-      ai_instructor_comments: instructorComments,
+
+      // Guardar SIEMPRE la data cruda como respaldo
       raw: rawData,
+
+      // Metadatos para depuración
       generated_at: new Date().toISOString(),
-      ai_version: "v1",
+      ai_version: "v1"
     };
   }
 

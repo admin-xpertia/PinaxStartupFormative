@@ -86,7 +86,7 @@ export function PhaseProofPoints({
                       </Badge>
                       <Button
                         variant="ghost"
-                        size="xs"
+                        size="sm"
                         className="h-7 px-2 text-amber-700 hover:text-amber-800"
                         onClick={() => onViewPendingFeedback?.(proofPoint.id)}
                       >
