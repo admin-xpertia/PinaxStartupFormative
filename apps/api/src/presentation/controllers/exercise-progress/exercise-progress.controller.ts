@@ -897,25 +897,109 @@ export class ExerciseProgressController {
         : [progressResult[0]];
     }
 
-    // Get all published exercises for the cohorte
-    const exercisesQuery = `
-      SELECT id, nombre, template, proof_point, cohorte
-      FROM exercise_instance
-      WHERE estado_contenido = 'publicado'
-    `;
-
-    const exercisesResult = await this.db.query(exercisesQuery);
-
     let allExercises: any[] = [];
-    if (Array.isArray(exercisesResult) && exercisesResult.length > 0) {
-      allExercises = Array.isArray(exercisesResult[0])
-        ? exercisesResult[0]
-        : [exercisesResult[0]];
+    let proofPoints: any[] = [];
+
+    const cohortProgramQuery = `
+      SELECT programa FROM type::thing($cohorteId)
+    `;
+    const cohortProgramResult = await this.db.query(cohortProgramQuery, {
+      cohorteId: resolvedCohorteId,
+    });
+    const cohortRecord = this.extractFirstRecord(cohortProgramResult);
+    const programId =
+      typeof cohortRecord?.programa === "string"
+        ? cohortRecord.programa
+        : typeof cohortRecord?.programa?.id === "string"
+          ? cohortRecord.programa.id
+          : null;
+
+    if (programId) {
+      const proofPointsResult = await this.db.query(
+        `
+          SELECT id, nombre
+          FROM proof_point
+          WHERE fase.programa = type::thing($programaId)
+        `,
+        { programaId: programId },
+      );
+      proofPoints = Array.isArray(proofPointsResult?.[0])
+        ? proofPointsResult[0]
+        : Array.isArray(proofPointsResult)
+          ? proofPointsResult
+          : [];
+
+      const proofPointIdsFromProgram = proofPoints
+        .map((pp: any) => (typeof pp.id === "string" ? pp.id : null))
+        .filter((value): value is string => Boolean(value));
+
+      if (proofPointIdsFromProgram.length > 0) {
+        const exercisesQuery = `
+          SELECT id, nombre, template, proof_point, cohorte
+          FROM exercise_instance
+          WHERE estado_contenido = 'publicado'
+            AND proof_point IN [${proofPointIdsFromProgram
+              .map((id) => `type::thing('${id}')`)
+              .join(", ")}]
+        `;
+        const exercisesResult = await this.db.query(exercisesQuery);
+        if (Array.isArray(exercisesResult) && exercisesResult.length > 0) {
+          allExercises = Array.isArray(exercisesResult[0])
+            ? exercisesResult[0]
+            : [exercisesResult[0]];
+        }
+      }
+    }
+
+    if (allExercises.length === 0) {
+      const fallbackExercisesResult = await this.db.query(`
+        SELECT id, nombre, template, proof_point, cohorte
+        FROM exercise_instance
+        WHERE estado_contenido = 'publicado'
+      `);
+
+      if (
+        Array.isArray(fallbackExercisesResult) &&
+        fallbackExercisesResult.length > 0
+      ) {
+        allExercises = Array.isArray(fallbackExercisesResult[0])
+          ? fallbackExercisesResult[0]
+          : [fallbackExercisesResult[0]];
+      }
     }
 
     allExercises = allExercises.filter((exercise) =>
       this.isExerciseAvailableForCohorte(exercise, resolvedCohorteId),
     );
+
+    if (proofPoints.length === 0 && allExercises.length > 0) {
+      const proofPointIds = [
+        ...new Set(
+          allExercises
+            .map((e) => e.proof_point)
+            .filter((value): value is string => typeof value === "string" && value.length > 0),
+        ),
+      ];
+
+      if (proofPointIds.length > 0) {
+        const proofPointsQuery = `
+          SELECT id, nombre
+          FROM proof_point
+          WHERE id IN [${proofPointIds
+            .map((id) => `type::thing('${id}')`)
+            .join(", ")}]
+        `;
+        const proofPointsResult = await this.db.query(proofPointsQuery);
+        if (
+          Array.isArray(proofPointsResult) &&
+          proofPointsResult.length > 0
+        ) {
+          proofPoints = Array.isArray(proofPointsResult[0])
+            ? proofPointsResult[0]
+            : [proofPointsResult[0]];
+        }
+      }
+    }
 
     // Calculate overall statistics
     const completedRecords = progressRecords.filter((p) => {
@@ -947,20 +1031,7 @@ export class ExerciseProgressController {
         : null;
 
     // Get proof point names
-    const proofPointIds = [...new Set(allExercises.map((e) => e.proof_point))];
-    const proofPointsQuery = `
-      SELECT id, nombre
-      FROM proof_point
-      WHERE id IN [${proofPointIds.map((id) => `type::thing('${id}')`).join(", ")}]
-    `;
-
-    const proofPointsResult = await this.db.query(proofPointsQuery);
-    let proofPoints: any[] = [];
-    if (Array.isArray(proofPointsResult) && proofPointsResult.length > 0) {
-      proofPoints = Array.isArray(proofPointsResult[0])
-        ? proofPointsResult[0]
-        : [proofPointsResult[0]];
-    }
+    const proofPointsLookup = proofPoints;
 
     // Group by proof point
     const proofPointStatsMap = new Map();
@@ -968,7 +1039,7 @@ export class ExerciseProgressController {
     for (const exercise of allExercises) {
       const ppId = exercise.proof_point;
       if (!proofPointStatsMap.has(ppId)) {
-        const ppData = proofPoints.find((pp) => pp.id === ppId);
+        const ppData = proofPointsLookup.find((pp) => pp.id === ppId);
         proofPointStatsMap.set(ppId, {
           proofPointId: ppId,
           proofPointName: ppData?.nombre || "Unknown",
@@ -1115,7 +1186,9 @@ export class ExerciseProgressController {
         aiScore: record.ai_score ?? null,
         instructorScore: record.instructor_score ?? null,
         manualFeedback: record.manual_feedback ?? null,
-        feedbackJson: record.feedback_json ?? record.feedback_data ?? null,
+        feedbackJson: this.normalizeFeedbackPayload(
+          record.feedback_json ?? record.feedback_data ?? null,
+        ),
         score: record.final_score ?? record.score_final ?? null,
         timeInvestedMinutes: record.tiempo_invertido_minutos || 0,
       };
@@ -2334,12 +2407,40 @@ ${evaluationDto.respuestaEstudiante}`;
       instructorScore: progress.instructor_score ?? null,
       scoreFinal: progress.final_score ?? progress.score_final ?? null,
       manualFeedback: progress.manual_feedback ?? null,
-      feedbackJson: progress.feedback_json ?? progress.feedback_data ?? null,
+      feedbackJson: this.normalizeFeedbackPayload(
+        progress.feedback_json ?? progress.feedback_data ?? null,
+      ),
       instructorFeedback: progress.instructor_feedback,
       datosGuardados,
       createdAt: progress.created_at,
       updatedAt: progress.updated_at,
     };
+  }
+
+  private normalizeFeedbackPayload(
+    payload: any,
+  ): Record<string, any> | null {
+    if (payload === null || payload === undefined) {
+      return null;
+    }
+
+    if (typeof payload === "string") {
+      try {
+        return JSON.parse(payload);
+      } catch (error) {
+        return { raw: payload };
+      }
+    }
+
+    if (typeof payload === "object") {
+      try {
+        return JSON.parse(JSON.stringify(payload));
+      } catch (error) {
+        return payload;
+      }
+    }
+
+    return null;
   }
 
   private mapCohortProgressRecord(
@@ -2380,10 +2481,9 @@ ${evaluationDto.respuestaEstudiante}`;
         record.manual_feedback ??
         record.instructor_feedback ??
         null,
-      feedbackJson:
-        record.feedback_json ??
-        record.feedback_data ??
-        null,
+      feedbackJson: this.normalizeFeedbackPayload(
+        record.feedback_json ?? record.feedback_data ?? null,
+      ),
     };
   }
 

@@ -99,10 +99,41 @@ export class SubmitExerciseForGradingUseCase
         submissionData,
       });
 
-      const feedbackValue = this.normalizeFeedbackForStorage(
-        aiJudgement.feedback,
-        aiJudgement.score,
-      );
+      let feedbackValue: Record<string, any>;
+      try {
+        feedbackValue = this.normalizeFeedbackForStorage(
+          aiJudgement.feedback,
+          aiJudgement.score,
+        );
+      } catch (error) {
+        this.logger.warn(
+          "No se pudo normalizar el feedback de IA, guardando datos crudos",
+          error instanceof Error ? error.message : error,
+        );
+        const fallbackScore = Math.max(
+          0,
+          Math.min(100, Number(aiJudgement.score) || 0),
+        );
+        feedbackValue = {
+          summary: "Análisis completado.",
+          strengths: [],
+          improvements: [],
+          rubricAlignment: fallbackScore,
+          raw: aiJudgement.feedback ?? {},
+          generated_at: new Date().toISOString(),
+          ai_version: "v1",
+        };
+      }
+
+      try {
+        this.logger.log(
+          `Guardando Feedback: ${JSON.stringify(feedbackValue)}`,
+        );
+      } catch (logError) {
+        this.logger.log(
+          `Guardando Feedback (sin stringify por error: ${logError})`,
+        );
+      }
 
       const finalScoreForRecord =
         typeof progress.final_score === "number"
@@ -413,70 +444,80 @@ Devuelve SIEMPRE un JSON válido con la estructura:
     feedback: Record<string, any> | null | undefined,
     score: number,
   ): Record<string, any> {
+    const normalizedScore = Math.max(
+      0,
+      Math.min(100, Number(score) || 0),
+    );
+
+    if (!feedback || typeof feedback !== "object") {
+      return {
+        summary: "Sin análisis generado.",
+        strengths: [],
+        improvements: [],
+        rubricAlignment: normalizedScore,
+        raw: feedback ?? {},
+        generated_at: new Date().toISOString(),
+        ai_version: "v1",
+      };
+    }
+
     const summary =
-      typeof feedback?.summary === "string" && feedback.summary.trim().length > 0
-        ? feedback.summary
-        : typeof (feedback as any)?.ai_summary === "string" &&
-            (feedback as any).ai_summary.trim().length > 0
-          ? (feedback as any).ai_summary
-          : typeof (feedback as any)?.suggestion === "string" &&
+      typeof feedback.summary === "string" && feedback.summary.trim().length > 0
+        ? feedback.summary.trim()
+        : typeof (feedback as any).ai_analysis === "string" &&
+            (feedback as any).ai_analysis.trim().length > 0
+          ? (feedback as any).ai_analysis.trim()
+          : typeof (feedback as any).suggestion === "string" &&
               (feedback as any).suggestion.trim().length > 0
-            ? (feedback as any).suggestion
-            : "Análisis automático generado para tu entrega.";
+            ? (feedback as any).suggestion.trim()
+            : "Análisis completado.";
 
-    const strengthsRaw =
-      feedback?.strengths ??
-      (feedback as any)?.ai_strengths ??
-      (typeof (feedback as any)?.strengths === "string"
-        ? [(feedback as any).strengths]
-        : []);
-    const strengths = Array.isArray(strengthsRaw)
-      ? strengthsRaw
-          .filter((s) => typeof s === "string")
-          .map((s) => s.trim())
-          .filter((s) => s.length > 0)
-      : [];
+    const strengthsSource = Array.isArray(feedback.strengths)
+      ? feedback.strengths
+      : Array.isArray((feedback as any).ai_strengths)
+        ? (feedback as any).ai_strengths
+        : [];
+    const strengths = strengthsSource
+      .filter((value) => typeof value === "string")
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0);
 
-    const improvementsRaw =
-      feedback?.improvements ??
-      (feedback as any)?.ai_improvements ??
-      (typeof (feedback as any)?.improvements === "string"
-        ? [(feedback as any).improvements]
-        : []);
-    const improvements = Array.isArray(improvementsRaw)
-      ? improvementsRaw
-          .filter((s) => typeof s === "string")
-          .map((s) => s.trim())
-          .filter((s) => s.length > 0)
-      : [];
+    const improvementsSource = Array.isArray(feedback.improvements)
+      ? feedback.improvements
+      : Array.isArray((feedback as any).ai_improvements)
+        ? (feedback as any).ai_improvements
+        : [];
+    const improvements = improvementsSource
+      .filter((value) => typeof value === "string")
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0);
 
-    const rubricRaw =
-      feedback?.rubricAlignment ??
-      (feedback as any)?.ai_rubric_alignment ??
-      (feedback as any)?.score ??
-      score ??
-      0;
     const rubricAlignment = Math.max(
       0,
-      Math.min(100, Number(rubricRaw) || 0),
+      Math.min(
+        100,
+        Number(
+          feedback.rubricAlignment ??
+            (feedback as any).ai_rubric_alignment ??
+            (feedback as any).score ??
+            normalizedScore,
+        ) || 0,
+      ),
     );
 
     const notes =
-      typeof feedback?.notes === "string"
-        ? feedback.notes
-        : typeof (feedback as any)?.ai_notes === "string"
+      typeof feedback.notes === "string" && feedback.notes.trim().length > 0
+        ? feedback.notes.trim()
+        : typeof (feedback as any).ai_notes === "string"
           ? (feedback as any).ai_notes
           : "";
 
-    const aiAnalysis =
-      typeof (feedback as any)?.ai_analysis === "string"
-        ? (feedback as any).ai_analysis
-        : summary;
-
     const instructorComments =
-      typeof (feedback as any)?.instructor_comments === "string"
+      typeof (feedback as any).instructor_comments === "string"
         ? (feedback as any).instructor_comments
         : "";
+
+    const rawData = (feedback as any).raw ?? feedback;
 
     return {
       summary,
@@ -484,7 +525,10 @@ Devuelve SIEMPRE un JSON válido con la estructura:
       improvements,
       rubricAlignment,
       notes,
-      ai_analysis: aiAnalysis,
+      ai_analysis:
+        typeof (feedback as any).ai_analysis === "string"
+          ? (feedback as any).ai_analysis
+          : summary,
       ai_summary: summary,
       ai_strengths: strengths,
       ai_improvements: improvements,
@@ -492,7 +536,9 @@ Devuelve SIEMPRE un JSON válido con la estructura:
       ai_notes: notes,
       instructor_comments: instructorComments,
       ai_instructor_comments: instructorComments,
-      raw: feedback ?? {},
+      raw: rawData,
+      generated_at: new Date().toISOString(),
+      ai_version: "v1",
     };
   }
 

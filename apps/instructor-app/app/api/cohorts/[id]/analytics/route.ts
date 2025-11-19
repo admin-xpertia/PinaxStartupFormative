@@ -61,6 +61,17 @@ type PhaseExerciseMeta = {
   proofPointId?: string
   proofPointNombre?: string
   exerciseNombre?: string
+  exerciseInstanceId?: string
+}
+
+function normalizeId(id: string | undefined | null): string {
+  if (!id) return ""
+  const stringValue = String(id)
+    .replace(/^type::thing\((.*)\)$/i, "$1")
+    .replace(/^['"`](.*)['"`]$/, "$1")
+  const colonIndex = stringValue.indexOf(":")
+  const sliced = colonIndex >= 0 ? stringValue.slice(colonIndex + 1) : stringValue
+  return sliced.replace(/[<>]/g, "").trim()
 }
 
 function resolveExerciseId(source: any): string {
@@ -119,17 +130,19 @@ function buildPhaseExerciseMaps(
     const exercises = Array.isArray(pp.ejercicios) ? pp.ejercicios : []
     exercises.forEach((exercise) => {
       const exerciseId = resolveExerciseId(exercise)
-      if (!exerciseId) return
+      const normalizedExerciseId = normalizeId(exerciseId)
+      if (!normalizedExerciseId) return
       if (!phaseExercisesMap.has(phaseInfo.phaseId)) {
         phaseExercisesMap.set(phaseInfo.phaseId, new Set<string>())
       }
-      phaseExercisesMap.get(phaseInfo.phaseId)!.add(exerciseId)
-      phaseExerciseLookup.set(exerciseId, {
+      phaseExercisesMap.get(phaseInfo.phaseId)!.add(normalizedExerciseId)
+      phaseExerciseLookup.set(normalizedExerciseId, {
         phaseId: phaseInfo.phaseId,
         phaseNombre: phaseInfo.phaseNombre,
         proofPointId: pp.id,
         proofPointNombre: pp.nombre,
         exerciseNombre: exercise.nombre ?? "Ejercicio",
+        exerciseInstanceId: exerciseId,
       })
     })
   })
@@ -234,7 +247,12 @@ export async function GET(req: NextRequest, context: RouteContext) {
           req,
         )) ?? null
 
-      cohortProgressRecords = overview?.submissions ?? []
+      cohortProgressRecords = (overview?.submissions ?? []).map((submission) => ({
+        ...submission,
+        exerciseInstanceId: normalizeId(
+          submission.exerciseInstanceId ?? (submission as any).exercise_instance
+        ),
+      }))
     }
 
     const structure = cohortDetails?.structure
@@ -404,9 +422,11 @@ export async function GET(req: NextRequest, context: RouteContext) {
           return { ...phase, progreso: 0, promedioScore: undefined }
         }
 
-        const relatedProgress = cohortProgressRecords.filter((record) =>
-          exerciseIds.includes(record.exerciseInstanceId),
-        )
+        const exerciseIdSet = new Set(exerciseIds)
+        const relatedProgress = cohortProgressRecords.filter((record) => {
+          const normalizedRecordId = normalizeId(record.exerciseInstanceId)
+          return normalizedRecordId && exerciseIdSet.has(normalizedRecordId)
+        })
 
         if (relatedProgress.length === 0) {
           return { ...phase, progreso: 0, promedioScore: undefined }
@@ -498,7 +518,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
             return bDate - aDate
           })[0]
         const exerciseMeta = attentionRecord
-          ? phaseExerciseLookup.get(attentionRecord.exerciseInstanceId)
+          ? phaseExerciseLookup.get(normalizeId(attentionRecord.exerciseInstanceId))
           : null
 
         return {

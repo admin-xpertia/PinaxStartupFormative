@@ -90,10 +90,19 @@ export class ReviewAndGradeSubmissionUseCase
         progress.feedback_json ?? progress.feedback_data ?? {},
       );
 
-      if (request.instructorFeedback) {
-        feedbackJson.instructor_comments = request.instructorFeedback;
-        feedbackJson.manual_feedback_text = request.instructorFeedback;
-      }
+      const instructorFeedbackPart: Record<string, any> =
+        request.instructorFeedback !== undefined
+          ? {
+              instructor_comments: request.instructorFeedback || "",
+              manual_feedback_text: request.instructorFeedback || "",
+              graded_by_instructor_at: new Date().toISOString(),
+            }
+          : { graded_by_instructor_at: new Date().toISOString() };
+
+      const mergedFeedbackJson =
+        Object.keys(instructorFeedbackPart).length > 0
+          ? { ...feedbackJson, ...instructorFeedbackPart }
+          : feedbackJson;
 
       const updateResult = await this.db.query(
         `
@@ -117,7 +126,7 @@ export class ReviewAndGradeSubmissionUseCase
           manualFeedback: manualFeedbackValue,
           finalScore,
           gradedAt,
-          feedbackJson,
+          feedbackJson: mergedFeedbackJson,
         },
       );
 
