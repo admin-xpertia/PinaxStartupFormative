@@ -53,6 +53,9 @@ export class AnalyzeDraftUseCase
 
       // 2. Parse content and find the question
       const contenidoGenerado = content.getContenido();
+      const contextoNarrativo = contenidoGenerado.narrativa_markdown
+        ? `\nCONTEXTO DEL CASO (NARRATIVA):\n${contenidoGenerado.narrativa_markdown}\n`
+        : "";
       const { question, criterios } = this.findQuestionAndCriteria(
         contenidoGenerado,
         request.questionId,
@@ -91,8 +94,9 @@ IMPORTANTE:
 
       const userPrompt = `Analiza el siguiente borrador del estudiante:
 
-PREGUNTA:
-${question.pregunta || question.enunciado || ""}
+PREGUNTA / INSTRUCCIÓN:
+${question.pregunta || question.enunciado || question.instrucciones || ""}
+${contextoNarrativo}
 
 CRITERIOS DE EVALUACIÓN (RÚBRICA):
 ${criterios.map((c: string, i: number) => `${i + 1}. ${c}`).join("\n")}
@@ -196,34 +200,49 @@ Proporciona feedback formativo en formato JSON con esta estructura:
     let criterios: string[] = [];
 
     try {
-      // For Cuaderno de Trabajo exercises
+      // 1. SOPORTE PARA CASOS (Nuevo)
+      if (
+        contenido.secciones_analisis &&
+        Array.isArray(contenido.secciones_analisis)
+      ) {
+        const seccion = contenido.secciones_analisis.find(
+          (s: any) => s.id === questionId,
+        );
+        if (seccion) {
+          question = {
+            id: seccion.id,
+            pregunta: seccion.instrucciones || seccion.titulo,
+          };
+          criterios = [
+            ...(seccion.criterios_evaluacion_ia || []),
+            ...(seccion.criteriosEvaluacionIa || []),
+            ...(seccion.criteriosDeEvaluacion || []),
+          ];
+        }
+      }
+
+      // 2. SOPORTE PARA CUADERNOS (Existente)
       if (contenido.secciones && Array.isArray(contenido.secciones)) {
         for (const seccion of contenido.secciones) {
           if (seccion.prompts && Array.isArray(seccion.prompts)) {
-            // Search in section prompts
             for (const prompt of seccion.prompts) {
               const promptId = this.generatePromptId(prompt);
               if (promptId === questionId || prompt.id === questionId) {
                 question = prompt;
                 criterios = prompt.criteriosDeEvaluacion || [];
+                if (seccion.criteriosDeEvaluacion) {
+                  criterios = [...criterios, ...seccion.criteriosDeEvaluacion];
+                }
                 break;
               }
             }
           }
-
-          // Also check section-level criteria if question is found in this section
-          if (question && seccion.criteriosDeEvaluacion) {
-            criterios = [...criterios, ...seccion.criteriosDeEvaluacion];
-          }
+          if (question) break;
         }
       }
 
-      // For Leccion Interactiva and other exercise types with preguntas
-      if (
-        !question &&
-        contenido.preguntas &&
-        Array.isArray(contenido.preguntas)
-      ) {
+      // 3. SOPORTE PARA PREGUNTAS SUELTAS (Existente)
+      if (!question && contenido.preguntas && Array.isArray(contenido.preguntas)) {
         question = contenido.preguntas.find((p: any) => p.id === questionId);
         if (question) {
           criterios =

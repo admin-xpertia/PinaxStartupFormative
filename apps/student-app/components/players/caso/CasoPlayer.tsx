@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { ExercisePlayer } from "../base/ExercisePlayer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -9,6 +9,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
 import { exercisesApi } from "@/services/api"
 import { cn } from "@/lib/utils"
+import { useDebouncedCallback } from "@/hooks/useDebouncedCallback"
+import { ProactiveSuggestionCard } from "../cuaderno-trabajo/ProactiveSuggestionCard"
 import ReactMarkdown from "react-markdown"
 import type { Components } from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -162,6 +164,8 @@ export function CasoPlayer({
     if (sections.length === 0) return 0
     return Math.min(Math.max(0, persisted), sections.length - 1)
   })
+  const [proactiveFeedback, setProactiveFeedback] = useState<Record<string, string | null>>({})
+  const [isAnalyzing, setIsAnalyzing] = useState<Record<string, boolean>>({})
 
   const answeredCount = useMemo(() => {
     return sections.filter((section) => responses[section.id]?.trim().length).length
@@ -182,12 +186,66 @@ export function CasoPlayer({
     return "Lee la narrativa y desarrolla tu análisis guiado."
   }, [conceptos, content.metadata?.nivelNarrativa])
 
-  const handleResponseChange = (sectionId: string, value: string) => {
-    setResponses((prev) => ({
-      ...prev,
-      [sectionId]: value,
-    }))
-  }
+  const analyzeDraft = useCallback(
+    async (sectionId: string, draftText: string) => {
+      const trimmed = draftText.trim()
+
+      if (!trimmed || trimmed.length < 30) {
+        setProactiveFeedback((prev) => ({ ...prev, [sectionId]: null }))
+        setIsAnalyzing((prev) => ({ ...prev, [sectionId]: false }))
+        return
+      }
+
+      setIsAnalyzing((prev) => ({ ...prev, [sectionId]: true }))
+      setProactiveFeedback((prev) => ({ ...prev, [sectionId]: null }))
+
+      try {
+        const response = await exercisesApi.analyzeDraft(exerciseId, {
+          questionId: sectionId,
+          draftText: trimmed,
+        })
+
+        setProactiveFeedback((prev) => ({ ...prev, [sectionId]: response.suggestion }))
+      } catch (error) {
+        console.error("Error analyzing draft:", error)
+      } finally {
+        setIsAnalyzing((prev) => ({ ...prev, [sectionId]: false }))
+      }
+    },
+    [exerciseId],
+  )
+
+  const [debouncedAnalyzeDraft, cancelDebouncedAnalyze] = useDebouncedCallback(
+    (sectionId: string, draftText: string) => {
+      void analyzeDraft(sectionId, draftText)
+    },
+    1500,
+  )
+
+  useEffect(() => {
+    return () => {
+      cancelDebouncedAnalyze()
+    }
+  }, [cancelDebouncedAnalyze])
+
+  const handleResponseChange = useCallback(
+    (sectionId: string, value: string) => {
+      setResponses((prev) => ({
+        ...prev,
+        [sectionId]: value,
+      }))
+
+      const trimmed = value.trim()
+      if (!trimmed || trimmed.length < 30) {
+        cancelDebouncedAnalyze(sectionId)
+        setProactiveFeedback((prev) => ({ ...prev, [sectionId]: null }))
+        setIsAnalyzing((prev) => ({ ...prev, [sectionId]: false }))
+      } else {
+        debouncedAnalyzeDraft(sectionId, value)
+      }
+    },
+    [cancelDebouncedAnalyze, debouncedAnalyzeDraft],
+  )
 
   const buildSectionContext = useCallback(
     (section?: CasoSection) => {
@@ -381,6 +439,12 @@ export function CasoPlayer({
                         placeholder={activeSection.placeholder || "Escribe tu análisis fundamentado aquí..."}
                         className="min-h-[220px]"
                       />
+                      <div className="mt-4 mb-2">
+                        <ProactiveSuggestionCard
+                          isAnalyzing={isAnalyzing[activeSection.id]}
+                          suggestion={proactiveFeedback[activeSection.id]}
+                        />
+                      </div>
                       <p className="text-xs text-muted-foreground">
                         Referencia siempre evidencia concreta del caso y anticipa contraargumentos.
                       </p>

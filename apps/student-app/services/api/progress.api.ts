@@ -51,7 +51,7 @@ export const progressApi = {
     })
 
     return apiClient.get<ProofPointProgress>(
-      `/student/proof-points/${proofPointId}/progress?${query.toString()}`
+      `/student/proof-points/${encodeURIComponent(proofPointId)}/progress?${query.toString()}`
     )
   },
 

@@ -712,16 +712,24 @@ export class ExerciseProgressController {
       proofPointId: decodedProofPointId,
     });
 
+    this.logger.debug(`[getProofPointProgress] Exercises query for proof point ${decodedProofPointId}:`);
+    this.logger.debug(`[getProofPointProgress] Exercises result:`, JSON.stringify(exercisesResult));
+
     let exercises: any[] = [];
     if (Array.isArray(exercisesResult) && exercisesResult.length > 0) {
-      exercises = Array.isArray(exercisesResult[0])
-        ? exercisesResult[0]
-        : [exercisesResult[0]];
+      // Check if the first element is an object (exercise record)
+      // If so, exercisesResult is already the array of exercises
+      if (exercisesResult[0] && typeof exercisesResult[0] === 'object' && exercisesResult[0].id) {
+        exercises = exercisesResult;
+      } else if (Array.isArray(exercisesResult[0])) {
+        // Otherwise, it's wrapped in an additional array
+        exercises = exercisesResult[0];
+      } else {
+        exercises = [exercisesResult[0]];
+      }
     }
 
-    exercises = exercises.filter((exercise) =>
-      this.isExerciseAvailableForCohorte(exercise, cohorteId),
-    );
+    this.logger.debug(`[getProofPointProgress] Parsed exercises count: ${exercises.length}`);
 
     if (exercises.length === 0) {
       return {
@@ -750,7 +758,8 @@ export class ExerciseProgressController {
         fecha_completado,
         submitted_at,
         instructor_feedback,
-        fecha_ultimo_acceso
+        fecha_ultimo_acceso,
+        cohorte
       FROM exercise_progress
       WHERE estudiante = type::thing($estudianteId)
         AND cohorte = type::thing($cohorteId)
@@ -763,22 +772,104 @@ export class ExerciseProgressController {
 
     let allProgressRecords: any[] = [];
     if (Array.isArray(progressResult) && progressResult.length > 0) {
-      allProgressRecords = Array.isArray(progressResult[0])
-        ? progressResult[0]
-        : [progressResult[0]];
+      if (Array.isArray(progressResult[0])) {
+        allProgressRecords = progressResult[0];
+      } else {
+        allProgressRecords = progressResult; // SurrealDbService ya puede devolver un array plano
+      }
     }
 
-    const exerciseIds = new Set(exercises.map((exercise) => exercise.id));
-    const progressRecords = allProgressRecords.filter((record) =>
-      exerciseIds.has(record.exercise_instance),
+    const exerciseIds = new Set(
+      exercises
+        .map((exercise) => this.extractRecordId(exercise.id))
+        .filter((id): id is string => Boolean(id)),
     );
+
+    this.logger.debug(
+      `[getProofPointProgress] Exercise IDs: ${JSON.stringify([...exerciseIds])}`,
+    );
+    this.logger.debug(`[getProofPointProgress] All progress records count: ${allProgressRecords.length}`);
+    this.logger.debug(`[getProofPointProgress] All progress exercise_instance IDs: ${JSON.stringify(allProgressRecords.map(r => r.exercise_instance))}`);
+
+    const progressRecords = allProgressRecords.filter((record) => {
+      const recordExerciseId = this.extractRecordId(record.exercise_instance);
+      return recordExerciseId ? exerciseIds.has(recordExerciseId) : false;
+    });
+
+    this.logger.debug(`[getProofPointProgress] Filtered progress records count: ${progressRecords.length}`);
+
+    // Si no hay progreso para algunos ejercicios en la cohorte solicitada,
+    // intentamos recuperar progreso histórico del mismo estudiante en cualquier cohorte
+    // para no perder los completados previos.
+    if (progressRecords.length < exercises.length && exerciseIds.size > 0) {
+      const exerciseIdsQuery = [...exerciseIds]
+        .map((id) => `type::thing('${id}')`)
+        .join(", ");
+
+      const fallbackQuery = `
+        SELECT
+          id,
+          exercise_instance,
+          estado,
+          status,
+          porcentaje_completitud,
+          score_final,
+          fecha_inicio,
+          fecha_completado,
+          submitted_at,
+          instructor_feedback,
+          fecha_ultimo_acceso,
+          cohorte
+        FROM exercise_progress
+        WHERE estudiante = type::thing($estudianteId)
+          AND exercise_instance IN [${exerciseIdsQuery}]
+      `;
+
+      const fallbackResult = await this.db.query(fallbackQuery, {
+        estudianteId,
+      });
+
+      const fallbackRecords: any[] =
+        Array.isArray(fallbackResult) && fallbackResult.length > 0
+          ? Array.isArray(fallbackResult[0])
+            ? fallbackResult[0]
+            : (fallbackResult as any[])
+          : [];
+
+      for (const record of fallbackRecords) {
+        const recordExerciseId = this.extractRecordId(record.exercise_instance);
+        const alreadyIncluded = progressRecords.some(
+          (r) =>
+            r.id === record.id ||
+            this.extractRecordId(r.exercise_instance) === recordExerciseId,
+        );
+
+        if (
+          recordExerciseId &&
+          !alreadyIncluded &&
+          exerciseIds.has(recordExerciseId)
+        ) {
+          progressRecords.push(record);
+        }
+      }
+    }
 
     // Calculate exercise summaries
     const exerciseSummaries: ExerciseProgressSummaryDto[] = exercises.map(
       (exercise) => {
-        const progress = progressRecords.find(
-          (p) => p.exercise_instance === exercise.id,
+        const exerciseId =
+          this.extractRecordId(exercise.id) || String(exercise.id);
+
+        // Priorizar progreso de la cohorte solicitada; si no existe, usar cualquier cohorte
+        const progressCandidates = progressRecords.filter(
+          (p) => this.extractRecordId(p.exercise_instance) === exerciseId,
         );
+        const progress =
+          progressCandidates.find(
+            (p) =>
+              this.extractRecordId(p.cohorte) &&
+              this.extractRecordId(p.cohorte) === cohorteId,
+          ) ?? progressCandidates[0];
 
         let status: ExerciseProgressStatus = "not_started";
         let progressPercentage = 0;
@@ -801,7 +892,7 @@ export class ExerciseProgressController {
         }
 
         return {
-          exerciseId: exercise.id,
+          exerciseId,
           status,
           progress: progressPercentage,
           score,
@@ -810,16 +901,35 @@ export class ExerciseProgressController {
       },
     );
 
+    // Debug info to verify matching and counting
+    this.logger.debug(
+      `[getProofPointProgress] Exercise summaries: ${JSON.stringify(
+        exerciseSummaries.map((s) => ({
+          exerciseId: s.exerciseId,
+          status: s.status,
+          progress: s.progress,
+          score: s.score,
+        })),
+      )}`,
+    );
+
     // Calculate overall statistics
-    const completedExercises = exerciseSummaries.filter(
-      (e) => e.status === "approved",
+    const isCompletedStatus = (status: ExerciseProgressStatus) =>
+      status === "approved" || status === "submitted_for_review";
+
+    const completedExercises = exerciseSummaries.filter((e) =>
+      isCompletedStatus(e.status),
     ).length;
     const totalExercises = exercises.length;
     const progressPercentage =
       totalExercises > 0
         ? Math.round(
             exerciseSummaries.reduce(
-              (sum, summary) => sum + (summary.progress || 0),
+              (sum, summary) =>
+                sum +
+                (isCompletedStatus(summary.status)
+                  ? 100
+                  : summary.progress || 0),
               0,
             ) / totalExercises,
           )

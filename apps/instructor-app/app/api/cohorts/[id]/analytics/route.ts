@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server"
 const configuredUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api/v1"
 const API_BASE_URL = configuredUrl.endsWith("/api/v1") ? configuredUrl : `${configuredUrl}/api/v1`
 
+type RouteParams = { id?: string }
+type RouteContext = { params: RouteParams | Promise<RouteParams> }
 type PhaseShape = { id: string; nombre: string; progreso: number; promedioScore?: number }
 type ExerciseShape = {
   id: string
@@ -56,7 +58,7 @@ function buildEmptyResponse() {
   }
 }
 
-function extractProgramId(req: NextRequest, context?: { params?: { id?: string } }): string {
+function extractProgramId(req: NextRequest, context?: { params?: RouteParams }): string {
   const rawFromParams = context?.params?.id
   const rawFromPath = req.nextUrl.pathname
     .split("/api/cohorts/")[1]
@@ -69,8 +71,9 @@ function extractProgramId(req: NextRequest, context?: { params?: { id?: string }
   }
 }
 
-export async function GET(req: NextRequest, context: { params: { id?: string } }) {
-  const programId = extractProgramId(req, context)
+export async function GET(req: NextRequest, context: RouteContext) {
+  const params = await context.params
+  const programId = extractProgramId(req, { params })
 
   const response = buildEmptyResponse()
 
