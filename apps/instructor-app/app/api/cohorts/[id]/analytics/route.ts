@@ -18,6 +18,21 @@ type ProofPointShape = {
   faseNombre?: string
   ejercicios: ExerciseShape[]
 }
+type SubmissionStatus =
+  | "submitted_for_review"
+  | "pending_review"
+  | "requires_iteration"
+  | "approved"
+  | "graded"
+  | "in_progress"
+type InstructorSubmissionListItem = {
+  progressId: string
+  estudianteNombre: string
+  ejercicioNombre: string
+  entregadoEl: string
+  status: SubmissionStatus
+  aiScore?: number | null
+}
 
 function normalizeExercise(ex: any): ExerciseShape {
   return {
@@ -95,6 +110,26 @@ export async function GET(req: NextRequest, context: RouteContext) {
       !cohortsForProgram[0]?.structure && cohortId
         ? await fetchApi<any>(`/cohortes/${encodeURIComponent(cohortId)}`, req)
         : cohortsForProgram[0]
+
+    if (cohortId) {
+      const instructorSubmissions =
+        (await fetchApi<InstructorSubmissionListItem[]>(
+          `/instructor/cohortes/${encodeURIComponent(cohortId)}/submissions?limit=50`,
+          req,
+        )) ?? []
+
+      response.submissions = instructorSubmissions.map((submission) => ({
+        progressId: submission.progressId,
+        estudiante: submission.estudianteNombre ?? "Estudiante",
+        ejercicio: submission.ejercicioNombre ?? "Ejercicio",
+        entregadoEl: submission.entregadoEl ?? new Date().toISOString(),
+        status: submission.status ?? "pending_review",
+        aiScore:
+          typeof submission.aiScore === "number"
+            ? Math.round(submission.aiScore)
+            : null,
+      }))
+    }
 
     const structure = cohortDetails?.structure
     const proofPointsNeedingExercises = new Map<

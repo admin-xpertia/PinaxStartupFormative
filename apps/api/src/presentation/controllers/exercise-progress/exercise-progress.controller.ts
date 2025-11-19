@@ -53,6 +53,7 @@ import {
   SubmitExerciseForGradingDto,
   SubmitExerciseForGradingResponseDto,
   ReviewAndGradeSubmissionResponseDto,
+  InstructorSubmissionListItemDto,
 } from "../../dtos/exercise-progress/submit-exercise.dto";
 import { RolesGuard } from "../../../core/guards/roles.guard";
 
@@ -612,6 +613,137 @@ export class ExerciseProgressController {
     }
 
     return this.mapProgressToDto(progress);
+  }
+
+  /**
+   * List pending submissions for a cohort (instructor view)
+   */
+  @Get("instructor/cohortes/:cohorteId/submissions")
+  @UseGuards(RolesGuard)
+  @Roles("instructor")
+  @ApiOperation({
+    summary: "Listar entregas pendientes de una cohorte",
+    description:
+      "Devuelve las entregas que esperan revisión humana junto con la sugerencia generada por IA.",
+  })
+  @ApiParam({
+    name: "cohorteId",
+    description: "ID de la cohorte a consultar",
+    example: "cohorte:⟨1763575780115_0⟩",
+  })
+  @ApiResponse({
+    status: 200,
+    type: [InstructorSubmissionListItemDto],
+  })
+  async listCohortSubmissions(
+    @Param("cohorteId") cohorteId: string,
+    @Query("limit") limitParam?: string,
+  ): Promise<InstructorSubmissionListItemDto[]> {
+    const decodedCohorteId = this.decodeExerciseId(cohorteId);
+    const limit = this.resolveListLimit(limitParam);
+    const fetchLimit = Math.min(limit * 2, 100);
+    const pendingStatuses = new Set<ExerciseProgressStatus>([
+      "pending_review",
+      "submitted_for_review",
+    ]);
+
+    const submissionsQuery = `
+      SELECT
+        id,
+        estudiante,
+        exercise_instance,
+        status,
+        estado,
+        submitted_at,
+        fecha_completado,
+        updated_at,
+        ai_score,
+        final_score,
+        score_final
+      FROM exercise_progress
+      WHERE cohorte = type::thing($cohorteId)
+        AND (
+          status INSIDE ['pending_review', 'submitted_for_review']
+          OR estado = 'pendiente_revision'
+        )
+      ORDER BY submitted_at ASC, updated_at ASC
+      LIMIT ${fetchLimit}
+    `;
+
+    const submissionsResult = await this.db.query(submissionsQuery, {
+      cohorteId: decodedCohorteId,
+    });
+
+    let progressRecords: any[] = [];
+    if (Array.isArray(submissionsResult) && submissionsResult.length > 0) {
+      progressRecords = Array.isArray(submissionsResult[0])
+        ? submissionsResult[0]
+        : Array.isArray(submissionsResult)
+          ? submissionsResult
+          : [];
+    }
+
+    if (!progressRecords.length) {
+      return [];
+    }
+
+    const filtered = progressRecords
+      .map((record) => ({
+        record,
+        status: this.normalizeStatusFromRecord(record),
+      }))
+      .filter(({ status }) => pendingStatuses.has(status))
+      .slice(0, limit);
+
+    if (!filtered.length) {
+      return [];
+    }
+
+    const studentIds = Array.from(
+      new Set(
+        filtered
+          .map(({ record }) => this.extractRecordId(record.estudiante))
+          .filter((id): id is string => Boolean(id)),
+      ),
+    );
+    const exerciseIds = Array.from(
+      new Set(
+        filtered
+          .map(({ record }) => this.extractRecordId(record.exercise_instance))
+          .filter((id): id is string => Boolean(id)),
+      ),
+    );
+
+    const studentNameMap = await this.fetchStudentNames(studentIds);
+    const exerciseNameMap = await this.fetchExerciseNames(exerciseIds);
+
+    return filtered.map(({ record, status }) => {
+      const studentId = this.extractRecordId(record.estudiante);
+      const exerciseId = this.extractRecordId(record.exercise_instance);
+      const entregadoEl =
+        record.submitted_at ||
+        record.fecha_completado ||
+        record.updated_at ||
+        new Date().toISOString();
+
+      const aiScore =
+        typeof record.ai_score === "number"
+          ? Math.round(record.ai_score)
+          : null;
+
+      return {
+        progressId: record.id,
+        estudianteNombre:
+          (studentId ? studentNameMap.get(studentId) : undefined) ||
+          "Estudiante",
+        ejercicioNombre:
+          (exerciseId ? exerciseNameMap.get(exerciseId) : undefined) ||
+          "Ejercicio",
+        entregadoEl,
+        status,
+        aiScore,
+      };
+    });
   }
 
   /**
@@ -1435,6 +1567,104 @@ export class ExerciseProgressController {
       }
     }
     return null;
+  }
+
+  private resolveListLimit(limitParam?: string, fallback: number = 25): number {
+    if (!limitParam) {
+      return fallback;
+    }
+    const parsed = parseInt(limitParam, 10);
+    if (Number.isNaN(parsed) || parsed <= 0) {
+      return fallback;
+    }
+    return Math.min(parsed, 100);
+  }
+
+  private async fetchStudentNames(
+    studentIds: string[],
+  ): Promise<Map<string, string>> {
+    const map = new Map<string, string>();
+    if (studentIds.length === 0) {
+      return map;
+    }
+
+    const query = `
+      SELECT id, metadata
+      FROM estudiante
+      WHERE id IN [${studentIds
+        .map((id) => `type::thing('${id}')`)
+        .join(", ")}]
+    `;
+
+    const result = await this.db.query(query);
+    const records = Array.isArray(result?.[0])
+      ? result[0]
+      : Array.isArray(result)
+        ? result
+        : [];
+
+    for (const student of records) {
+      if (student?.id) {
+        map.set(
+          student.id,
+          this.resolveStudentDisplayName(student),
+        );
+      }
+    }
+
+    return map;
+  }
+
+  private async fetchExerciseNames(
+    exerciseIds: string[],
+  ): Promise<Map<string, string>> {
+    const map = new Map<string, string>();
+    if (exerciseIds.length === 0) {
+      return map;
+    }
+
+    const query = `
+      SELECT id, nombre
+      FROM exercise_instance
+      WHERE id IN [${exerciseIds
+        .map((id) => `type::thing('${id}')`)
+        .join(", ")}]
+    `;
+
+    const result = await this.db.query(query);
+    const records = Array.isArray(result?.[0])
+      ? result[0]
+      : Array.isArray(result)
+        ? result
+        : [];
+
+    for (const exercise of records) {
+      if (exercise?.id) {
+        map.set(exercise.id, exercise?.nombre || exercise.id);
+      }
+    }
+
+    return map;
+  }
+
+  private resolveStudentDisplayName(student: any): string {
+    const nameCandidates = [
+      student?.metadata?.nombre,
+      student?.metadata?.nombreCompleto,
+      student?.metadata?.nombre_completo,
+    ].filter(
+      (value) => typeof value === "string" && value.trim().length > 0,
+    );
+
+    if (nameCandidates.length > 0) {
+      return (nameCandidates[0] as string).trim();
+    }
+
+    if (typeof student?.id === "string") {
+      return student.id;
+    }
+
+    return "Estudiante";
   }
 
   private decodeExerciseId(id: string): string {

@@ -142,3 +142,41 @@ export class ReviewAndGradeSubmissionResponseDto {
   })
   gradedAt: string;
 }
+
+export class InstructorSubmissionListItemDto {
+  @ApiProperty({
+    description: "ID del registro de progreso",
+    example: "exercise_progress:abc123",
+  })
+  progressId: string;
+
+  @ApiProperty({
+    description: "Nombre del estudiante asociado",
+    example: "Camila Méndez",
+  })
+  estudianteNombre: string;
+
+  @ApiProperty({
+    description: "Nombre del ejercicio entregado",
+    example: "Mapa de stakeholders clave",
+  })
+  ejercicioNombre: string;
+
+  @ApiProperty({
+    description: "Fecha de envío registrada",
+    example: "2024-05-04T09:15:00Z",
+  })
+  entregadoEl: string;
+
+  @ApiProperty({
+    description: "Estado actual del progreso",
+    example: "pending_review",
+  })
+  status: ExerciseProgressStatus;
+
+  @ApiPropertyOptional({
+    description: "Puntaje sugerido por IA si está disponible",
+    example: 78,
+  })
+  aiScore?: number | null;
+}

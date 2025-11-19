@@ -18,6 +18,7 @@ import {
 } from "../../lessons/InteractiveLessonRenderer"
 import { exercisesApi } from "@/services/api"
 import { useToast } from "@/hooks/use-toast"
+import { useAutoSave } from "@/hooks/useAutoSave"
 
 const defaultProfile = {
   correctas: 0,
@@ -54,6 +55,7 @@ interface LeccionInteractivaPlayerProps {
   onSave: (data: any) => Promise<void>
   onComplete: (data: any) => Promise<void>
   onExit: () => void
+  readOnly?: boolean
 }
 
 export function LeccionInteractivaPlayer({
@@ -65,6 +67,7 @@ export function LeccionInteractivaPlayer({
   onComplete,
   onExit,
   savedData,
+  readOnly = false,
 }: LeccionInteractivaPlayerProps) {
   const normalizedContent = useMemo(() => ensureLessonContentHasMarkdown(content), [content])
   const [sections, setSections] = useState<LessonSectionInfo[]>([])
@@ -184,23 +187,29 @@ export function LeccionInteractivaPlayer({
   // Remove this effect - savedData is only used for initialization
   // Syncing back from savedData would cause loops
 
-  const buildProgressPayload = useCallback(() => {
-    return {
+  const currentPayload = useMemo(
+    () => ({
       ...lessonState,
       currentSectionId: currentSection?.id ?? lessonState.currentSectionId ?? null,
       profile,
-    }
-  }, [currentSection?.id, lessonState, profile])
+    }),
+    [currentSection, lessonState, profile]
+  )
+
+  useAutoSave({
+    exerciseId,
+    data: currentPayload,
+    enabled: !readOnly,
+    interval: 15000,
+  })
 
   const handlePersistedSave = useCallback(async () => {
-    const payload = buildProgressPayload()
-    await onSave(payload)
-  }, [buildProgressPayload, onSave])
+    await onSave(currentPayload)
+  }, [currentPayload, onSave])
 
   const handlePersistedComplete = useCallback(async () => {
-    const payload = buildProgressPayload()
-    await onComplete(payload)
-  }, [buildProgressPayload, onComplete])
+    await onComplete(currentPayload)
+  }, [currentPayload, onComplete])
 
   const handleAssistantMessageStream = useCallback(
     async (
@@ -316,17 +325,18 @@ export function LeccionInteractivaPlayer({
       totalSteps={1}
       contentMaxWidthClassName="max-w-4xl"
       currentStep={1}
-      onSave={handlePersistedSave}
-      onComplete={handlePersistedComplete}
+      onSave={!readOnly ? handlePersistedSave : undefined}
+      onComplete={!readOnly ? handlePersistedComplete : undefined}
       onExit={onExit}
       showAIAssistant={true}
       aiContext={currentSection?.title || normalizedContent.metadata?.titulo || "Lección General"}
       onAskAssistant={handleAssistantMessage}
       onAskAssistantStream={handleAssistantMessageStream}
-      canComplete={canFinish}
+      canComplete={!readOnly && canFinish}
     >
       <InteractiveLessonRenderer
         content={normalizedContent}
+        readOnly={readOnly}
         onSectionsMetadata={setSections}
         onSectionChange={handleSectionChange}
         onQuestionResult={handleQuestionResult}

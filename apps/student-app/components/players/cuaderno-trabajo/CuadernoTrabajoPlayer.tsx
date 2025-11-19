@@ -20,6 +20,7 @@ import {
   FileText,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useAutoSave } from "@/hooks/useAutoSave"
 
 // Types for Cuaderno de Trabajo
 interface WorkbookPrompt {
@@ -63,6 +64,7 @@ interface CuadernoTrabajoPlayerProps {
   onSave: (data: any) => Promise<void>
   onComplete: (data: any) => Promise<void>
   onExit: () => void
+  readOnly?: boolean
 }
 
 export function CuadernoTrabajoPlayer({
@@ -75,6 +77,7 @@ export function CuadernoTrabajoPlayer({
   onSave,
   onComplete,
   onExit,
+  readOnly = false,
 }: CuadernoTrabajoPlayerProps) {
   const [currentSection, setCurrentSection] = useState(() => {
     // Try to restore the last section the student was working on
@@ -96,6 +99,24 @@ export function CuadernoTrabajoPlayer({
   const [proactiveFeedback, setProactiveFeedback] = useState<Record<string, string | null>>({})
   const [isAnalyzing, setIsAnalyzing] = useState<Record<string, boolean>>({})
   const { toast } = useToast()
+  const workbookPayload = useMemo(
+    () => ({
+      responses,
+      completedSections: Array.from(completedSections),
+      currentSection,
+    }),
+    [responses, completedSections, currentSection]
+  )
+
+  useAutoSave({
+    exerciseId,
+    data: workbookPayload,
+    enabled: !readOnly,
+    interval: 10000,
+    onSave: () => {
+      console.log("Auto-guardando cuaderno de trabajo...")
+    },
+  })
 
   // Rehydrate responses if saved data arrives later
   useEffect(() => {
@@ -279,6 +300,9 @@ export function CuadernoTrabajoPlayer({
   )
 
   const updateResponse = (sectionIdx: number, promptIdx: number, value: any) => {
+    if (readOnly) {
+      return
+    }
     const key = getResponseKey(sectionIdx, promptIdx)
     setResponses(prev => ({ ...prev, [key]: value }))
 
@@ -351,10 +375,14 @@ export function CuadernoTrabajoPlayer({
               )}
             </div>
             <Input
+              disabled={readOnly}
               placeholder={prompt.placeholder || "Escribe tu respuesta..."}
               value={responseValue}
               onChange={(e) => updateResponse(currentSection, promptIdx, e.target.value)}
-              className="text-base"
+              className={cn(
+                "text-base",
+                readOnly && "bg-muted text-muted-foreground"
+              )}
             />
           </div>
         )
@@ -376,10 +404,14 @@ export function CuadernoTrabajoPlayer({
               )}
             </div>
             <Textarea
+              disabled={readOnly}
               placeholder={prompt.placeholder || "Desarrolla tu respuesta aquí..."}
               value={responseValue}
               onChange={(e) => updateResponse(currentSection, promptIdx, e.target.value)}
-              className="min-h-[200px] text-base"
+              className={cn(
+                "min-h-[200px] text-base",
+                readOnly && "bg-muted text-muted-foreground resize-none"
+              )}
             />
             <div className="flex items-center justify-between text-sm">
               <span
@@ -427,6 +459,7 @@ export function CuadernoTrabajoPlayer({
                 <div key={idx} className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground w-6">{idx + 1}.</span>
                   <Input
+                    disabled={readOnly}
                     placeholder="Escribe un ítem..."
                     value={item}
                     onChange={(e) => {
@@ -434,11 +467,13 @@ export function CuadernoTrabajoPlayer({
                       newList[idx] = e.target.value
                       updateResponse(currentSection, promptIdx, newList)
                     }}
+                    className={cn(readOnly && "bg-muted text-muted-foreground")}
                   />
                   {idx === listItems.length - 1 && (
                     <Button
                       variant="outline"
                       size="sm"
+                      disabled={readOnly}
                       onClick={() => {
                         updateResponse(currentSection, promptIdx, [...listItems, ""])
                       }}
@@ -478,6 +513,7 @@ export function CuadernoTrabajoPlayer({
                     <tr key={idx} className="border-t">
                       <td className="p-2">
                         <Input
+                          disabled={readOnly}
                           value={row[0]}
                           onChange={(e) => {
                             const newTable = [...tableData]
@@ -485,10 +521,12 @@ export function CuadernoTrabajoPlayer({
                             updateResponse(currentSection, promptIdx, newTable)
                           }}
                           placeholder="..."
+                          className={cn(readOnly && "bg-muted text-muted-foreground")}
                         />
                       </td>
                       <td className="p-2">
                         <Input
+                          disabled={readOnly}
                           value={row[1]}
                           onChange={(e) => {
                             const newTable = [...tableData]
@@ -496,6 +534,7 @@ export function CuadernoTrabajoPlayer({
                             updateResponse(currentSection, promptIdx, newTable)
                           }}
                           placeholder="..."
+                          className={cn(readOnly && "bg-muted text-muted-foreground")}
                         />
                       </td>
                       <td className="p-2">
@@ -503,6 +542,7 @@ export function CuadernoTrabajoPlayer({
                           <Button
                             variant="ghost"
                             size="sm"
+                            disabled={readOnly}
                             onClick={() => {
                               updateResponse(currentSection, promptIdx, [
                                 ...tableData,
@@ -536,21 +576,26 @@ export function CuadernoTrabajoPlayer({
   }
 
   const handleSaveWithData = async () => {
-    await onSave({
-      responses,
-      completedSections: Array.from(completedSections),
-      currentSection,
-    })
+    if (readOnly) {
+      return
+    }
+    await onSave(workbookPayload)
   }
 
   const handleCompleteWithData = async () => {
+    if (readOnly) {
+      return
+    }
+    let nextCompletedSections = workbookPayload.completedSections
     if (isSectionComplete(currentSection)) {
       setCompletedSections(prev => new Set([...prev, currentSection]))
+      if (!nextCompletedSections.includes(currentSection)) {
+        nextCompletedSections = [...nextCompletedSections, currentSection]
+      }
     }
     await onComplete({
-      responses,
-      completedSections: Array.from(completedSections),
-      currentSection,
+      ...workbookPayload,
+      completedSections: nextCompletedSections,
     })
   }
 
@@ -573,15 +618,15 @@ export function CuadernoTrabajoPlayer({
       totalSteps={totalSections}
       currentStep={currentSection + 1}
       estimatedMinutes={content.tiempo_sugerido}
-      onSave={handleSaveWithData}
-      onComplete={handleCompleteWithData}
+      onSave={!readOnly ? handleSaveWithData : undefined}
+      onComplete={!readOnly ? handleCompleteWithData : undefined}
       onPrevious={currentSection > 0 ? handlePrevious : undefined}
       onNext={currentSection < totalSections - 1 ? handleNext : undefined}
       onExit={onExit}
       showAIAssistant={true}
       aiContext={currentSectionData.titulo}
       onAskAssistant={handleAskAssistant}
-      canComplete={isFullyComplete}
+      canComplete={!readOnly && isFullyComplete}
     >
       <div className="space-y-6">
         {/* Context Card */}

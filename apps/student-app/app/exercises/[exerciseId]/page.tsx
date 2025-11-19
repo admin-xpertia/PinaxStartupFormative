@@ -376,7 +376,9 @@ export default function ExercisePage() {
     onSave: effectiveSaveHandler,
     onComplete: effectiveCompleteHandler,
     onExit: handleExit,
+    readOnly: isReadOnly,
   }
+  const { readOnly: _readOnlyFlag, ...playerBaseProps } = baseProps
 
   const renderPlayer = () => {
     switch (exercise.tipo) {
@@ -395,7 +397,7 @@ export default function ExercisePage() {
       case "simulacion_interaccion":
         return (
           <SimulacionInteraccionPlayer
-            {...baseProps}
+            {...playerBaseProps}
             content={exercise.content as any}
             savedData={(exercise as any).savedData}
           />
@@ -404,19 +406,19 @@ export default function ExercisePage() {
       case "mentor_ia":
         return (
           <MentorIAPlayer
-            {...baseProps}
+            {...playerBaseProps}
             content={exercise.content as any}
             initialResponses={(exercise as any).savedData || {}}
           />
         )
 
       case "herramienta_analisis":
-        return <HerramientaAnalisisPlayer {...baseProps} content={exercise.content as any} />
+        return <HerramientaAnalisisPlayer {...playerBaseProps} content={exercise.content as any} />
 
       case "herramienta_creacion":
         return (
           <HerramientaCreacionPlayer
-            {...baseProps}
+            {...playerBaseProps}
             content={exercise.content as any}
             savedData={(exercise as any).savedData}
           />
@@ -425,29 +427,29 @@ export default function ExercisePage() {
       case "sistema_tracking":
         return (
           <SistemaTrackingPlayer
-            {...baseProps}
+            {...playerBaseProps}
             content={exercise.content as any}
             savedData={(exercise as any).savedData}
           />
         )
 
       case "herramienta_revision":
-        return <HerramientaRevisionPlayer {...baseProps} content={exercise.content as any} />
+        return <HerramientaRevisionPlayer {...playerBaseProps} content={exercise.content as any} />
 
       case "simulador_entorno":
-        return <SimuladorEntornoPlayer {...baseProps} content={exercise.content as any} />
+        return <SimuladorEntornoPlayer {...playerBaseProps} content={exercise.content as any} />
 
       case "sistema_progresion":
-        return <SistemaProgresionPlayer {...baseProps} content={exercise.content as any} />
+        return <SistemaProgresionPlayer {...playerBaseProps} content={exercise.content as any} />
 
       case "caso":
-        return <CasoPlayer {...baseProps} content={exercise.content as any} />
+        return <CasoPlayer {...playerBaseProps} content={exercise.content as any} />
 
       case "instrucciones":
-        return <InstruccionesPlayer {...baseProps} content={exercise.content as any} />
+        return <InstruccionesPlayer {...playerBaseProps} content={exercise.content as any} />
 
       case "metacognicion":
-        return <MetacognicionPlayer {...baseProps} content={exercise.content as any} />
+        return <MetacognicionPlayer {...playerBaseProps} content={exercise.content as any} />
 
       default:
         return (

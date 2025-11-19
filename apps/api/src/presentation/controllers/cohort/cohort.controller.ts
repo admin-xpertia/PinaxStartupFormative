@@ -20,6 +20,7 @@ import { CreateCohortUseCase } from "../../../application/cohort/use-cases/Creat
 import { EnrollStudentUseCase } from "../../../application/cohort/use-cases/EnrollStudent/EnrollStudentUseCase";
 import { ListCohortsQuery } from "../../../application/cohort/queries/ListCohorts/ListCohortsQuery";
 import { GetCohortDetailsQuery } from "../../../application/cohort/queries/GetCohortDetails/GetCohortDetailsQuery";
+import { User } from "../../../core/decorators";
 import {
   CreateCohortRequestDto,
   EnrollStudentRequestDto,
@@ -100,8 +101,19 @@ export class CohortController {
   })
   async createCohort(
     @Body() body: CreateCohortRequestDto,
+    @User() requester: any,
   ): Promise<CohortResponseDto> {
-    const creationResult = await this.createCohortUseCase.execute(body);
+    const instructorId = body.instructorId ?? requester?.id;
+    if (!instructorId) {
+      throw new BadRequestException(
+        "No se pudo determinar el instructor autenticado",
+      );
+    }
+
+    const creationResult = await this.createCohortUseCase.execute({
+      ...body,
+      instructorId,
+    });
     if (creationResult.isFail()) {
       throw new BadRequestException(creationResult.getError().message);
     }
