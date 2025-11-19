@@ -6,3 +6,4 @@ export * from "./student-progress-summary.dto";
 export * from "./proof-point-progress.dto";
 export * from "./lesson-assistant.dto";
 export * from "./lesson-question-evaluation.dto";
+export * from "./submit-exercise.dto";

@@ -113,8 +113,42 @@ export class CompletedExerciseDto {
   @ApiProperty()
   completedAt: string;
 
+  @ApiProperty({
+    description: "Estado de la entrega",
+    example: "pending_review",
+  })
+  status: string;
+
+  @ApiProperty({
+    description: "Fecha de envío",
+    example: "2025-01-15T10:30:00Z",
+  })
+  submittedAt: string;
+
   @ApiProperty({ nullable: true })
   score: number | null;
+
+  @ApiProperty({
+    description: "Puntaje sugerido por IA, si existe",
+    nullable: true,
+  })
+  aiScore?: number | null;
+
+  @ApiProperty({
+    description: "Puntaje asignado por el instructor, si existe",
+    nullable: true,
+  })
+  instructorScore?: number | null;
+
+  @ApiPropertyOptional({
+    description: "Feedback generado por IA o consolidado",
+  })
+  feedbackJson?: Record<string, any> | null;
+
+  @ApiPropertyOptional({
+    description: "Feedback manual del instructor",
+  })
+  manualFeedback?: string | null;
 
   @ApiProperty()
   timeInvestedMinutes: number;

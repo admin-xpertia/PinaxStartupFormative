@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import useSWR from "swr"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -19,11 +20,20 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { progressApi } from "@/services/api"
+import type { CompletedExercise } from "@/services/api/progress.api"
 import { cn } from "@/lib/utils"
 import { useStudentSession } from "@/lib/hooks/use-student-session"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export default function ProgressDashboardPage() {
   const { estudianteId, cohortId } = useStudentSession()
+  const [selectedExercise, setSelectedExercise] = useState<CompletedExercise | null>(null)
 
   // Fetch progress summary - only when we have valid IDs
   const { data: summary, isLoading } = useSWR(
@@ -271,35 +281,71 @@ export default function ProgressDashboardPage() {
                       key={exercise.exerciseId}
                       className="p-4 hover:bg-muted/50 transition-colors"
                     >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
-                            <h3 className="font-semibold truncate">{exercise.exerciseName}</h3>
-                          </div>
-                          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                            <Badge variant="outline" className="text-xs">
-                              {getTemplateName(exercise.exerciseTemplate)}
-                            </Badge>
-                            <div className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              <span>{formatDate(exercise.completedAt)}</span>
+                      {(() => {
+                        const isPending =
+                          exercise.status === "pending_review" ||
+                          exercise.status === "submitted_for_review"
+                        const isGraded =
+                          exercise.status === "graded" ||
+                          exercise.status === "approved"
+                        const displayedDate = exercise.completedAt || exercise.submittedAt
+                        return (
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0 space-y-2">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {isPending ? (
+                                  <Clock className="h-5 w-5 text-amber-500 flex-shrink-0" />
+                                ) : (
+                                  <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
+                                )}
+                                <h3 className="font-semibold truncate">{exercise.exerciseName}</h3>
+                                <Badge variant={isPending ? "outline" : "secondary"}>
+                                  {isPending ? "En revisión" : "Calificado"}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
+                                <Badge variant="outline" className="text-xs">
+                                  {getTemplateName(exercise.exerciseTemplate)}
+                                </Badge>
+                                {displayedDate && (
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" />
+                                    <span>{formatDate(displayedDate)}</span>
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  <span>{formatTime(exercise.timeInvestedMinutes)}</span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              <span>{formatTime(exercise.timeInvestedMinutes)}</span>
+                            <div className="flex items-center gap-3 flex-shrink-0">
+                              {isPending ? (
+                                <div className="text-sm text-amber-600 font-medium">
+                                  Sugerencia IA: {exercise.aiScore ?? "N/A"}
+                                </div>
+                              ) : exercise.score !== null ? (
+                                <div className="flex items-center gap-2">
+                                  <Award className="h-5 w-5 text-amber-600" />
+                                  <span className="text-lg font-bold text-amber-600">
+                                    {exercise.score}
+                                  </span>
+                                </div>
+                              ) : null}
+                              {isGraded &&
+                                (exercise.feedbackJson || exercise.manualFeedback) && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setSelectedExercise(exercise)}
+                                  >
+                                    Ver feedback
+                                  </Button>
+                                )}
                             </div>
                           </div>
-                        </div>
-                        {exercise.score !== null && (
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <Award className="h-5 w-5 text-amber-600" />
-                            <span className="text-lg font-bold text-amber-600">
-                              {exercise.score}
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                        )
+                      })()}
                     </div>
                   ))}
                 </div>
@@ -359,6 +405,91 @@ export default function ProgressDashboardPage() {
           </Card>
         )}
       </main>
+
+      <Dialog
+        open={!!selectedExercise}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedExercise(null)
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{selectedExercise?.exerciseName || "Feedback de entrega"}</DialogTitle>
+            <DialogDescription>
+              Vista combinada del feedback automático y los comentarios del instructor.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedExercise && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="secondary">
+                  Nota final: {selectedExercise.score ?? "N/D"}
+                </Badge>
+                {selectedExercise.aiScore !== null && selectedExercise.aiScore !== undefined && (
+                  <Badge variant="outline">Sugerencia IA: {selectedExercise.aiScore}</Badge>
+                )}
+                {selectedExercise.instructorScore !== null &&
+                  selectedExercise.instructorScore !== undefined && (
+                    <Badge variant="outline">
+                      Instructor: {selectedExercise.instructorScore}
+                    </Badge>
+                  )}
+              </div>
+
+              {selectedExercise.manualFeedback && (
+                <Card className="p-3">
+                  <div className="text-sm font-semibold mb-1">Comentario del instructor</div>
+                  <p className="text-sm text-muted-foreground whitespace-pre-line">
+                    {selectedExercise.manualFeedback}
+                  </p>
+                </Card>
+              )}
+
+              {selectedExercise.feedbackJson ? (
+                <div className="grid gap-3">
+                  <div className="text-sm font-semibold">Resumen IA</div>
+                  {(selectedExercise.feedbackJson.summary ||
+                    selectedExercise.feedbackJson.suggestion) && (
+                    <p className="text-sm text-muted-foreground">
+                      {selectedExercise.feedbackJson.summary ||
+                        selectedExercise.feedbackJson.suggestion}
+                    </p>
+                  )}
+                  {Array.isArray(selectedExercise.feedbackJson.strengths) &&
+                    selectedExercise.feedbackJson.strengths.length > 0 && (
+                      <Card className="p-3">
+                        <div className="text-sm font-semibold mb-1">Fortalezas</div>
+                        <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                          {selectedExercise.feedbackJson.strengths.map((item: string, idx: number) => (
+                            <li key={`strength-${idx}`}>{item}</li>
+                          ))}
+                        </ul>
+                      </Card>
+                    )}
+                  {Array.isArray(selectedExercise.feedbackJson.improvements) &&
+                    selectedExercise.feedbackJson.improvements.length > 0 && (
+                      <Card className="p-3">
+                        <div className="text-sm font-semibold mb-1">Mejoras sugeridas</div>
+                        <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                          {selectedExercise.feedbackJson.improvements.map((item: string, idx: number) => (
+                            <li key={`improvement-${idx}`}>{item}</li>
+                          ))}
+                        </ul>
+                      </Card>
+                    )}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Aún no hay feedback detallado disponible para esta entrega.
+                </p>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

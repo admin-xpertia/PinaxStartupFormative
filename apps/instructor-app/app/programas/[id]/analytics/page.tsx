@@ -46,7 +46,8 @@ interface CohortAnalyticsResponse {
     estudiante: string
     ejercicio: string
     entregadoEl: string
-    status: "submitted_for_review" | "requires_iteration" | "approved" | "in_progress"
+    status: "submitted_for_review" | "pending_review" | "requires_iteration" | "approved" | "graded" | "in_progress"
+    aiScore?: number | null
   }[]
   hasPublishedExercises: boolean
   publishedExercisesCount: number

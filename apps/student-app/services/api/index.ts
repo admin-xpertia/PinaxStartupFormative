@@ -14,5 +14,7 @@ export type {
   StartExerciseParams,
   SaveProgressParams,
   CompleteExerciseParams,
-  CompleteExerciseResponse
+  CompleteExerciseResponse,
+  SubmitForGradingParams,
+  SubmitForGradingResponse,
 } from "./exercises.api"

@@ -21,7 +21,13 @@ export interface CompletedExercise {
   exerciseName: string
   exerciseTemplate: string
   completedAt: string
+  submittedAt: string
+  status: string
   score: number | null
+  aiScore?: number | null
+  instructorScore?: number | null
+  feedbackJson?: Record<string, any> | null
+  manualFeedback?: string | null
   timeInvestedMinutes: number
 }
 

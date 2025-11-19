@@ -4,8 +4,10 @@ export type ExerciseProgressStatus =
   | "not_started"
   | "in_progress"
   | "submitted_for_review"
+  | "pending_review"
   | "requires_iteration"
-  | "approved";
+  | "approved"
+  | "graded";
 
 export class ExerciseProgressResponseDto {
   @ApiProperty({
@@ -45,8 +47,10 @@ export class ExerciseProgressResponseDto {
       "not_started",
       "in_progress",
       "submitted_for_review",
+      "pending_review",
       "requires_iteration",
       "approved",
+      "graded",
     ],
     example: "in_progress",
   })
@@ -100,9 +104,37 @@ export class ExerciseProgressResponseDto {
   submittedAt?: string;
 
   @ApiPropertyOptional({
+    description: "Fecha de calificación definitiva",
+    example: "2025-01-16T12:00:00Z",
+  })
+  gradedAt?: string;
+
+  @ApiPropertyOptional({
     description: "Datos guardados del estudiante",
   })
   datosGuardados?: Record<string, any>;
+
+  @ApiPropertyOptional({
+    description: "Puntaje generado por IA (0-100)",
+    example: 82,
+  })
+  aiScore?: number | null;
+
+  @ApiPropertyOptional({
+    description: "Puntaje asignado por instructor",
+    example: 90,
+  })
+  instructorScore?: number | null;
+
+  @ApiPropertyOptional({
+    description: "Resumen de feedback estructurado (IA u otros)",
+  })
+  feedbackJson?: Record<string, any> | null;
+
+  @ApiPropertyOptional({
+    description: "Comentarios manuales del instructor",
+  })
+  manualFeedback?: string | null;
 
   @ApiProperty({
     description: "Fecha de creación",

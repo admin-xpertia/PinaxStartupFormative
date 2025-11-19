@@ -34,6 +34,21 @@ export interface CompleteExerciseResponse {
   proofPointCompleted?: boolean
 }
 
+export interface SubmitForGradingParams {
+  estudianteId: string
+  cohorteId: string
+  datos?: Record<string, any>
+  tiempoInvertidoMinutos?: number
+}
+
+export interface SubmitForGradingResponse {
+  id: string
+  aiScore: number
+  feedback: Record<string, any>
+  status: string
+  submittedAt: string
+}
+
 export interface LessonAssistantMessage {
   role: "user" | "assistant"
   content: string
@@ -179,6 +194,19 @@ export const exercisesApi = {
   async complete(exerciseId: string, params: CompleteExerciseParams): Promise<CompleteExerciseResponse> {
     return apiClient.post<CompleteExerciseResponse>(
       `/student/exercises/${encodeURIComponent(exerciseId)}/complete`,
+      params
+    )
+  },
+
+  /**
+   * Enviar ejercicio para calificación (IA + instructor)
+   */
+  async submitForGrading(
+    exerciseId: string,
+    params: SubmitForGradingParams
+  ): Promise<SubmitForGradingResponse> {
+    return apiClient.post<SubmitForGradingResponse>(
+      `/student/exercises/${encodeURIComponent(exerciseId)}/submit`,
       params
     )
   },

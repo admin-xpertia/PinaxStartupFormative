@@ -38,9 +38,11 @@ export interface ExerciseProgress {
   status:
     | "not_started"
     | "in_progress"
+    | "pending_review"
     | "submitted_for_review"
     | "requires_iteration"
     | "approved"
+    | "graded"
   progress: number // 0-100
   startedAt?: Date
   completedAt?: Date
@@ -48,6 +50,9 @@ export interface ExerciseProgress {
   lastSavedAt?: Date
   timeSpentMinutes: number
   instructorFeedback?: Record<string, string>
+  aiScore?: number | null
+  instructorScore?: number | null
+  finalScore?: number | null
   data: any // Progreso específico del tipo de ejercicio
 }
 

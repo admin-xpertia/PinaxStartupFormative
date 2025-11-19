@@ -80,8 +80,10 @@ export class CompleteExerciseResponseDto {
       "not_started",
       "in_progress",
       "submitted_for_review",
+      "pending_review",
       "requires_iteration",
       "approved",
+      "graded",
     ],
     example: "submitted_for_review",
   })

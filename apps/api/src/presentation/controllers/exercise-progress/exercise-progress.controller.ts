@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Body,
   Param,
   HttpCode,
@@ -12,6 +13,7 @@ import {
   Logger,
   Query,
   Res,
+  UseGuards,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -39,7 +41,20 @@ import {
   LessonQuestionEvaluationResponseDto,
   LessonQuestionTypeEnum,
 } from "../../dtos/exercise-progress";
-import { Public } from "../../../core/decorators";
+import {
+  Public,
+  Roles,
+  User,
+} from "../../../core/decorators";
+import { SubmitExerciseForGradingUseCase } from "../../../application/exercise-progress/use-cases/SubmitExerciseForGrading/SubmitExerciseForGradingUseCase";
+import { ReviewAndGradeSubmissionUseCase } from "../../../application/exercise-progress/use-cases/ReviewAndGradeSubmission/ReviewAndGradeSubmissionUseCase";
+import {
+  ReviewAndGradeSubmissionDto,
+  SubmitExerciseForGradingDto,
+  SubmitExerciseForGradingResponseDto,
+  ReviewAndGradeSubmissionResponseDto,
+} from "../../dtos/exercise-progress/submit-exercise.dto";
+import { RolesGuard } from "../../../core/guards/roles.guard";
 
 /**
  * ExerciseProgressController
@@ -55,6 +70,8 @@ export class ExerciseProgressController {
     private readonly db: SurrealDbService,
     private readonly openAIService: OpenAIService,
     private readonly shadowMonitor: ShadowMonitorService,
+    private readonly submitExerciseForGrading: SubmitExerciseForGradingUseCase,
+    private readonly reviewAndGradeSubmission: ReviewAndGradeSubmissionUseCase,
   ) {}
 
   /**
@@ -234,6 +251,60 @@ export class ExerciseProgressController {
    * Complete an exercise
    */
   @Public()
+  @Post("student/exercises/:exerciseId/submit")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Enviar ejercicio para calificación automática",
+    description:
+      "Guarda el trabajo final, solicita evaluación IA (0-100) y deja la entrega en pendiente de revisión.",
+  })
+  @ApiParam({
+    name: "exerciseId",
+    description: "ExerciseInstance ID",
+    example: "exercise_instance:abc123",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Entrega enviada correctamente",
+    type: SubmitExerciseForGradingResponseDto,
+  })
+  async submitForGrading(
+    @Param("exerciseId") exerciseId: string,
+    @Body() submitDto: SubmitExerciseForGradingDto,
+    @Query("estudianteId") estudianteIdQuery?: string,
+    @Query("cohorteId") cohorteIdQuery?: string,
+  ): Promise<SubmitExerciseForGradingResponseDto> {
+    const decodedId = decodeURIComponent(exerciseId);
+    const { estudianteId, cohorteId } = this.resolveStudentContext({
+      bodyEstudianteId: submitDto.estudianteId,
+      bodyCohorteId: submitDto.cohorteId,
+      queryEstudianteId: estudianteIdQuery,
+      queryCohorteId: cohorteIdQuery,
+    });
+
+    const result = await this.submitExerciseForGrading.execute({
+      exerciseInstanceId: decodedId,
+      estudianteId,
+      cohorteId,
+      datos: submitDto.datos,
+      tiempoInvertidoMinutos: submitDto.tiempoInvertidoMinutos,
+    });
+
+    if (result.isFailure) {
+      throw new BadRequestException(result.getError());
+    }
+
+    const value = result.getValue();
+    return {
+      ...value,
+      status: this.normalizeStatusFromString(value.status),
+    };
+  }
+
+  /**
+   * Complete an exercise
+   */
+  @Public()
   @Post("student/exercises/:exerciseId/complete")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -304,12 +375,13 @@ export class ExerciseProgressController {
     const updateQuery = `
       UPDATE type::thing($progressId) SET
         estado = 'completado',
-        status = 'submitted_for_review',
+        status = 'pending_review',
         porcentaje_completitud = 100,
         fecha_completado = time::now(),
         submitted_at = time::now(),
         tiempo_invertido_minutos = $tiempo,
         score_final = $score,
+        final_score = $score,
         datos_guardados = $datos,
         instructor_feedback = $instructorFeedback,
         updated_at = time::now()
@@ -369,6 +441,57 @@ export class ExerciseProgressController {
       submittedAt: completedProgress.submitted_at,
       feedback,
       completado: true,
+    };
+  }
+
+  /**
+   * Review and grade a submission (instructor)
+   */
+  @Patch("instructor/submissions/:submissionId/grade")
+  @UseGuards(RolesGuard)
+  @Roles("instructor")
+  @ApiOperation({
+    summary: "Calificar una entrega",
+    description:
+      "Permite a instructores registrar su calificación y feedback sobre una entrega ya evaluada por IA.",
+  })
+  @ApiParam({
+    name: "submissionId",
+    description: "ID del registro de progreso a calificar",
+    example: "exercise_progress:abc123",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Entrega calificada",
+    type: ReviewAndGradeSubmissionResponseDto,
+  })
+  async gradeSubmission(
+    @Param("submissionId") submissionId: string,
+    @Body() gradeDto: ReviewAndGradeSubmissionDto,
+    @User() user?: any,
+  ): Promise<ReviewAndGradeSubmissionResponseDto> {
+    const decodedId = decodeURIComponent(submissionId);
+
+    const result = await this.reviewAndGradeSubmission.execute({
+      submissionId: decodedId,
+      instructorId: user?.id,
+      instructorScore: gradeDto.instructorScore,
+      instructorFeedback: gradeDto.instructorFeedback,
+      publish: gradeDto.publish,
+    });
+
+    if (result.isFailure) {
+      const error = result.getError();
+      if (error.message.includes("No se encontró")) {
+        throw new NotFoundException(error.message);
+      }
+      throw new BadRequestException(error.message);
+    }
+
+    const value = result.getValue();
+    return {
+      ...value,
+      status: this.normalizeStatusFromString(value.status),
     };
   }
 
@@ -435,6 +558,41 @@ export class ExerciseProgressController {
   }
 
   /**
+   * Get submission detail for instructors
+   */
+  @Get("instructor/submissions/:submissionId")
+  @UseGuards(RolesGuard)
+  @Roles("instructor")
+  @ApiOperation({
+    summary: "Obtener una entrega por ID",
+    description: "Detalle completo de una entrega para revisión del instructor",
+  })
+  @ApiParam({
+    name: "submissionId",
+    description: "ID del registro exercise_progress",
+    example: "exercise_progress:abc123",
+  })
+  async getSubmissionDetail(
+    @Param("submissionId") submissionId: string,
+  ): Promise<ExerciseProgressResponseDto> {
+    const decodedId = decodeURIComponent(submissionId);
+    const result = await this.db.query(
+      `
+      SELECT * FROM type::thing($id)
+    `,
+      { id: decodedId },
+    );
+
+    const progress = this.extractFirstRecord(result);
+
+    if (!progress) {
+      throw new NotFoundException("Entrega no encontrada");
+    }
+
+    return this.mapProgressToDto(progress);
+  }
+
+  /**
    * Get student progress summary
    */
   @Public()
@@ -468,9 +626,15 @@ export class ExerciseProgressController {
         estado,
         status,
         score_final,
+        final_score,
+        ai_score,
+        instructor_score,
+        manual_feedback,
+        feedback_json,
         tiempo_invertido_minutos,
         fecha_completado,
         submitted_at,
+        graded_at,
         instructor_feedback,
         porcentaje_completitud
       FROM exercise_progress
@@ -511,12 +675,17 @@ export class ExerciseProgressController {
     );
 
     // Calculate overall statistics
-    const completedRecords = progressRecords.filter(
-      (p) => this.normalizeStatusFromRecord(p) === "approved",
-    );
+    const completedRecords = progressRecords.filter((p) => {
+      const status = this.normalizeStatusFromRecord(p);
+      return status === "graded" || status === "approved";
+    });
     const inProgressRecords = progressRecords.filter((p) => {
       const status = this.normalizeStatusFromRecord(p);
-      return status === "in_progress" || status === "requires_iteration";
+      return (
+        status === "in_progress" ||
+        status === "requires_iteration" ||
+        status === "pending_review"
+      );
     });
 
     const totalTimeInvested = progressRecords.reduce(
@@ -525,8 +694,8 @@ export class ExerciseProgressController {
     );
 
     const scoresWithValues = completedRecords
-      .filter((p) => p.score_final !== null && p.score_final !== undefined)
-      .map((p) => p.score_final);
+      .map((p) => p.final_score ?? p.score_final)
+      .filter((value) => value !== null && value !== undefined);
 
     const averageScore =
       scoresWithValues.length > 0
@@ -575,11 +744,16 @@ export class ExerciseProgressController {
       );
       if (
         progress &&
-        this.normalizeStatusFromRecord(progress) === "approved"
+        ["approved", "graded"].includes(this.normalizeStatusFromRecord(progress))
       ) {
         stats.completedExercises++;
         stats.timeInvestedMinutes += progress.tiempo_invertido_minutos || 0;
         if (
+          progress.final_score !== null &&
+          progress.final_score !== undefined
+        ) {
+          stats.scores.push(progress.final_score);
+        } else if (
           progress.score_final !== null &&
           progress.score_final !== undefined
         ) {
@@ -615,14 +789,23 @@ export class ExerciseProgressController {
       SELECT
         id,
         exercise_instance,
+        estado,
+        status,
         fecha_completado,
+        graded_at,
         score_final,
+        final_score,
+        ai_score,
+        instructor_score,
+        manual_feedback,
+        feedback_json,
+        submitted_at,
         tiempo_invertido_minutos
       FROM exercise_progress
       WHERE estudiante = type::thing($estudianteId)
         AND cohorte = type::thing($cohorteId)
-        AND estado = 'completado'
-      ORDER BY fecha_completado DESC
+        AND submitted_at != NONE
+      ORDER BY submitted_at DESC
       LIMIT 10
     `;
 
@@ -642,12 +825,20 @@ export class ExerciseProgressController {
       const exercise = allExercises.find(
         (e) => e.id === record.exercise_instance,
       );
+      const status = this.normalizeStatusFromRecord(record);
       return {
         exerciseId: record.exercise_instance,
         exerciseName: exercise?.nombre || "Unknown",
         exerciseTemplate: exercise?.template || "general",
-        completedAt: record.fecha_completado,
-        score: record.score_final,
+        completedAt:
+          record.graded_at || record.fecha_completado || record.submitted_at,
+        submittedAt: record.submitted_at,
+        status,
+        aiScore: record.ai_score ?? null,
+        instructorScore: record.instructor_score ?? null,
+        manualFeedback: record.manual_feedback ?? null,
+        feedbackJson: record.feedback_json ?? null,
+        score: record.final_score ?? record.score_final ?? null,
         timeInvestedMinutes: record.tiempo_invertido_minutos || 0,
       };
     });
@@ -754,9 +945,14 @@ export class ExerciseProgressController {
         status,
         porcentaje_completitud,
         score_final,
+        final_score,
+        ai_score,
+        instructor_score,
         fecha_inicio,
         fecha_completado,
         submitted_at,
+        graded_at,
+        feedback_json,
         instructor_feedback,
         fecha_ultimo_acceso,
         cohorte
@@ -814,9 +1010,14 @@ export class ExerciseProgressController {
           status,
           porcentaje_completitud,
           score_final,
+          final_score,
+          ai_score,
+          instructor_score,
           fecha_inicio,
           fecha_completado,
           submitted_at,
+          graded_at,
+          feedback_json,
           instructor_feedback,
           fecha_ultimo_acceso,
           cohorte
@@ -880,14 +1081,14 @@ export class ExerciseProgressController {
           status = this.normalizeStatusFromRecord(progress);
           const storedProgress = progress.porcentaje_completitud || 0;
 
-          if (status === "approved") {
+          if (status === "approved" || status === "graded") {
             progressPercentage = 100;
-          } else if (status === "submitted_for_review") {
+          } else if (status === "pending_review") {
             progressPercentage = storedProgress > 0 ? storedProgress : 100;
           } else {
             progressPercentage = storedProgress;
           }
-          score = progress.score_final;
+          score = progress.final_score ?? progress.score_final ?? undefined;
           lastAccessed = progress.fecha_ultimo_acceso;
         }
 
@@ -915,7 +1116,9 @@ export class ExerciseProgressController {
 
     // Calculate overall statistics
     const isCompletedStatus = (status: ExerciseProgressStatus) =>
-      status === "approved" || status === "submitted_for_review";
+      status === "approved" ||
+      status === "graded" ||
+      status === "pending_review";
 
     const completedExercises = exerciseSummaries.filter((e) =>
       isCompletedStatus(e.status),
@@ -956,9 +1159,10 @@ export class ExerciseProgressController {
     }
 
     // Find earliest start date and latest completion date
-    const completedProgressRecords = progressRecords.filter(
-      (p) => this.normalizeStatusFromRecord(p) === "approved",
-    );
+    const completedProgressRecords = progressRecords.filter((p) => {
+      const normalized = this.normalizeStatusFromRecord(p);
+      return normalized === "graded" || normalized === "approved";
+    });
     const startedAtRaw = progressRecords
       .map((p) => p.fecha_inicio)
       .filter(Boolean)
@@ -1622,7 +1826,7 @@ ${evaluationDto.respuestaEstudiante}`;
   private normalizeStatusFromRecord(
     progress: any,
   ): ExerciseProgressStatus {
-    const mappedStatus = this.mapStatus(progress?.status);
+    const mappedStatus = this.normalizeStatusFromString(progress?.status);
     if (mappedStatus) {
       return mappedStatus;
     }
@@ -1635,13 +1839,28 @@ ${evaluationDto.respuestaEstudiante}`;
     switch (status) {
       case "not_started":
       case "in_progress":
+      case "pending_review":
       case "submitted_for_review":
       case "requires_iteration":
       case "approved":
+      case "graded":
         return status;
       default:
         return null;
     }
+  }
+
+  private normalizeStatusFromString(
+    status?: string | null,
+  ): ExerciseProgressStatus {
+    const mapped = this.mapStatus(status);
+    if (mapped === "submitted_for_review") {
+      return "pending_review";
+    }
+    if (mapped === "approved") {
+      return "graded";
+    }
+    return mapped ?? "not_started";
   }
 
   private mapEstadoToStatus(
@@ -1653,11 +1872,11 @@ ${evaluationDto.respuestaEstudiante}`;
       case "en_progreso":
         return "in_progress";
       case "pendiente_revision":
-        return "submitted_for_review";
+        return "pending_review";
       case "revision_requerida":
         return "requires_iteration";
       case "completado":
-        return "approved";
+        return "graded";
       default:
         return "not_started";
     }
@@ -1680,9 +1899,14 @@ ${evaluationDto.respuestaEstudiante}`;
       fechaInicio: progress.fecha_inicio,
       fechaCompletado: progress.fecha_completado,
       submittedAt: progress.submitted_at,
+      gradedAt: progress.graded_at,
       tiempoInvertidoMinutos: progress.tiempo_invertido_minutos,
       numeroIntentos: progress.numero_intentos,
-      scoreFinal: progress.score_final,
+      aiScore: progress.ai_score ?? null,
+      instructorScore: progress.instructor_score ?? null,
+      scoreFinal: progress.final_score ?? progress.score_final ?? null,
+      manualFeedback: progress.manual_feedback ?? null,
+      feedbackJson: progress.feedback_json ?? null,
       instructorFeedback: progress.instructor_feedback,
       datosGuardados: progress.datos_guardados,
       createdAt: progress.created_at,

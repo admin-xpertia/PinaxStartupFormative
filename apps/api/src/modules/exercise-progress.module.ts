@@ -7,6 +7,9 @@ import { ExerciseProgressController } from "../presentation/controllers/exercise
 // Services
 import { OpenAIService } from "../infrastructure/ai/OpenAIService";
 import { ShadowMonitorService } from "../application/exercise-instance/services/ShadowMonitorService";
+import { SubmitExerciseForGradingUseCase } from "../application/exercise-progress/use-cases/SubmitExerciseForGrading/SubmitExerciseForGradingUseCase";
+import { ReviewAndGradeSubmissionUseCase } from "../application/exercise-progress/use-cases/ReviewAndGradeSubmission/ReviewAndGradeSubmissionUseCase";
+import { RolesGuard } from "../core/guards/roles.guard";
 
 /**
  * ExerciseProgressModule
@@ -21,7 +24,13 @@ import { ShadowMonitorService } from "../application/exercise-instance/services/
 @Module({
   imports: [SurrealDbModule],
   controllers: [ExerciseProgressController],
-  providers: [OpenAIService, ShadowMonitorService],
+  providers: [
+    OpenAIService,
+    ShadowMonitorService,
+    SubmitExerciseForGradingUseCase,
+    ReviewAndGradeSubmissionUseCase,
+    RolesGuard,
+  ],
   exports: [],
 })
 export class ExerciseProgressModule {}
