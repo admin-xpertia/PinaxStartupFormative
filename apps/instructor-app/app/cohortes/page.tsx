@@ -19,9 +19,6 @@ import type { CohortResponse, ProgramResponse, CreateStudentRequest } from "@/ty
 import { useToast } from "@/hooks/use-toast"
 import { Loader2, Users, Calendar, Layers } from "lucide-react"
 
-const DEFAULT_INSTRUCTOR_ID = "user:instructor_demo"
-const DEFAULT_STUDENT_ID = "estudiante:demo"
-
 function formatDate(value?: string) {
   if (!value) return "Sin definir"
   return new Date(value).toLocaleDateString("es-ES", {
@@ -84,7 +81,6 @@ export default function CohortsPage() {
         nombre: formState.nombre,
         descripcion: formState.descripcion,
         fechaInicio: new Date(formState.fechaInicio).toISOString(),
-        instructorId: DEFAULT_INSTRUCTOR_ID,
         autoActivate: true,
       })
       toast({
@@ -158,7 +154,15 @@ export default function CohortsPage() {
   }
 
   const handleEnroll = async (cohortId: string) => {
-    const estudianteId = enrollmentInputs[cohortId]?.trim() || DEFAULT_STUDENT_ID
+    const estudianteId = enrollmentInputs[cohortId]?.trim()
+    if (!estudianteId) {
+      toast({
+        title: "Falta el ID del estudiante",
+        description: "Ingresa un ID válido de SurrealDB para inscribirlo.",
+        variant: "destructive",
+      })
+      return
+    }
     setEnrolling((prev) => ({ ...prev, [cohortId]: true }))
     try {
       await cohortsApi.enrollStudent(cohortId, { estudianteId })
@@ -423,7 +427,7 @@ export default function CohortsPage() {
                       <h4 className="mb-2 text-sm font-semibold">Asignar estudiante</h4>
                       <div className="flex flex-col gap-2 md:flex-row">
                         <Input
-                          placeholder="estudiante:demo"
+                          placeholder="estudiante:abc123"
                           value={enrollmentInputs[cohort.id] ?? ""}
                           onChange={(event) =>
                             setEnrollmentInputs((prev) => ({
@@ -443,7 +447,7 @@ export default function CohortsPage() {
                         </Button>
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Usa el ID del estudiante de SurrealDB (por defecto {DEFAULT_STUDENT_ID}).
+                        Usa el ID del estudiante tal como aparece en SurrealDB.
                       </p>
                     </div>
                   </CardContent>

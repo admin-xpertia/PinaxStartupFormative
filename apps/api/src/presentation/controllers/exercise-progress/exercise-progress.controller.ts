@@ -1276,13 +1276,11 @@ export class ExerciseProgressController {
     const estudianteId =
       params.bodyEstudianteId?.trim() ||
       params.queryEstudianteId?.trim() ||
-      process.env.DEFAULT_STUDENT_ID ||
       null;
 
     const cohorteId =
       params.bodyCohorteId?.trim() ||
       params.queryCohorteId?.trim() ||
-      process.env.DEFAULT_COHORTE_ID ||
       null;
 
     if (!estudianteId || !cohorteId) {
@@ -1291,8 +1289,6 @@ export class ExerciseProgressController {
         bodyCohorteId: params.bodyCohorteId,
         queryEstudianteId: params.queryEstudianteId,
         queryCohorteId: params.queryCohorteId,
-        env_DEFAULT_STUDENT_ID: process.env.DEFAULT_STUDENT_ID,
-        env_DEFAULT_COHORTE_ID: process.env.DEFAULT_COHORTE_ID,
       });
       throw new BadRequestException(
         "Los parámetros estudianteId y cohorteId son requeridos",

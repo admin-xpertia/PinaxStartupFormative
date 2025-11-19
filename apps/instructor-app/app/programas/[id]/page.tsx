@@ -6,12 +6,7 @@ import { AppHeader } from "@/components/app-header"
 import { Sidebar } from "@/components/sidebar"
 import { Breadcrumbs } from "@/components/shared/breadcrumbs"
 import { PageHeader } from "@/components/shared/page-header"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Edit, Rocket, Loader2, Sparkles, RefreshCw } from "lucide-react"
-import Link from "next/link"
 import { notFound } from "next/navigation"
 import { fetcher } from "@/lib/fetcher"
 import { LoadingState } from "@/components/shared/loading-state"
@@ -20,12 +15,10 @@ import type { Program } from "@/types/program"
 import { programsApi } from "@/services/api"
 import { toast } from "sonner"
 import { PedagogicalAssistantModal } from "@/components/assistant/PedagogicalAssistantModal"
-import { SubmissionQueue } from "./components/SubmissionQueue"
-import { StudentRiskList } from "./components/StudentRiskList"
-import { CohortProgressChart } from "./components/CohortProgressChart"
-import { ProofPointList } from "./components/ProofPointList"
-import { cn } from "@/lib/utils"
 import type { CohortAnalyticsResponse } from "./types"
+import { ProgramActionBar } from "./components/ProgramActionBar"
+import { ProgramMetrics, type ProgramMetric } from "./components/ProgramMetrics"
+import { ProgramAnalyticsGrid } from "./components/ProgramAnalyticsGrid"
 
 export default function ProgramDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: rawId } = use(params)
@@ -78,7 +71,7 @@ export default function ProgramDetailPage({ params }: { params: Promise<{ id: st
             scoreAverages.length,
         )
       : null
-  const kpis = [
+  const kpis: ProgramMetric[] = [
     {
       label: "Estudiantes activos",
       value: analyticsLoading ? "..." : totalStudents.toString(),
@@ -172,77 +165,20 @@ export default function ProgramDetailPage({ params }: { params: Promise<{ id: st
               title={program.nombre}
               description={program.descripcion || "Monitorea la salud del cohorte, revisa entregas y actúa sin salir de esta vista."}
               actions={
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant={isPublished ? "default" : "secondary"}>
-                    {isPublished ? "Publicado" : "Borrador"}
-                  </Badge>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => mutateAnalytics()}
-                    disabled={isRefreshingAnalytics}
-                  >
-                    {isRefreshingAnalytics ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                    )}
-                    Actualizar datos
-                  </Button>
-                  {stats.proof_points > 0 && (
-                    <Button variant="outline" size="sm" onClick={() => setIsAssistantOpen(true)}>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Asistente de Ejercicios IA
-                    </Button>
-                  )}
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href={`/programas/${programId}/estructura`}>
-                      <Edit className="mr-2 h-4 w-4" />
-                      Editar Estructura
-                    </Link>
-                  </Button>
-                  {!isPublished && (
-                    <Button size="sm" onClick={handlePublish} disabled={publishing}>
-                      {publishing ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Rocket className="mr-2 h-4 w-4" />
-                      )}
-                      Publicar Programa
-                    </Button>
-                  )}
-                </div>
+                <ProgramActionBar
+                  isPublished={isPublished}
+                  proofPointsCount={stats.proof_points}
+                  isRefreshingAnalytics={isRefreshingAnalytics}
+                  onRefreshAnalytics={() => mutateAnalytics()}
+                  onOpenAssistant={() => setIsAssistantOpen(true)}
+                  onPublishProgram={handlePublish}
+                  publishing={publishing}
+                  programId={programId}
+                />
               }
             />
 
-            <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              {kpis.map((item) => (
-                <Card
-                  key={item.label}
-                  className={cn(
-                    "border bg-card shadow-sm",
-                    item.variant === "warning" && "border-amber-200 bg-amber-50/60 text-amber-900",
-                  )}
-                >
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">
-                      {item.label}
-                    </CardTitle>
-                    <CardDescription>{item.helper}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p
-                      className={cn(
-                        "text-3xl font-semibold tracking-tight",
-                        item.variant === "warning" && "text-amber-600",
-                      )}
-                    >
-                      {item.value}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </section>
+            <ProgramMetrics metrics={kpis} />
 
             {analyticsError ? (
               <Alert variant="destructive">
@@ -253,16 +189,13 @@ export default function ProgramDetailPage({ params }: { params: Promise<{ id: st
               </Alert>
             ) : null}
 
-            <div className="grid gap-6 lg:grid-cols-3">
-              <div className="space-y-6 lg:col-span-2">
-                <SubmissionQueue submissions={submissions} programId={programId} />
-                <CohortProgressChart phases={phases} />
-              </div>
-              <div className="space-y-6">
-                <StudentRiskList students={atRiskStudents} />
-                <ProofPointList proofPoints={proofPoints} />
-              </div>
-            </div>
+            <ProgramAnalyticsGrid
+              programId={programId}
+              submissions={submissions}
+              phases={phases}
+              atRiskStudents={atRiskStudents}
+              proofPoints={proofPoints}
+            />
 
           </div>
         </main>

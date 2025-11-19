@@ -3,19 +3,19 @@ import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 export class StudentProfileResponseDto {
   @ApiProperty({
     description: "ID del perfil de estudiante",
-    example: "estudiante:demo",
+    example: "estudiante:alumno_001",
   })
   id: string;
 
   @ApiProperty({
     description: "ID del usuario asociado",
-    example: "user:estudiante_demo",
+    example: "user:estudiante_real",
   })
   userId: string;
 
   @ApiProperty({
     description: "Nombre del estudiante",
-    example: "Estudiante Demo",
+    example: "Mariana Torres",
   })
   nombre: string;
 

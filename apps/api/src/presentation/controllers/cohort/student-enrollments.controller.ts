@@ -59,7 +59,7 @@ export class StudentEnrollmentsController {
     name: "estudianteId",
     required: false,
     description:
-      "ID del estudiante (si no se envía se usa DEFAULT_STUDENT_ID o estudiante:demo)",
+      "ID del estudiante. Obligatorio cuando el requester no es un estudiante autenticado.",
   })
   @ApiResponse({
     status: 200,
@@ -167,15 +167,18 @@ export class StudentEnrollmentsController {
   }
 
   private resolveStudentId(param?: string, user?: any): string {
-    if (param) {
-      return param;
+    const trimmedParam = param?.trim();
+    if (trimmedParam) {
+      return trimmedParam;
     }
 
     if (user?.studentId) {
       return user.studentId;
     }
 
-    return process.env.DEFAULT_STUDENT_ID || "estudiante:demo";
+    throw new BadRequestException(
+      "Debe proporcionar un estudianteId válido o autenticar un estudiante.",
+    );
   }
 
   private async fetchEnrollmentById(

@@ -53,13 +53,14 @@ export class OpenAIService {
     const apiKey = this.configService.get<string>("OPENAI_API_KEY");
 
     if (!apiKey) {
-      this.logger.warn(
-        "⚠️  OPENAI_API_KEY not configured. AI generation will not work.",
+      this.logger.error(
+        "OPENAI_API_KEY no está configurada. La generación de contenido requiere credenciales reales.",
       );
+      throw new Error("OPENAI_API_KEY is required to initialize OpenAIService");
     }
 
     this.client = new OpenAI({
-      apiKey: apiKey || "dummy-key-for-testing",
+      apiKey,
     });
 
     // Configuration

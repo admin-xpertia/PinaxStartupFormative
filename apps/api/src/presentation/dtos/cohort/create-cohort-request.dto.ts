@@ -64,7 +64,7 @@ export class CreateCohortRequestDto {
 
   @ApiPropertyOptional({
     description: "ID del instructor asignado",
-    example: "user:instructor_demo",
+    example: "user:instructor_001",
   })
   @IsOptional()
   @IsString()

@@ -41,7 +41,7 @@ export class AuthUserDto {
 
   @ApiProperty({
     description: "ID del perfil de estudiante (cuando aplica)",
-    example: "estudiante:demo",
+    example: "estudiante:abc123",
     required: false,
   })
   studentId?: string;

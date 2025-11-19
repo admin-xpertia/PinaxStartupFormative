@@ -939,10 +939,8 @@ export class ExerciseInstanceController {
       throw new NotFoundException(`Published exercise not found: ${id}`);
     }
 
-    const resolvedEstudianteId =
-      estudianteId?.trim() || process.env.DEFAULT_STUDENT_ID || null;
-    const resolvedCohorteId =
-      cohorteId?.trim() || process.env.DEFAULT_COHORTE_ID || null;
+    const resolvedEstudianteId = estudianteId?.trim() || null;
+    const resolvedCohorteId = cohorteId?.trim() || null;
 
     let savedData: any = undefined;
     let progressStatus: string | undefined;
