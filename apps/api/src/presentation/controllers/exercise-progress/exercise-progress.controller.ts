@@ -115,7 +115,7 @@ export class ExerciseProgressController {
       }
       this.logger.debug(`[startExercise] Original: ${exerciseId}, Decoded: ${decodedId}`);
 
-      const { estudianteId, cohorteId } = this.resolveStudentContext({
+      const { estudianteId, cohorteId } = await this.resolveStudentContext({
         bodyEstudianteId: startDto.estudianteId,
         bodyCohorteId: startDto.cohorteId,
         queryEstudianteId: estudianteIdQuery,
@@ -186,7 +186,7 @@ export class ExerciseProgressController {
     this.logger.debug(`[DEBUG] saveProgress - datos field: ${JSON.stringify(saveDto.datos)}`);
 
     const decodedId = this.decodeExerciseId(exerciseId);
-    const { estudianteId, cohorteId } = this.resolveStudentContext({
+    const { estudianteId, cohorteId } = await this.resolveStudentContext({
       bodyEstudianteId: saveDto.estudianteId,
       bodyCohorteId: saveDto.cohorteId,
       queryEstudianteId: estudianteIdQuery,
@@ -300,7 +300,7 @@ export class ExerciseProgressController {
     @Query("cohorteId") cohorteIdQuery?: string,
   ): Promise<SubmitExerciseForGradingResponseDto> {
     const decodedId = this.decodeExerciseId(exerciseId);
-    const { estudianteId, cohorteId } = this.resolveStudentContext({
+    const { estudianteId, cohorteId } = await this.resolveStudentContext({
       bodyEstudianteId: submitDto.estudianteId,
       bodyCohorteId: submitDto.cohorteId,
       queryEstudianteId: estudianteIdQuery,
@@ -353,7 +353,7 @@ export class ExerciseProgressController {
     @Query("cohorteId") cohorteIdQuery?: string,
   ): Promise<CompleteExerciseResponseDto> {
     const decodedId = this.decodeExerciseId(exerciseId);
-    const { estudianteId, cohorteId } = this.resolveStudentContext({
+    const { estudianteId, cohorteId } = await this.resolveStudentContext({
       bodyEstudianteId: completeDto.estudianteId,
       bodyCohorteId: completeDto.cohorteId,
       queryEstudianteId: estudianteIdQuery,
@@ -547,7 +547,7 @@ export class ExerciseProgressController {
   ): Promise<ExerciseProgressResponseDto> {
     const decodedId = this.decodeExerciseId(exerciseId);
     const { estudianteId: resolvedEstudianteId, cohorteId: resolvedCohorteId } =
-      this.resolveStudentContext({
+      await this.resolveStudentContext({
         queryEstudianteId: estudianteId,
         queryCohorteId: cohorteId,
       });
@@ -953,7 +953,7 @@ export class ExerciseProgressController {
     const {
       estudianteId: resolvedEstudianteId,
       cohorteId: resolvedCohorteId,
-    } = this.resolveStudentContext({
+    } = await this.resolveStudentContext({
       queryEstudianteId: estudianteId,
       queryCohorteId: cohorteId,
     });
@@ -1659,7 +1659,7 @@ export class ExerciseProgressController {
   /**
    * Helpers
    */
-  private resolveStudentContext(params: {
+  private async resolveStudentContext(params: {
     bodyEstudianteId?: string | null;
     bodyCohorteId?: string | null;
     queryEstudianteId?: string | null;
@@ -1687,9 +1687,25 @@ export class ExerciseProgressController {
       );
     }
 
-    // TODO: Agregar validación para verificar que el cohorte existe en la BD
-    // y que pertenece al programa correcto del ejercicio
-    // Por ahora, la búsqueda de submissions se hace también por programa (más robusto)
+    // PREVENCIÓN: Validar que el cohorte existe en la base de datos
+    const cohortQuery = `SELECT id, programa FROM type::thing($cohorteId)`;
+    const cohortResult = await this.db.query(cohortQuery, { cohorteId });
+    const cohort = this.extractFirstRecord(cohortResult);
+
+    if (!cohort) {
+      this.logger.error(
+        `[resolveStudentContext] Cohort not found: ${cohorteId}`,
+      );
+      throw new BadRequestException(
+        `El cohorte ${cohorteId} no existe en la base de datos. ` +
+          `Verifica que el estudiante esté inscrito en un cohorte válido.`,
+      );
+    }
+
+    this.logger.debug(`[resolveStudentContext] Valid cohort found:`, {
+      cohorteId,
+      programaId: cohort.programa,
+    });
 
     return { estudianteId, cohorteId };
   }
