@@ -116,10 +116,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           setUser(parsedUser)
 
-          if (storedEnrollment) {
-            setEnrollment(JSON.parse(storedEnrollment))
-          } else if (parsedUser.rol === "estudiante" && parsedUser.studentId) {
+          // Siempre refrescar enrollment desde la API para asegurar datos actualizados
+          if (parsedUser.rol === "estudiante" && parsedUser.studentId) {
             await fetchStudentEnrollment(parsedUser.studentId)
+          } else if (storedEnrollment) {
+            // Fallback a localStorage solo si no es estudiante o no tiene studentId
+            setEnrollment(JSON.parse(storedEnrollment))
           }
         }
       } catch (error) {

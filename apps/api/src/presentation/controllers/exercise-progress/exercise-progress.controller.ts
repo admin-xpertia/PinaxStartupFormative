@@ -1680,12 +1680,12 @@ export class ExerciseProgressController {
     queryEstudianteId?: string | null;
     queryCohorteId?: string | null;
   }) {
-    const estudianteId =
+    let estudianteId =
       params.bodyEstudianteId?.trim() ||
       params.queryEstudianteId?.trim() ||
       null;
 
-    const cohorteId =
+    let cohorteId =
       params.bodyCohorteId?.trim() ||
       params.queryCohorteId?.trim() ||
       null;
@@ -1700,6 +1700,17 @@ export class ExerciseProgressController {
       throw new BadRequestException(
         "Los parámetros estudianteId y cohorteId son requeridos",
       );
+    }
+
+    // Decodificar IDs si contienen caracteres URL-encoded
+    if (estudianteId.includes('%')) {
+      estudianteId = decodeURIComponent(estudianteId);
+      this.logger.debug(`[resolveStudentContext] Decoded estudianteId: ${estudianteId}`);
+    }
+
+    if (cohorteId.includes('%')) {
+      cohorteId = decodeURIComponent(cohorteId);
+      this.logger.debug(`[resolveStudentContext] Decoded cohorteId: ${cohorteId}`);
     }
 
     // PREVENCIÓN: Validar que el cohorte existe en la base de datos
