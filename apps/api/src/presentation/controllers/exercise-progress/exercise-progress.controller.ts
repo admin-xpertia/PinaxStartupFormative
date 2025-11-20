@@ -664,7 +664,53 @@ export class ExerciseProgressController {
       "submitted_for_review",
     ]);
 
-    const submissionsQuery = `
+    // FIX: Primero obtenemos el programa del cohorte para buscar por ejercicios también
+    const cohortProgramQuery = `
+      SELECT programa FROM type::thing($cohorteId)
+    `;
+    const cohortProgramResult = await this.db.query(cohortProgramQuery, {
+      cohorteId: decodedCohorteId,
+    });
+    const cohortRecord = this.extractFirstRecord(cohortProgramResult);
+    const programId =
+      typeof cohortRecord?.programa === "string"
+        ? cohortRecord.programa
+        : typeof cohortRecord?.programa?.id === "string"
+          ? cohortRecord.programa.id
+          : null;
+
+    this.logger.log(
+      `[Submissions Debug] Cohort program: ${programId}`,
+    );
+
+    // FIX: Buscar submissions por cohorte O por ejercicios del programa (más robusto)
+    const submissionsQuery = programId
+      ? `
+      SELECT
+        id,
+        estudiante,
+        exercise_instance,
+        status,
+        estado,
+        submitted_at,
+        fecha_completado,
+        updated_at,
+        ai_score,
+        final_score,
+        score_final
+      FROM exercise_progress
+      WHERE (
+          cohorte = type::thing($cohorteId)
+          OR exercise_instance.proof_point.fase.programa = type::thing($programId)
+        )
+        AND (
+          status INSIDE ['pending_review', 'submitted_for_review']
+          OR estado = 'pendiente_revision'
+        )
+      ORDER BY submitted_at ASC, updated_at ASC
+      LIMIT ${fetchLimit}
+    `
+      : `
       SELECT
         id,
         estudiante,
@@ -689,6 +735,7 @@ export class ExerciseProgressController {
 
     const submissionsResult = await this.db.query(submissionsQuery, {
       cohorteId: decodedCohorteId,
+      programId: programId,
     });
 
     // FIX: Debug logging para identificar problemas con submissions vacías
@@ -1654,6 +1701,10 @@ export class ExerciseProgressController {
         "Los parámetros estudianteId y cohorteId son requeridos",
       );
     }
+
+    // TODO: Agregar validación para verificar que el cohorte existe en la BD
+    // y que pertenece al programa correcto del ejercicio
+    // Por ahora, la búsqueda de submissions se hace también por programa (más robusto)
 
     return { estudianteId, cohorteId };
   }
