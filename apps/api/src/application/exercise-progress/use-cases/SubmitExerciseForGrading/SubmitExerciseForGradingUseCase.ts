@@ -142,6 +142,10 @@ export class SubmitExerciseForGradingUseCase
             ? progress.score_final
             : aiJudgement.score ?? 0;
 
+      // FIX: Serializar objetos complejos como JSON strings para evitar problemas con SurrealDB
+      const feedbackStr = JSON.stringify(feedbackValue);
+      const datosStr = JSON.stringify(submissionData);
+
       const updateResult = await this.db.query(
         `
         UPDATE type::thing($progressId) MERGE {
@@ -152,9 +156,9 @@ export class SubmitExerciseForGradingUseCase
           ai_score: $aiScore,
           final_score: $finalScore,
           graded_at: time::now(),
-          feedback_json: $feedback,
-          feedback_data: $feedback,
-          datos_guardados: $datos,
+          feedback_json: $feedbackStr,
+          feedback_data: $feedbackStr,
+          datos_guardados: $datosStr,
           tiempo_invertido_minutos: $tiempoInvertido,
           updated_at: time::now()
         } RETURN AFTER
@@ -163,8 +167,8 @@ export class SubmitExerciseForGradingUseCase
           progressId: progress.id,
           aiScore: aiJudgement.score,
           finalScore: finalScoreForRecord,
-          feedback: feedbackValue,
-          datos: submissionData,
+          feedbackStr: feedbackStr,
+          datosStr: datosStr,
           tiempoInvertido: Math.max(request.tiempoInvertidoMinutos ?? 0, 0),
         },
       );

@@ -676,6 +676,14 @@ export class ExerciseProgressController {
       cohorteId: decodedCohorteId,
     });
 
+    // FIX: Debug logging para identificar problemas con submissions vacías
+    this.logger.log(
+      `[Submissions Debug] Query executed for cohort: ${decodedCohorteId}`,
+    );
+    this.logger.log(
+      `[Submissions Debug] Raw result: ${JSON.stringify(submissionsResult)}`,
+    );
+
     let progressRecords: any[] = [];
     if (Array.isArray(submissionsResult) && submissionsResult.length > 0) {
       progressRecords = Array.isArray(submissionsResult[0])
@@ -685,7 +693,25 @@ export class ExerciseProgressController {
           : [];
     }
 
+    this.logger.log(
+      `[Submissions Debug] Progress records extracted: ${progressRecords.length}`,
+    );
+    this.logger.log(
+      `[Submissions Debug] Records details: ${JSON.stringify(
+        progressRecords.map((r) => ({
+          id: r.id,
+          cohorte: r.cohorte,
+          status: r.status,
+          estado: r.estado,
+          estudiante: r.estudiante,
+        })),
+      )}`,
+    );
+
     if (!progressRecords.length) {
+      this.logger.warn(
+        `[Submissions Debug] No progress records found for cohort ${decodedCohorteId}`,
+      );
       return [];
     }
 
@@ -697,7 +723,31 @@ export class ExerciseProgressController {
       .filter(({ status }) => pendingStatuses.has(status))
       .slice(0, limit);
 
+    this.logger.log(
+      `[Submissions Debug] Filtered records: ${filtered.length}`,
+    );
+    this.logger.log(
+      `[Submissions Debug] Filtered details: ${JSON.stringify(
+        filtered.map((f) => ({
+          id: f.record.id,
+          status: f.status,
+          originalStatus: f.record.status,
+          originalEstado: f.record.estado,
+        })),
+      )}`,
+    );
+
     if (!filtered.length) {
+      this.logger.warn(
+        `[Submissions Debug] No submissions after filtering. All statuses: ${JSON.stringify(
+          progressRecords.map((r) => ({
+            id: r.id,
+            status: r.status,
+            estado: r.estado,
+            normalizedStatus: this.normalizeStatusFromRecord(r),
+          })),
+        )}`,
+      );
       return [];
     }
 
