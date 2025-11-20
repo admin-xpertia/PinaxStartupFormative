@@ -20,39 +20,10 @@ DEFINE FIELD feedback_data ON exercise_progress TYPE option<string>;
 DEFINE FIELD datos_guardados ON exercise_progress TYPE option<string>;
 DEFINE FIELD datos ON exercise_progress TYPE option<string>;
 
--- Paso 3: Convertir datos existentes que sean objects a strings JSON
--- (Esto actualiza los registros que ya tienen datos)
-UPDATE exercise_progress SET
-  feedback_json = string::is::string(feedback_json)
-    ? feedback_json
-    : type::is::none(feedback_json)
-      ? NONE
-      : <string>feedback_json
-WHERE feedback_json != NONE;
-
-UPDATE exercise_progress SET
-  feedback_data = string::is::string(feedback_data)
-    ? feedback_data
-    : type::is::none(feedback_data)
-      ? NONE
-      : <string>feedback_data
-WHERE feedback_data != NONE;
-
-UPDATE exercise_progress SET
-  datos_guardados = string::is::string(datos_guardados)
-    ? datos_guardados
-    : type::is::none(datos_guardados)
-      ? NONE
-      : <string>datos_guardados
-WHERE datos_guardados != NONE;
-
-UPDATE exercise_progress SET
-  datos = string::is::string(datos)
-    ? datos
-    : type::is::none(datos)
-      ? NONE
-      : <string>datos
-WHERE datos != NONE;
+-- Paso 3: Los datos existentes se convertirán automáticamente
+-- SurrealDB intentará convertir los objects a strings cuando se lean/escriban
+-- El backend ya maneja deserialización con normalizeFeedbackPayload()
+-- Los nuevos registros (después del fix de código) se guardarán como strings JSON
 
 -- Paso 4: Verificar la migración
 SELECT
@@ -80,8 +51,13 @@ FROM exercise_progress;
 -- 2. apps/api/src/presentation/controllers/exercise-progress/exercise-progress.controller.ts
 --    - normalizeFeedbackPayload() maneja tanto strings como objects (ya existía)
 --    - Los datos se deserializan automáticamente al leer
+--    - Agregados logs de debugging para submissions endpoint
 --
--- 3. No se requieren cambios en el frontend - la API sigue retornando objetos JavaScript
+-- 3. apps/instructor-app/app/api/cohorts/[id]/analytics/route.ts
+--    - Normalización de IDs antes de comparar cohorts
+--    - Logs de debugging para identificar problemas de matching
+--
+-- 4. No se requieren cambios en el frontend - la API sigue retornando objetos JavaScript
 -- ============================================================================
 
 -- ============================================================================
