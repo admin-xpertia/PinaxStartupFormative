@@ -199,10 +199,16 @@ export class ExerciseProgressController {
       cohorteId,
     );
 
-    const normalizedDatos = this.normalizeDatosForStorage(
-      saveDto.datos ?? progress?.datos_guardados ?? progress?.datos,
-      progress?.datos_guardados ?? progress?.datos ?? {},
+    const existingDatos = this.parseJsonField(
+      progress?.datos_guardados ?? progress?.datos,
+      {},
     );
+
+    const normalizedDatos = this.normalizeDatosForStorage(
+      saveDto.datos ?? existingDatos,
+      existingDatos,
+    );
+    const datosJson = this.ensureJsonString(normalizedDatos, existingDatos);
 
     if (!progress) {
       await this.getPublishedExerciseOrThrow(decodedId);
@@ -214,7 +220,7 @@ export class ExerciseProgressController {
         status: "in_progress",
         porcentajeCompletitud: saveDto.porcentajeCompletitud ?? 0,
         tiempoInvertidoMinutos: saveDto.tiempoInvertidoMinutos ?? 0,
-        datosGuardados: normalizedDatos,
+        datosGuardados: datosJson,
       });
     }
 
@@ -252,7 +258,7 @@ export class ExerciseProgressController {
         saveDto.porcentajeCompletitud ?? progress.porcentaje_completitud,
       tiempo:
         saveDto.tiempoInvertidoMinutos ?? progress.tiempo_invertido_minutos,
-      datos: normalizedDatos,
+      datos: datosJson,
       instructorFeedback,
     });
 
@@ -366,6 +372,15 @@ export class ExerciseProgressController {
       );
     }
 
+    const serializedDatos = this.normalizeDatosForStorage(
+      completeDto.datos,
+      completeDto.datos ?? {},
+    );
+    const datosJson = this.ensureJsonString(
+      serializedDatos,
+      completeDto.datos ?? {},
+    );
+
     // Get existing progress
     const getProgressQuery = `
       SELECT * FROM exercise_progress
@@ -418,7 +433,7 @@ export class ExerciseProgressController {
       tiempo:
         completeDto.tiempoInvertidoMinutos ?? progress.tiempo_invertido_minutos,
       score: completeDto.scoreFinal ?? null,
-      datos: completeDto.datos,
+      datos: datosJson,
       instructorFeedback: progress.instructor_feedback ?? null,
     });
 
@@ -1694,7 +1709,7 @@ export class ExerciseProgressController {
     status?: ExerciseProgressStatus | string;
     porcentajeCompletitud?: number;
     tiempoInvertidoMinutos?: number;
-    datosGuardados?: Record<string, any> | any[];
+    datosGuardados?: Record<string, any> | any[] | string;
   }): Promise<any | null> {
     const {
       exerciseId,
@@ -1707,9 +1722,18 @@ export class ExerciseProgressController {
       datosGuardados,
     } = params;
 
-    const sanitizedDatos = this.normalizeDatosForStorage(
-      datosGuardados,
-      datosGuardados ?? {},
+    // Ensure datos is always a JSON string
+    let datosJsonString: string;
+    if (typeof datosGuardados === 'string') {
+      datosJsonString = datosGuardados;
+    } else {
+      datosJsonString = JSON.stringify(datosGuardados ?? {});
+    }
+
+    this.logger.debug(
+      `[createProgressRecord] datosGuardados typeof=${typeof datosJsonString} preview=${
+        datosJsonString?.length ? datosJsonString.substring(0, 120) : datosJsonString
+      }`,
     );
 
     const createProgressQuery = `
@@ -1741,32 +1765,125 @@ export class ExerciseProgressController {
       status: status ?? "in_progress",
       porcentaje: Math.max(0, Math.min(100, porcentajeCompletitud ?? 0)),
       tiempo: Math.max(0, tiempoInvertidoMinutos ?? 0),
-      datosGuardados: sanitizedDatos,
+      datosGuardados: datosJsonString,
     });
 
     return this.extractFirstRecord(createResult);
   }
 
-  private normalizeDatosForStorage(
-    raw: any,
-    fallback: any = {},
-  ): Record<string, any> | any[] {
-    if (raw === undefined || raw === null) {
-      return fallback ?? {};
+  private parseJsonField(payload: any, fallback: any = null): any {
+    if (payload === undefined || payload === null) {
+      return fallback ?? null;
     }
 
-    try {
-      const cloned = JSON.parse(JSON.stringify(raw));
-      if (cloned && typeof cloned === "object") {
-        return cloned;
+    if (typeof payload === "string") {
+      const trimmed = payload.trim();
+      if (!trimmed) {
+        return fallback ?? null;
       }
-      return { value: cloned };
+      try {
+        return JSON.parse(trimmed);
+      } catch (error) {
+        this.logger.warn(
+          `[parseJsonField] No se pudo parsear JSON`,
+          error instanceof Error ? error.message : error,
+        );
+        return fallback ?? null;
+      }
+    }
+
+    if (typeof payload === "object") {
+      try {
+        return JSON.parse(JSON.stringify(payload));
+      } catch (error) {
+        this.logger.warn(
+          `[parseJsonField] No se pudo clonar payload`,
+          error instanceof Error ? error.message : error,
+        );
+        return payload;
+      }
+    }
+
+    return fallback ?? null;
+  }
+
+  private normalizeDatosForStorage(raw: any, fallback: any = {}): string {
+    const baseValue =
+      raw === undefined || raw === null ? fallback ?? {} : raw;
+
+    if (typeof baseValue === "string") {
+      const trimmed = baseValue.trim();
+      if (!trimmed) {
+        return JSON.stringify(fallback ?? {});
+      }
+      try {
+        JSON.parse(trimmed);
+        return trimmed;
+      } catch (error) {
+        this.logger.warn(
+          `[normalizeDatosForStorage] Cadena inválida, usando fallback`,
+          error instanceof Error ? error.message : error,
+        );
+        return JSON.stringify(fallback ?? {});
+      }
+    }
+
+    let clonedValue: any = baseValue;
+    try {
+      clonedValue = JSON.parse(JSON.stringify(baseValue ?? {}));
     } catch (error) {
       this.logger.warn(
         `[normalizeDatosForStorage] No se pudo serializar datos, usando fallback`,
         error instanceof Error ? error.message : error,
       );
-      return fallback ?? {};
+      clonedValue = fallback ?? {};
+    }
+
+    try {
+      return JSON.stringify(clonedValue ?? {});
+    } catch (error) {
+      this.logger.warn(
+        `[normalizeDatosForStorage] No se pudo serializar fallback`,
+        error instanceof Error ? error.message : error,
+      );
+      return JSON.stringify({});
+    }
+  }
+
+  private ensureJsonString(value: any, fallback: any = {}): string {
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed.length > 0) {
+        try {
+          JSON.parse(trimmed);
+          return trimmed;
+        } catch (error) {
+          this.logger.warn(
+            `[ensureJsonString] String inválida, serializando fallback`,
+            error instanceof Error ? error.message : error,
+          );
+        }
+      }
+    }
+
+    try {
+      return JSON.stringify(
+        value !== undefined && value !== null ? value : fallback ?? {},
+      );
+    } catch (error) {
+      this.logger.warn(
+        `[ensureJsonString] No se pudo serializar valor`,
+        error instanceof Error ? error.message : error,
+      );
+      try {
+        return JSON.stringify(fallback ?? {});
+      } catch (fallbackError) {
+        this.logger.warn(
+          `[ensureJsonString] No se pudo serializar fallback`,
+          fallbackError instanceof Error ? fallbackError.message : fallbackError,
+        );
+        return "{}";
+      }
     }
   }
 
@@ -2434,10 +2551,10 @@ ${evaluationDto.respuestaEstudiante}`;
    */
   private mapProgressToDto(progress: any): ExerciseProgressResponseDto {
     const status = this.normalizeStatusFromRecord(progress);
-    const datosGuardados =
-      progress?.datos_guardados ??
-      progress?.datos ??
-      {};
+    const datosGuardados = this.parseJsonField(
+      progress?.datos_guardados ?? progress?.datos,
+      {},
+    );
 
     // CORRECCIÓN: Mapear explícitamente feedback_json a feedbackJson
     const feedbackJson = this.normalizeFeedbackPayload(

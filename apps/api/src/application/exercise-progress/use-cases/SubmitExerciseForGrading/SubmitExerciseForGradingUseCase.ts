@@ -72,8 +72,12 @@ export class SubmitExerciseForGradingUseCase
         );
       }
 
-      const submissionData =
-        request.datos ?? progress.datos_guardados ?? progress.datos ?? null;
+      const storedDatos = this.parseJsonField(
+        progress.datos_guardados ?? progress.datos,
+        null,
+      );
+
+      const submissionData = request.datos ?? storedDatos ?? null;
 
       if (!submissionData) {
         return Result.fail(
@@ -189,6 +193,42 @@ export class SubmitExerciseForGradingUseCase
       this.logger.error("Error enviando ejercicio a calificación", error);
       return Result.fail(error as Error);
     }
+  }
+
+  private parseJsonField(payload: any, fallback: any = null): any {
+    if (payload === undefined || payload === null) {
+      return fallback;
+    }
+
+    if (typeof payload === "string") {
+      const trimmed = payload.trim();
+      if (!trimmed) {
+        return fallback;
+      }
+      try {
+        return JSON.parse(trimmed);
+      } catch (error) {
+        this.logger.warn(
+          `[SubmitExerciseForGrading] No se pudo parsear JSON`,
+          error instanceof Error ? error.message : error,
+        );
+        return fallback;
+      }
+    }
+
+    if (typeof payload === "object") {
+      try {
+        return JSON.parse(JSON.stringify(payload));
+      } catch (error) {
+        this.logger.warn(
+          `[SubmitExerciseForGrading] No se pudo clonar payload`,
+          error instanceof Error ? error.message : error,
+        );
+        return payload;
+      }
+    }
+
+    return fallback;
   }
 
   private async findProgressRecord(

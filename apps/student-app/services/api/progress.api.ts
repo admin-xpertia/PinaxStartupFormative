@@ -2,6 +2,7 @@
 
 import { apiClient } from "./client"
 import type { ProofPointProgress, ActivityLog, ContinuePoint } from "@/types/progress"
+import type { SaveProgressParams } from "./exercises.api"
 
 /**
  * Types for Progress Summary
@@ -63,14 +64,18 @@ export const progressApi = {
 
   /**
    * Auto-guardar progreso (debounced, fire-and-forget)
+   * Reutiliza el endpoint estándar de progreso para evitar rutas inexistentes
    */
-  async autoSave(exerciseId: string, data: any): Promise<void> {
-    // No espera respuesta, solo envía
-    await apiClient.post(`/student/exercises/${exerciseId}/auto-save`, { data })
-      .catch((error) => {
-        // Log pero no interrumpe la experiencia
-        console.warn("Auto-save failed:", error)
-      })
+  async autoSave(exerciseId: string, payload: SaveProgressParams): Promise<void> {
+    try {
+      await apiClient.put(
+        `/student/exercises/${encodeURIComponent(exerciseId)}/progress`,
+        payload
+      )
+    } catch (error) {
+      // Log pero no interrumpe la experiencia
+      console.warn("Auto-save failed:", error)
+    }
   },
 
   /**

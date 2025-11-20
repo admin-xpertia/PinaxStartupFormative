@@ -973,10 +973,11 @@ export class ExerciseInstanceController {
         }
 
         if (progress) {
-          savedData =
-            progress.datos_guardados ??
-            progress.datos ??
-            undefined;
+          const parsedSavedData = this.parseJsonField(
+            progress.datos_guardados ?? progress.datos,
+            undefined,
+          );
+          savedData = parsedSavedData ?? undefined;
           progressStatus = progress.status || progress.estado;
           progressPercentage = progress.porcentaje_completitud;
         }
@@ -1327,6 +1328,43 @@ export class ExerciseInstanceController {
         throw new BadRequestException(error.message);
       },
     });
+  }
+
+  private parseJsonField(payload: any, fallback?: any): any {
+    if (payload === undefined || payload === null) {
+      return fallback;
+    }
+
+    if (typeof payload === "string") {
+      const trimmed = payload.trim();
+      if (!trimmed) {
+        return fallback;
+      }
+
+      try {
+        return JSON.parse(trimmed);
+      } catch (error) {
+        this.logger.warn(
+          `[ExerciseInstanceController] No se pudo parsear JSON`,
+          error instanceof Error ? error.message : error,
+        );
+        return fallback;
+      }
+    }
+
+    if (typeof payload === "object") {
+      try {
+        return JSON.parse(JSON.stringify(payload));
+      } catch (error) {
+        this.logger.warn(
+          `[ExerciseInstanceController] No se pudo clonar payload`,
+          error instanceof Error ? error.message : error,
+        );
+        return payload;
+      }
+    }
+
+    return fallback;
   }
 
   /**
